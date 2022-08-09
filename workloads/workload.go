@@ -1,7 +1,9 @@
 package workloads
 
-import "github.com/threefoldtech/zos/pkg/gridtypes"
+import (
+	"github.com/threefoldtech/grid3-go/deployer"
+)
 
 type Workload interface {
-	Convert() []gridtypes.Workload
+	Convert(d deployer.DeploymentManager)
 }
