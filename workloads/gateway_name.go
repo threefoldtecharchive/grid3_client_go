@@ -1,11 +1,13 @@
 package workloads
 
 import (
+	"github.com/threefoldtech/grid3-go/deployer"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
 type GatewayNameProxy struct {
+	NodeId uint32
 	// Name the fully qualified domain name to use (cannot be present with Name)
 	Name string
 
@@ -39,7 +41,7 @@ type GatewayNameProxy struct {
 // 	}, nil
 // }
 
-func (g *GatewayNameProxy) Convert() []gridtypes.Workload { //ZosWorkload()
+func (g *GatewayNameProxy) Convert(manager deployer.DeploymentManager) { //ZosWorkload()
 	workloads := make([]gridtypes.Workload, 0)
 	workload := gridtypes.Workload{
 		Version: 0,
@@ -52,7 +54,9 @@ func (g *GatewayNameProxy) Convert() []gridtypes.Workload { //ZosWorkload()
 			Backends:       g.Backends,
 		}),
 	}
-
 	workloads = append(workloads, workload)
-	return workloads
+
+	for _, w := range workloads {
+		manager.SetWorkload(g.NodeId, w)
+	}
 }
