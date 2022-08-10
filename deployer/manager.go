@@ -1,9 +1,14 @@
 package deployer
 
 import (
+	"context"
+	"encoding/hex"
 	"errors"
+	"fmt"
+	"time"
 
 	substratemanager "github.com/threefoldtech/grid3-go/substrate_manager"
+	"github.com/threefoldtech/substrate-client"
 	"github.com/threefoldtech/zos/client"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 )
@@ -22,6 +27,7 @@ type DeploymentManager interface {
 }
 
 type deploymentManager struct {
+	identity           substrate.Identity
 	twinID             uint32
 	deploymentIDs      map[uint32]uint64
 	deployments        map[uint32]gridtypes.Deployment
@@ -31,9 +37,10 @@ type deploymentManager struct {
 	//connection field
 }
 
-func NewDeploymentManager(twinID uint32, sub substratemanager.Manager, nodeClient *client.NodeClient) DeploymentManager {
+func NewDeploymentManager(identity substrate.Identity, twinID uint32, sub substratemanager.Manager, nodeClient *client.NodeClient) DeploymentManager {
 
 	return &deploymentManager{
+		identity,
 		twinID,
 		make(map[uint32]uint64),
 		make(map[uint32]gridtypes.Deployment),
@@ -51,6 +58,38 @@ func (d *deploymentManager) CancelAll() {
 // }
 func (d *deploymentManager) Commit() error {
 	// generate gridtypes.Deployment from plannedDeployments
+	for nodeID, deployment := range d.plannedDeployments {
+		h, err := deployment.ChallengeHash()
+		if err != nil {
+			return err
+		}
+		hex := hex.EncodeToString(h)
+		err = deployment.Sign(d.twinID, d.identity)
+		if err != nil {
+			return err
+		}
+		sub, err := d.substrate.SubstrateExt()
+		if err != nil {
+			return err
+		}
+		// !!!
+		// should count public ips and use them in creating contract
+		contractID, err := sub.CreateNodeContract(d.identity, nodeID, nil, hex, 0)
+		deployment.ContractID = contractID
+		ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
+		defer cancel()
+		err = d.nodeClient.DeploymentDeploy(ctx, deployment)
+		if err != nil {
+			rerr := sub.EnsureContractCanceled(d.identity, contractID)
+			if rerr != nil {
+				return fmt.Errorf("error sending deployment to the node: %w, error cancelling contract: %s; you must cancel it manually (id: %d)", err, rerr, contractID)
+			} else {
+				return errors.New("error sending deployment to the node")
+			}
+		}
+		d.deployments[nodeID] = deployment
+		d.deploymentIDs[nodeID] = deployment.ContractID
+	}
 	return nil
 
 }
