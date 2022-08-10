@@ -114,7 +114,7 @@ func (q *QSFS) Convert(manager deployer.DeploymentManager) error {
 		}),
 	}
 
-	error := manager.SetWorkload(q.NodeId, workload)
-	return error
+	err = manager.SetWorkload(q.NodeId, workload)
+	return err
 
 }
