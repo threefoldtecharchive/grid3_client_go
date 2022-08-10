@@ -1,6 +1,8 @@
 package deployer
 
 import (
+	substratemanager "github.com/threefoldtech/grid3-go/substrate_manager"
+	"github.com/threefoldtech/zos/client"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 )
 
@@ -21,14 +23,19 @@ type deploymentManager struct {
 	deploymentIDs      map[uint32]uint64
 	deployments        map[uint32]gridtypes.Deployment
 	plannedDeployments map[uint32]gridtypes.Deployment
+	nodeClient         *client.NodeClient
+	substrate          substratemanager.Manager
 	//connection field
 }
 
-func NewDeploymentManager() DeploymentManager {
+func NewDeploymentManager(sub substratemanager.Manager, nodeClient *client.NodeClient) DeploymentManager {
+
 	return &deploymentManager{
 		make(map[uint32]uint64),
 		make(map[uint32]gridtypes.Deployment),
 		make(map[uint32]gridtypes.Deployment),
+		nodeClient,
+		sub,
 	}
 }
 func (d *deploymentManager) CancelAll() {
@@ -40,7 +47,10 @@ func (d *deploymentManager) CancelAll() {
 // }
 func (d *deploymentManager) Commit() error {
 	// generate gridtypes.Deployment from plannedDeployments
+	sub.
+
 }
+
 func (d *deploymentManager) SetWorkload(nodeID uint32, workload gridtypes.Workload) error {
 	// move workload to planned deployments
 }
