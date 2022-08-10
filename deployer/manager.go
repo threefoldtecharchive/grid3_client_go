@@ -5,12 +5,14 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	substratemanager "github.com/threefoldtech/grid3-go/substrate_manager"
 	"github.com/threefoldtech/substrate-client"
 	"github.com/threefoldtech/zos/client"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
+	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
 type DeploymentManager interface {
@@ -72,9 +74,8 @@ func (d *deploymentManager) Commit() error {
 		if err != nil {
 			return err
 		}
-		// !!!
-		// should count public ips and use them in creating contract
-		contractID, err := sub.CreateNodeContract(d.identity, nodeID, nil, hex, 0)
+		pubIPCount := countDeploymentPublicIPs(deployment)
+		contractID, err := sub.CreateNodeContract(d.identity, nodeID, nil, hex, pubIPCount)
 		deployment.ContractID = contractID
 		ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 		defer cancel()
@@ -123,4 +124,21 @@ func (d *deploymentManager) SetWorkload(nodeID uint32, workload gridtypes.Worklo
 		d.plannedDeployments[nodeID] = newDeployment
 	}
 	return nil
+}
+
+func countDeploymentPublicIPs(dl gridtypes.Deployment) uint32 {
+	var res uint32 = 0
+	for _, wl := range dl.Workloads {
+		if wl.Type == zos.PublicIPType {
+			data, err := wl.WorkloadData()
+			if err != nil {
+				log.Printf("couldn't parse workload data %s", err.Error())
+				continue
+			}
+			if data.(*zos.PublicIP).V4 {
+				res++
+			}
+		}
+	}
+	return res
 }
