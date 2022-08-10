@@ -39,7 +39,13 @@ func NewDeploymentManager(sub substratemanager.Manager, nodeClient *client.NodeC
 	}
 }
 func (d *deploymentManager) CancelAll() {
+	for id := range deploymentIDs {
+		delete(deploymentIDs, id)
+	}
 
+	for deployment := range deployments {
+		delete(deployments, deployment)
+	}
 }
 
 // func (d *deploymentManager) CancelNodeDeployment(nodeID uint32) {

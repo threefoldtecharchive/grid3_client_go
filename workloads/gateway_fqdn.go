@@ -1,7 +1,6 @@
 package workloads
 
 import (
-	"github.com/pkg/errors"
 	"github.com/threefoldtech/grid3-go/deployer"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
@@ -22,23 +21,7 @@ type GatewayFQDNProxy struct {
 	FQDN string
 }
 
-func GatewayFQDNProxyFromZosWorkload(wl gridtypes.Workload) (GatewayFQDNProxy, error) {
-	dataI, err := wl.WorkloadData()
-	if err != nil {
-		return GatewayFQDNProxy{}, errors.Wrap(err, "failed to get workload data")
-	}
-	data := dataI.(*zos.GatewayFQDNProxy)
-
-	return GatewayFQDNProxy{
-		Name:           wl.Name.String(),
-		TLSPassthrough: data.TLSPassthrough,
-		Backends:       data.Backends,
-		FQDN:           data.FQDN,
-	}, nil
-}
-
-func (g *GatewayFQDNProxy) Convert(manager deployer.DeploymentManager) { //ZosWorkload()
-	workloads := make([]gridtypes.Workload, 0)
+func (g *GatewayFQDNProxy) Convert(manager deployer.DeploymentManager) (err error) { //ZosWorkload()
 	workload := gridtypes.Workload{
 		Version: 0,
 		Type:    zos.GatewayFQDNProxyType,
@@ -50,9 +33,7 @@ func (g *GatewayFQDNProxy) Convert(manager deployer.DeploymentManager) { //ZosWo
 			FQDN:           g.FQDN,
 		}),
 	}
-	workloads = append(workloads, workload)
 
-	for _, w := range workloads {
-		manager.SetWorkload(g.NodeId, w)
-	}
+	err = manager.SetWorkload(g.NodeId, workload)
+	return err
 }
