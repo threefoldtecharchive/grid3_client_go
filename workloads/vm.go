@@ -101,6 +101,9 @@ func (v VM) Convert(manager deployer.DeploymentManager) (err error) {
 
 	for _, w := range workloads {
 		err = manager.SetWorkload(v.NodeId, w)
+		if err != nil {
+			return err
+		}
 	}
 
 	return err
