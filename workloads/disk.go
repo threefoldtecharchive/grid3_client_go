@@ -2,11 +2,13 @@ package workloads
 
 import (
 	"github.com/pkg/errors"
+	"github.com/threefoldtech/grid3-go/deployer"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
 type Disk struct {
+	NodeID      uint32
 	Name        string
 	Size        int
 	Description string
@@ -35,7 +37,7 @@ func NewDiskFromWorkload(wl *gridtypes.Workload) (Disk, error) {
 	}, nil
 }
 
-func (d *Disk) Convert() gridtypes.Workload {
+func (d *Disk) Convert(dm deployer.DeploymentManager) error {
 	workload := gridtypes.Workload{
 		Name:        gridtypes.Name(d.Name),
 		Version:     0,
@@ -45,6 +47,6 @@ func (d *Disk) Convert() gridtypes.Workload {
 			Size: gridtypes.Unit(d.Size) * gridtypes.Gigabyte,
 		}),
 	}
-
-	return workload
+	err := dm.SetWorkload(d.NodeID, workload)
+	return err
 }

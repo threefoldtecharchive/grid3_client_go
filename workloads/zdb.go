@@ -4,11 +4,13 @@ import (
 	"encoding/json"
 
 	"github.com/pkg/errors"
+	"github.com/threefoldtech/grid3-go/deployer"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
 type ZDB struct {
+	NodeID      uint32
 	Name        string
 	Password    string
 	Public      bool
@@ -67,7 +69,7 @@ func NewZDBFromWorkload(wl *gridtypes.Workload) (ZDB, error) {
 	}, nil
 }
 
-func (z *ZDB) Convert() gridtypes.Workload {
+func (z *ZDB) Convert(d deployer.DeploymentManager) error {
 	workload := gridtypes.Workload{
 		Name:        gridtypes.Name(z.Name),
 		Type:        zos.ZDBType,
@@ -80,5 +82,6 @@ func (z *ZDB) Convert() gridtypes.Workload {
 			Public:   z.Public,
 		}),
 	}
-	return workload
+	err := d.SetWorkload(z.NodeID, workload)
+	return err
 }

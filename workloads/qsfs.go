@@ -4,11 +4,13 @@ import (
 	"encoding/hex"
 
 	"github.com/pkg/errors"
+	"github.com/threefoldtech/grid3-go/deployer"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
 type QSFS struct {
+	NodeID               uint32
 	Name                 string
 	Description          string
 	Cache                int
@@ -171,14 +173,14 @@ func getBackends(backendsIf []interface{}) []Backend {
 	return backends
 }
 
-func (q *QSFS) Convert() (gridtypes.Workload, error) {
+func (q *QSFS) Convert(d deployer.DeploymentManager) error {
 	k, err := hex.DecodeString(q.EncryptionKey)
 	if err != nil {
-		return gridtypes.Workload{}, err
+		return err
 	}
 	mk, err := hex.DecodeString(q.EncryptionKey)
 	if err != nil {
-		return gridtypes.Workload{}, err
+		return err
 	}
 	workload := gridtypes.Workload{
 		Version:     0,
@@ -215,6 +217,6 @@ func (q *QSFS) Convert() (gridtypes.Workload, error) {
 			},
 		}),
 	}
-
-	return workload, nil
+	err = d.SetWorkload(q.NodeID, workload)
+	return err
 }
