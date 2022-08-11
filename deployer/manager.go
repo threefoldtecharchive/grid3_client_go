@@ -2,9 +2,9 @@ package deployer
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	client "github.com/threefoldtech/grid3-go/node"
 	substratemanager "github.com/threefoldtech/grid3-go/substrate_manager"
@@ -23,6 +23,7 @@ type DeploymentManager interface {
 	// SetWorkload adds the workload to the deployment associated with the node
 	//             it should load the deployment in initDeployments if it exists in deploymentIDs and not loaded
 	//             and return an error if the node is down for example
+	// GetWorkload(nodeId uint32, name string) error
 	SetWorkload(nodeID uint32, workload gridtypes.Workload) error
 }
 
@@ -53,6 +54,10 @@ func NewDeploymentManager(identity substrate.Identity, twinID uint32, deployment
 }
 func (d *deploymentManager) CancelAll() {
 	//TODO
+
+}
+
+func (d *deploymentManager) GetWorkload(nodeId uint32, name string) (gridtypes.Workload, error) {
 
 }
 
