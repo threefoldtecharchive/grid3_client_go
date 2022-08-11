@@ -3,12 +3,13 @@ package workloads
 import (
 	"encoding/hex"
 
-	"github.com/pkg/errors"
+	"github.com/threefoldtech/grid3-go/deployer"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
 type QSFS struct {
+	NodeId               uint32
 	Name                 string
 	Description          string
 	Cache                int
@@ -66,119 +67,16 @@ func (b *Backends) zosBackends() []zos.ZdbBackend {
 	return z
 }
 
-func BackendsFromZos(bs []zos.ZdbBackend) Backends {
-	z := make(Backends, 0)
-	for _, e := range bs {
-		z = append(z, Backend(e))
-	}
-	return z
-}
-
-func GroupsFromZos(gs []zos.ZdbGroup) Groups {
-	z := make(Groups, 0)
-	for _, e := range gs {
-		z = append(z, Group{
-			Backends: BackendsFromZos(e.Backends),
-		})
-	}
-	return z
-}
-
-func NewQSFSFromSchema(qsfs map[string]interface{}) QSFS {
-	metadataIf := qsfs["metadata"].([]interface{})
-	metadataMap := metadataIf[0].(map[string]interface{})
-
-	metadata := Metadata{
-		Type:                metadataMap["type"].(string),
-		Prefix:              metadataMap["prefix"].(string),
-		EncryptionAlgorithm: metadataMap["encryption_algorithm"].(string),
-		EncryptionKey:       metadataMap["encryption_key"].(string),
-		Backends:            getBackends(metadataMap["backends"].([]interface{})),
-	}
-	groupsIf := qsfs["groups"].([]interface{})
-	groups := make([]Group, 0, len(groupsIf))
-	for _, gr := range groupsIf {
-		groupMap := gr.(map[string]interface{})
-		groups = append(groups, Group{
-			Backends: getBackends(groupMap["backends"].([]interface{})),
-		})
-	}
-	return QSFS{
-		Name:                 qsfs["name"].(string),
-		Description:          qsfs["description"].(string),
-		Cache:                qsfs["cache"].(int),
-		MinimalShards:        uint32(qsfs["minimal_shards"].(int)),
-		ExpectedShards:       uint32(qsfs["expected_shards"].(int)),
-		RedundantGroups:      uint32(qsfs["redundant_groups"].(int)),
-		RedundantNodes:       uint32(qsfs["redundant_nodes"].(int)),
-		MaxZDBDataDirSize:    uint32(qsfs["max_zdb_data_dir_size"].(int)),
-		EncryptionAlgorithm:  qsfs["encryption_algorithm"].(string),
-		EncryptionKey:        qsfs["encryption_key"].(string),
-		CompressionAlgorithm: qsfs["compression_algorithm"].(string),
-		Metadata:             metadata,
-		Groups:               groups,
-	}
-}
-
-func NewQSFSFromWorkload(wl *gridtypes.Workload) (QSFS, error) {
-
-	wd, err := wl.WorkloadData()
-	if err != nil {
-		return QSFS{}, err
-	}
-	var res zos.QuatumSafeFSResult
-	if err := wl.Result.Unmarshal(&res); err != nil {
-		return QSFS{}, err
-	}
-	data, ok := wd.(*zos.QuantumSafeFS)
-	if !ok {
-		return QSFS{}, errors.New("wrong workload type")
-	}
-	return QSFS{
-		Name:                 string(wl.Name),
-		Description:          string(wl.Description),
-		Cache:                int(data.Cache) / int(gridtypes.Megabyte),
-		MinimalShards:        data.Config.MinimalShards,
-		ExpectedShards:       data.Config.ExpectedShards,
-		RedundantGroups:      data.Config.RedundantGroups,
-		RedundantNodes:       data.Config.RedundantNodes,
-		MaxZDBDataDirSize:    data.Config.MaxZDBDataDirSize,
-		EncryptionAlgorithm:  string(data.Config.Encryption.Algorithm),
-		EncryptionKey:        hex.EncodeToString(data.Config.Encryption.Key),
-		CompressionAlgorithm: data.Config.Compression.Algorithm,
-		Metadata: Metadata{
-			Type:                data.Config.Meta.Type,
-			Prefix:              data.Config.Meta.Config.Prefix,
-			EncryptionAlgorithm: string(data.Config.Meta.Config.Encryption.Algorithm),
-			EncryptionKey:       hex.EncodeToString(data.Config.Meta.Config.Encryption.Key),
-			Backends:            BackendsFromZos(data.Config.Meta.Config.Backends),
-		},
-		Groups:          GroupsFromZos(data.Config.Groups),
-		MetricsEndpoint: res.MetricsEndpoint,
-	}, nil
-}
-
-func getBackends(backendsIf []interface{}) []Backend {
-	backends := make([]Backend, 0, len(backendsIf))
-	for _, b := range backendsIf {
-		backendMap := b.(map[string]interface{})
-		backends = append(backends, Backend{
-			Address:   backendMap["address"].(string),
-			Password:  backendMap["password"].(string),
-			Namespace: backendMap["namespace"].(string),
-		})
-	}
-	return backends
-}
-
-func (q *QSFS) Convert() (gridtypes.Workload, error) {
+func (q *QSFS) Stage(manager deployer.DeploymentManager) error {
 	k, err := hex.DecodeString(q.EncryptionKey)
 	if err != nil {
-		return gridtypes.Workload{}, err
+		// return gridtypes.Workload{}, err
+		return err
 	}
 	mk, err := hex.DecodeString(q.EncryptionKey)
 	if err != nil {
-		return gridtypes.Workload{}, err
+		// return gridtypes.Workload{}, err
+		return err
 	}
 	workload := gridtypes.Workload{
 		Version:     0,
@@ -216,5 +114,7 @@ func (q *QSFS) Convert() (gridtypes.Workload, error) {
 		}),
 	}
 
-	return workload, nil
+	err = manager.SetWorkload(q.NodeId, workload)
+	return err
+
 }

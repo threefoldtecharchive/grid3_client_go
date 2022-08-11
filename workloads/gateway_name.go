@@ -21,28 +21,7 @@ type GatewayNameProxy struct {
 	FQDN string
 }
 
-// func GatewayNameProxyFromZosWorkload(wl gridtypes.Workload) (GatewayNameProxy, error) {
-// 	var result zos.GatewayProxyResult
-
-// 	if err := json.Unmarshal(wl.Result.Data, &result); err != nil {
-// 		return GatewayNameProxy{}, errors.Wrap(err, "error unmarshalling json")
-// 	}
-// 	dataI, err := wl.WorkloadData()
-// 	if err != nil {
-// 		return GatewayNameProxy{}, errors.Wrap(err, "failed to get workload data")
-// 	}
-// 	data := dataI.(*zos.GatewayNameProxy)
-
-// 	return GatewayNameProxy{
-// 		Name:           data.Name,
-// 		TLSPassthrough: data.TLSPassthrough,
-// 		Backends:       data.Backends,
-// 		FQDN:           result.FQDN,
-// 	}, nil
-// }
-
-func (g *GatewayNameProxy) Convert(manager deployer.DeploymentManager) { //ZosWorkload()
-	workloads := make([]gridtypes.Workload, 0)
+func (g *GatewayNameProxy) Stage(manager deployer.DeploymentManager) (err error) { //ZosWorkload()
 	workload := gridtypes.Workload{
 		Version: 0,
 		Type:    zos.GatewayNameProxyType,
@@ -54,9 +33,6 @@ func (g *GatewayNameProxy) Convert(manager deployer.DeploymentManager) { //ZosWo
 			Backends:       g.Backends,
 		}),
 	}
-	workloads = append(workloads, workload)
-
-	for _, w := range workloads {
-		manager.SetWorkload(g.NodeId, w)
-	}
+	err = manager.SetWorkload(g.NodeId, workload)
+	return err
 }

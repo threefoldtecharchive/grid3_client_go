@@ -39,6 +39,7 @@ func NewDeploymentManager(sub substratemanager.Manager, nodeClient *client.NodeC
 	}
 }
 func (d *deploymentManager) CancelAll() {
+	//TODO
 
 }
 
