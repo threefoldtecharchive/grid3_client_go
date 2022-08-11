@@ -55,7 +55,7 @@ func mounts(mounts []zos.MachineMount) []Mount {
 	return res
 }
 
-func (v VM) Convert(manager deployer.DeploymentManager) (err error) {
+func (v VM) Stage(manager deployer.DeploymentManager) (err error) {
 	workloads := make([]gridtypes.Workload, 0)
 	publicIPName := ""
 	if v.PublicIP || v.PublicIP6 {

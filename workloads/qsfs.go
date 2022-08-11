@@ -67,7 +67,7 @@ func (b *Backends) zosBackends() []zos.ZdbBackend {
 	return z
 }
 
-func (q *QSFS) Convert(manager deployer.DeploymentManager) error {
+func (q *QSFS) Stage(manager deployer.DeploymentManager) error {
 	k, err := hex.DecodeString(q.EncryptionKey)
 	if err != nil {
 		// return gridtypes.Workload{}, err

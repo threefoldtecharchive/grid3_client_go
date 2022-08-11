@@ -19,7 +19,7 @@ type ZDB struct {
 	Namespace   string
 }
 
-func (z *ZDB) Convert(manager deployer.DeploymentManager) error {
+func (z *ZDB) Stage(manager deployer.DeploymentManager) error {
 	workload := gridtypes.Workload{
 		Name:        gridtypes.Name(z.Name),
 		Type:        zos.ZDBType,

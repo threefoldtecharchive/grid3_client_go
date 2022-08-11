@@ -21,7 +21,7 @@ type GatewayNameProxy struct {
 	FQDN string
 }
 
-func (g *GatewayNameProxy) Convert(manager deployer.DeploymentManager) (err error) { //ZosWorkload()
+func (g *GatewayNameProxy) Stage(manager deployer.DeploymentManager) (err error) { //ZosWorkload()
 	workload := gridtypes.Workload{
 		Version: 0,
 		Type:    zos.GatewayNameProxyType,

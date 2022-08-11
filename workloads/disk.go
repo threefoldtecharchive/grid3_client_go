@@ -13,7 +13,7 @@ type Disk struct {
 	Description string
 }
 
-func (d *Disk) Convert(manager deployer.DeploymentManager) error {
+func (d *Disk) Stage(manager deployer.DeploymentManager) error {
 	workload := gridtypes.Workload{
 		Name:        gridtypes.Name(d.Name),
 		Version:     0,
