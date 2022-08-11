@@ -5,5 +5,5 @@ import (
 )
 
 type Workload interface {
-	Stage(d deployer.DeploymentManager)
+	Convert(d deployer.DeploymentManager)
 }

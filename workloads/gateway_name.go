@@ -1,9 +1,6 @@
 package workloads
 
 import (
-	"encoding/json"
-
-	"github.com/pkg/errors"
 	"github.com/threefoldtech/grid3-go/deployer"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
@@ -22,27 +19,6 @@ type GatewayNameProxy struct {
 
 	// FQDN deployed on the node
 	FQDN string
-}
-
-func GatewayNameProxyFromZosWorkload(wl gridtypes.Workload, nodeId uint32) (GatewayNameProxy, error) {
-	var result zos.GatewayProxyResult
-
-	if err := json.Unmarshal(wl.Result.Data, &result); err != nil {
-		return GatewayNameProxy{}, errors.Wrap(err, "error unmarshalling json")
-	}
-	dataI, err := wl.WorkloadData()
-	if err != nil {
-		return GatewayNameProxy{}, errors.Wrap(err, "failed to get workload data")
-	}
-	data := dataI.(*zos.GatewayNameProxy)
-
-	return GatewayNameProxy{
-		NodeId:         nodeId,
-		Name:           data.Name,
-		TLSPassthrough: data.TLSPassthrough,
-		Backends:       data.Backends,
-		FQDN:           result.FQDN,
-	}, nil
 }
 
 func (g *GatewayNameProxy) Stage(manager deployer.DeploymentManager) (err error) { //ZosWorkload()
