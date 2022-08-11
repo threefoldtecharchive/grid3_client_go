@@ -38,15 +38,8 @@ func NewDeploymentManager(sub substratemanager.Manager, nodeClient *client.NodeC
 		sub,
 	}
 }
-func (d *deploymentManager) CancelAll(identity Identity) {
-	id := identity.FromPhrase(.....)
-	for i :=range d.deploymentIDs {
-		sub.cancelcontract(id, i)
-	}
-	d.deploymentIDs = make(map[uint32]uint64)
-	d.deployments = make(map[uint32]gridtypes.Deployment)
-
-
+func (d *deploymentManager) CancelAll() {
+	//TODO
 
 }
 
