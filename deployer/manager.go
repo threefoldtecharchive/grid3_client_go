@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	client "github.com/threefoldtech/grid3-go/node"
 	substratemanager "github.com/threefoldtech/grid3-go/substrate_manager"
@@ -62,7 +63,7 @@ func (d *deploymentManager) Commit(ctx context.Context) error {
 	deployer := NewDeployer(d.identity, d.twinID, d.gridClient, d.ncPool, true)
 	s, err := d.substrate.SubstrateExt()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Couldn't get substrate client")
 	}
 	defer s.Close()
 	d.deploymentIDs, err = deployer.Deploy(ctx, s, d.affectedDeployments, d.plannedDeployments)
@@ -97,18 +98,18 @@ func (d *deploymentManager) SetWorkload(nodeID uint32, workload gridtypes.Worklo
 	} else if dID, ok := d.deploymentIDs[nodeID]; ok {
 		s, err := d.substrate.SubstrateExt()
 		if err != nil {
-			return err
+			return errors.Wrap(err, "Couldn't get substrate client")
 		}
 		defer s.Close()
 		nodeClient, err := d.ncPool.GetNodeClient(s, nodeID)
 		if err != nil {
-			return fmt.Errorf("Couldn't get node: %d", nodeID)
+			return errors.Wrapf(err, "Couldn't get node client: %d", nodeID)
 		}
 		// TODO: check if deployment exist on deploymentIDs and doesn't exist on node
 		// TODO: use context from setWorkload
 		dl, err = nodeClient.DeploymentGet(context.Background(), dID)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "Couldn't get deployment from node %d", nodeID)
 		}
 		d.affectedDeployments[nodeID] = dl.ContractID
 	}
