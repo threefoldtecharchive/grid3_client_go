@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/rs/zerolog/log"
 	client "github.com/threefoldtech/grid3-go/node"
 	substratemanager "github.com/threefoldtech/grid3-go/substrate_manager"
 	proxy "github.com/threefoldtech/grid_proxy_server/pkg/client"
@@ -32,16 +33,16 @@ type deploymentManager struct {
 	plannedDeployments  map[uint32]gridtypes.Deployment
 	gridClient          proxy.Client
 	ncPool              client.NodeClientCollection
-	substrate           substratemanager.Manager
+	substrate           substratemanager.ManagerInterface
 	//connection field
 }
 
-func NewDeploymentManager(identity substrate.Identity, twinID uint32, gridClient proxy.Client, ncPool client.NodeClientCollection, sub substratemanager.Manager) DeploymentManager {
+func NewDeploymentManager(identity substrate.Identity, twinID uint32, deploymentIDs map[uint32]uint64, gridClient proxy.Client, ncPool client.NodeClientCollection, sub substratemanager.ManagerInterface) DeploymentManager {
 
 	return &deploymentManager{
 		identity,
 		twinID,
-		make(map[uint32]uint64),
+		deploymentIDs,
 		make(map[uint32]uint64),
 		make(map[uint32]gridtypes.Deployment),
 		gridClient,
@@ -68,6 +69,7 @@ func (d *deploymentManager) Commit(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	log.Debug().Msgf("Deployed %+v", d.deploymentIDs)
 	d.affectedDeployments = make(map[uint32]uint64)
 	d.plannedDeployments = make(map[uint32]gridtypes.Deployment)
 	return nil
