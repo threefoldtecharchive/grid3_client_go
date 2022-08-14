@@ -16,11 +16,12 @@ import (
 	proxy "github.com/threefoldtech/grid_proxy_server/pkg/client"
 	"github.com/threefoldtech/substrate-client"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
+	"github.com/threefoldtech/terraform-provider-grid"
 )
 
 type DeploymentManager interface {
 	// CancelAll clears deployments, deploymentIDs, and deployments
-	CancelAll()
+	CancelAll(identity Identity)
 	// CancelNodeDeployment removes the entry from deployments, deploymentIDs, and deployments
 	// CancelNodeDeployment(nodeID uint32)
 	// Commit loads initDeployments from deploymentIDs which wasn't loaded previously
@@ -59,10 +60,17 @@ func NewDeploymentManager(identity substrate.Identity, twinID uint32, deployment
 	}
 }
 
-func (d *deploymentManager) CancelAll() {
-	//TODO
+func (d *deploymentManager) CancelAll(identity Identity) {
+	id := identity.FromPhrase(.....)
+	for i:= range d.deploymentIDs{
+		sub.cancelcontract(id,i)
+	}
 
-}
+	s.deploymentIDs = make(map[uint32]uint64)
+	d. affectedDeployments = make(map[uint32]uint64)
+	
+
+}	
 
 <<<<<<< HEAD
 func (d *deploymentManager) GetWorkload(nodeId uint32, name string) (gridtypes.Workload, error) {
