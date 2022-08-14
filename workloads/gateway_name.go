@@ -24,26 +24,6 @@ type GatewayNameProxy struct {
 	FQDN string
 }
 
-func GatewayNameProxyFromZosWorkload(wl gridtypes.Workload, nodeID uint32) (GatewayNameProxy, error) {
-	var result zos.GatewayProxyResult
-
-	if err := json.Unmarshal(wl.Result.Data, &result); err != nil {
-		return GatewayNameProxy{}, errors.Wrap(err, "error unmarshalling json")
-	}
-	dataI, err := wl.WorkloadData()
-	if err != nil {
-		return GatewayNameProxy{}, errors.Wrap(err, "failed to get workload data")
-	}
-	data := dataI.(*zos.GatewayNameProxy)
-
-	return GatewayNameProxy{
-		NodeId:         nodeID,
-		Name:           data.Name,
-		TLSPassthrough: data.TLSPassthrough,
-		Backends:       data.Backends,
-		FQDN:           result.FQDN,
-	}, nil
-}
 
 func (g *GatewayNameProxy) Stage(manager deployer.DeploymentManager) (err error) { //ZosWorkload()
 	workload := gridtypes.Workload{

@@ -2,13 +2,8 @@ package deployer
 
 import (
 	"context"
-<<<<<<< HEAD
 	"errors"
 	"fmt"
-
-=======
-	"fmt"
-
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	client "github.com/threefoldtech/grid3-go/node"
@@ -72,14 +67,6 @@ func (d *deploymentManager) CancelAll(identity Identity) {
 
 }	
 
-<<<<<<< HEAD
-func (d *deploymentManager) GetWorkload(nodeId uint32, name string) (gridtypes.Workload, error) {
-
-}
-
-// func (d *deploymentManager) CancelNodeDeployment(nodeID uint32) {
-
-// }
 func (d *deploymentManager) Commit(ctx context.Context) error {
 	// generate gridtypes.Deployment from plannedDeployments
 	deployer := NewDeployer(d.identity, d.twinID, d.gridClient, d.ncPool, true)
@@ -146,7 +133,7 @@ func (d *deploymentManager) SetWorkload(nodeID uint32, workload gridtypes.Worklo
 
 func (d *deploymentManager) GetWorkload(nodeID uint32, name string) (gridtypes.Workload, error) {
 	w := gridtypes.Workload{}
-	if deployment, ok := d.affectedDeployments[nodeID]; ok {
+	if deployment, ok := d.deploymentIDs[nodeID]; ok {
 		s, err := d.substrate.SubstrateExt()
 		if err != nil {
 			return w, errors.Wrap(err, "couldn't get substrate client")
@@ -175,3 +162,4 @@ func (d *deploymentManager) GetWorkload(nodeID uint32, name string) (gridtypes.W
 
 	return w, nil
 }
+

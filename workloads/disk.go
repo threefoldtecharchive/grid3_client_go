@@ -1,7 +1,6 @@
 package workloads
 
 import (
-	"github.com/pkg/errors"
 	"github.com/threefoldtech/grid3-go/deployer"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
@@ -12,21 +11,6 @@ type Disk struct {
 	Name        string
 	Size        int
 	Description string
-}
-
-func NewDiskFromWorkload(wl *gridtypes.Workload, nodeID uint32) (Disk, error) {
-	dataI, err := wl.WorkloadData()
-	if err != nil {
-		return Disk{}, errors.Wrap(err, "failed to get workload data")
-	}
-	// TODO: check ok?
-	data := dataI.(*zos.ZMount)
-	return Disk{
-		NodeId:      nodeID,
-		Name:        wl.Name.String(),
-		Description: wl.Description,
-		Size:        int(data.Size / gridtypes.Gigabyte),
-	}, nil
 }
 
 func (d *Disk) Stage(manager deployer.DeploymentManager) error {

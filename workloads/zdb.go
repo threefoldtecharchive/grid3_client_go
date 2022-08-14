@@ -39,27 +39,4 @@ func (z *ZDB) Stage(manager deployer.DeploymentManager) error {
 	return err
 }
 
-func NewZDBFromWorkload(wl *gridtypes.Workload) (ZDB, error) {
-	dataI, err := wl.WorkloadData()
-	if err != nil {
-		return ZDB{}, errors.Wrap(err, "failed to get workload data")
-	}
-	// TODO: check ok?
-	data := dataI.(*zos.ZDB)
-	var result zos.ZDBResult
 
-	if err := json.Unmarshal(wl.Result.Data, &result); err != nil {
-		return ZDB{}, errors.Wrap(err, "failed to get zdb result")
-	}
-	return ZDB{
-		Name:        wl.Name.String(),
-		Description: wl.Description,
-		Password:    data.Password,
-		Public:      data.Public,
-		Size:        int(data.Size / gridtypes.Gigabyte),
-		Mode:        data.Mode.String(),
-		IPs:         result.IPs,
-		Port:        uint32(result.Port),
-		Namespace:   result.Namespace,
-	}, nil
-}
