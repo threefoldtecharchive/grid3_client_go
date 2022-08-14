@@ -30,6 +30,7 @@ type DeploymentManager interface {
 	//             and return an error if the node is down for example
 
 	SetWorkload(nodeID uint32, workload gridtypes.Workload) error
+	GetWorkload(nodeID uint32, name string) (gridtypes.Workload, error)
 }
 
 type deploymentManager struct {
@@ -57,6 +58,7 @@ func NewDeploymentManager(identity substrate.Identity, twinID uint32, deployment
 		sub,
 	}
 }
+
 func (d *deploymentManager) CancelAll() {
 	//TODO
 
@@ -75,7 +77,7 @@ func (d *deploymentManager) Commit(ctx context.Context) error {
 	deployer := NewDeployer(d.identity, d.twinID, d.gridClient, d.ncPool, true)
 	s, err := d.substrate.SubstrateExt()
 	if err != nil {
-		return errors.Wrap(err, "Couldn't get substrate client")
+		return errors.Wrap(err, "couldn't get substrate client")
 	}
 	defer s.Close()
 	d.deploymentIDs, err = deployer.Deploy(ctx, s, d.affectedDeployments, d.plannedDeployments)
@@ -110,26 +112,58 @@ func (d *deploymentManager) SetWorkload(nodeID uint32, workload gridtypes.Worklo
 	} else if dID, ok := d.deploymentIDs[nodeID]; ok {
 		s, err := d.substrate.SubstrateExt()
 		if err != nil {
-			return errors.Wrap(err, "Couldn't get substrate client")
+			return errors.Wrap(err, "couldn't get substrate client")
 		}
 		defer s.Close()
 		nodeClient, err := d.ncPool.GetNodeClient(s, nodeID)
 		if err != nil {
-			return errors.Wrapf(err, "Couldn't get node client: %d", nodeID)
+			return errors.Wrapf(err, "couldn't get node client: %d", nodeID)
 		}
 		// TODO: check if deployment exist on deploymentIDs and doesn't exist on node
 		// TODO: use context from setWorkload
 		dl, err = nodeClient.DeploymentGet(context.Background(), dID)
 		if err != nil {
-			return errors.Wrapf(err, "Couldn't get deployment from node %d", nodeID)
+			return errors.Wrapf(err, "couldn't get deployment from node %d", nodeID)
 		}
 		d.affectedDeployments[nodeID] = dl.ContractID
 	}
 
 	if _, err := dl.Get(workload.Name); err == nil {
-		return fmt.Errorf("Workload name already exists: %s", workload.Name)
+		return fmt.Errorf("workload name already exists: %s", workload.Name)
 	}
 	dl.Workloads = append(dl.Workloads, workload)
 	d.plannedDeployments[nodeID] = dl
 	return nil
+}
+
+func (d *deploymentManager) GetWorkload(nodeID uint32, name string) (gridtypes.Workload, error) {
+	w := gridtypes.Workload{}
+	if deployment, ok := d.affectedDeployments[nodeID]; ok {
+		s, err := d.substrate.SubstrateExt()
+		if err != nil {
+			return w, errors.Wrap(err, "couldn't get substrate client")
+		}
+		defer s.Close()
+		nodeClient, err := d.ncPool.GetNodeClient(s, nodeID)
+		if err != nil {
+			return w, errors.Wrapf(err, "couldn't get node client: %d", nodeID)
+		}
+		dl, err := nodeClient.DeploymentGet(context.Background(), deployment)
+		if err != nil {
+			return w, errors.Wrapf(err, "couldn't get deployment from node %d", nodeID)
+		}
+
+		for _, workload := range dl.Workloads {
+			if workload.Name == gridtypes.Name(name) {
+				return workload, nil
+			} else {
+				return w, errors.New("couldn't get workload")
+			}
+
+		}
+	} else {
+		return w, errors.New("couldn't get deployment")
+	}
+
+	return w, nil
 }

@@ -2,6 +2,7 @@ package workloads
 
 import (
 	"encoding/hex"
+	"log"
 
 	"github.com/threefoldtech/grid3-go/deployer"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
@@ -117,4 +118,60 @@ func (q *QSFS) Stage(manager deployer.DeploymentManager) error {
 	err = manager.SetWorkload(q.NodeId, workload)
 	return err
 
+}
+
+func NewQSFSFromWorkload(wl *gridtypes.Workload, nodeID uint32) (QSFS, error) {
+
+	var data *zos.QuantumSafeFS
+	wd, err := wl.WorkloadData()
+	if err != nil {
+		return QSFS{}, err
+	}
+	var res zos.QuatumSafeFSResult
+	if err := wl.Result.Unmarshal(&res); err != nil {
+		return QSFS{}, err
+	}
+	log.Printf("wl.Result.unm: %s %s\n", res.MetricsEndpoint, res.Path)
+	data = wd.(*zos.QuantumSafeFS)
+	return QSFS{
+		NodeId:               nodeID,
+		Name:                 string(wl.Name),
+		Description:          string(wl.Description),
+		Cache:                int(data.Cache) / int(gridtypes.Megabyte),
+		MinimalShards:        data.Config.MinimalShards,
+		ExpectedShards:       data.Config.ExpectedShards,
+		RedundantGroups:      data.Config.RedundantGroups,
+		RedundantNodes:       data.Config.RedundantNodes,
+		MaxZDBDataDirSize:    data.Config.MaxZDBDataDirSize,
+		EncryptionAlgorithm:  string(data.Config.Encryption.Algorithm),
+		EncryptionKey:        hex.EncodeToString(data.Config.Encryption.Key),
+		CompressionAlgorithm: data.Config.Compression.Algorithm,
+		Metadata: Metadata{
+			Type:                data.Config.Meta.Type,
+			Prefix:              data.Config.Meta.Config.Prefix,
+			EncryptionAlgorithm: string(data.Config.Meta.Config.Encryption.Algorithm),
+			EncryptionKey:       hex.EncodeToString(data.Config.Meta.Config.Encryption.Key),
+			Backends:            BackendsFromZos(data.Config.Meta.Config.Backends),
+		},
+		Groups:          GroupsFromZos(data.Config.Groups),
+		MetricsEndpoint: res.MetricsEndpoint,
+	}, nil
+}
+
+func BackendsFromZos(bs []zos.ZdbBackend) Backends {
+	z := make(Backends, 0)
+	for _, e := range bs {
+		z = append(z, Backend(e))
+	}
+	return z
+}
+
+func GroupsFromZos(gs []zos.ZdbGroup) Groups {
+	z := make(Groups, 0)
+	for _, e := range gs {
+		z = append(z, Group{
+			Backends: BackendsFromZos(e.Backends),
+		})
+	}
+	return z
 }

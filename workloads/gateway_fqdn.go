@@ -1,6 +1,7 @@
 package workloads
 
 import (
+	"github.com/pkg/errors"
 	"github.com/threefoldtech/grid3-go/deployer"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
@@ -19,6 +20,22 @@ type GatewayFQDNProxy struct {
 
 	// FQDN deployed on the node
 	FQDN string
+}
+
+func GatewayFQDNProxyFromZosWorkload(wl gridtypes.Workload, nodeID uint32) (GatewayFQDNProxy, error) {
+	dataI, err := wl.WorkloadData()
+	if err != nil {
+		return GatewayFQDNProxy{}, errors.Wrap(err, "failed to get workload data")
+	}
+	data := dataI.(*zos.GatewayFQDNProxy)
+
+	return GatewayFQDNProxy{
+		NodeId:         nodeID,
+		Name:           wl.Name.String(),
+		TLSPassthrough: data.TLSPassthrough,
+		Backends:       data.Backends,
+		FQDN:           data.FQDN,
+	}, nil
 }
 
 func (g *GatewayFQDNProxy) Stage(manager deployer.DeploymentManager) (err error) { //ZosWorkload()
