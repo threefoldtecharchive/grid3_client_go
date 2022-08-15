@@ -12,7 +12,7 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
-func NewVMFromWorkloads(manager deployer.DeploymentManager, nodeID uint32, name string) (workloads.VM, error) {
+func LoadVmFromGrid(manager deployer.DeploymentManager, nodeID uint32, name string) (workloads.VM, error) {
 	dl := gridtypes.Deployment{}
 	dM := deployer.deploymentManager{}
 	if dID, ok := dM.deploymentIDs[nodeID]; ok {

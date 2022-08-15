@@ -8,7 +8,7 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
-func NewDiskFromWorkload(manager deployer.DeploymentManager, nodeID uint32, name string) (workloads.Disk, error) {
+func LoadDiskFromGrid(manager deployer.DeploymentManager, nodeID uint32, name string) (workloads.Disk, error) {
 	wl, err := manager.GetWorkload(nodeID, name)
 	if err != nil {
 		return workloads.Disk{}, errors.Wrapf(err, "couldn't get workload from node %d", nodeID)
@@ -17,8 +17,11 @@ func NewDiskFromWorkload(manager deployer.DeploymentManager, nodeID uint32, name
 	if err != nil {
 		return workloads.Disk{}, errors.Wrap(err, "failed to get workload data")
 	}
-	// TODO: check ok?
-	data := dataI.(*zos.ZMount)
+
+	data, ok := dataI.(*zos.ZMount)
+	if !ok {
+		return workloads.Disk{}, errors.New("couldn't cast workload data")
+	}
 	return workloads.Disk{
 		Name:        wl.Name.String(),
 		Description: wl.Description,

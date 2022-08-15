@@ -9,7 +9,7 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
-func GatewayNameProxyFromZosWorkload(manager deployer.DeploymentManager, nodeID uint32, name string) (workloads.GatewayNameProxy, error) {
+func LoadGatewayNameFromGrid(manager deployer.DeploymentManager, nodeID uint32, name string) (workloads.GatewayNameProxy, error) {
 	wl, err := manager.GetWorkload(nodeID, name)
 	if err != nil {
 		return workloads.GatewayNameProxy{}, errors.Wrapf(err, "couldn't get workload from node %d", nodeID)

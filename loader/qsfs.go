@@ -11,7 +11,7 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
-func NewQSFSFromWorkload(manager deployer.DeploymentManager, nodeID uint32, name string) (workloads.QSFS, error) {
+func LoadQsfsFromGrid(manager deployer.DeploymentManager, nodeID uint32, name string) (workloads.QSFS, error) {
 	wl, err := manager.GetWorkload(nodeID, name)
 	if err != nil {
 		return workloads.QSFS{}, errors.Wrapf(err, "couldn't get workload from node %d", nodeID)

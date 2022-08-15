@@ -7,7 +7,7 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
-func GatewayFQDNProxyFromZosWorkload(manager deployer.DeploymentManager, nodeID uint32, name string) (workloads.GatewayFQDNProxy, error) {
+func LoadGatewayFqdnFromGrid(manager deployer.DeploymentManager, nodeID uint32, name string) (workloads.GatewayFQDNProxy, error) {
 	wl, err := manager.GetWorkload(nodeID, name)
 	if err != nil {
 		return workloads.GatewayFQDNProxy{}, errors.Wrapf(err, "couldn't get workload from node %d", nodeID)

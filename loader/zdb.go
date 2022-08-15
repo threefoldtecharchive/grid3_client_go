@@ -10,7 +10,7 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
-func NewZDBFromWorkload(manager deployer.DeploymentManager, nodeID uint32, name string) (workloads.ZDB, error) {
+func LoadZdbFromGrid(manager deployer.DeploymentManager, nodeID uint32, name string) (workloads.ZDB, error) {
 	workload := gridtypes.Workload{}
 	dataI, err := workload.WorkloadData()
 	if err != nil {
@@ -23,9 +23,7 @@ func NewZDBFromWorkload(manager deployer.DeploymentManager, nodeID uint32, name 
 
 	data, ok := dataI.(*zos.ZDB)
 	if !ok {
-		//??
 		return workloads.ZDB{}, errors.New("couldn't cast workload data")
-
 	}
 	var result zos.ZDBResult
 
