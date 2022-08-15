@@ -31,8 +31,8 @@ type DeploymentManager interface {
 
 type deploymentManager struct {
 	identity            substrate.Identity
-	twinID              uint32 //TODO : should include all contracts of user
-	deploymentIDs       map[uint32]uint64
+	twinID              uint32
+	deploymentIDs       map[uint32]uint64 //TODO : should include all contracts of user
 	affectedDeployments map[uint32]uint64
 	plannedDeployments  map[uint32]gridtypes.Deployment
 	gridClient          proxy.Client
