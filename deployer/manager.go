@@ -16,7 +16,7 @@ import (
 
 type DeploymentManager interface {
 	// CancelAll clears deployments, deploymentIDs, and deployments
-	CancelAll(identity substrate.Identity) error
+	CancelAll() error
 	// CancelNodeDeployment removes the entry from deployments, deploymentIDs, and deployments
 	// CancelNodeDeployment(nodeID uint32)
 	// Commit loads initDeployments from deploymentIDs which wasn't loaded previously
@@ -31,7 +31,7 @@ type DeploymentManager interface {
 
 type deploymentManager struct {
 	identity            substrate.Identity
-	twinID              uint32
+	twinID              uint32 //TODO : should include all contracts of user
 	deploymentIDs       map[uint32]uint64
 	affectedDeployments map[uint32]uint64
 	plannedDeployments  map[uint32]gridtypes.Deployment
@@ -55,10 +55,10 @@ func NewDeploymentManager(identity substrate.Identity, twinID uint32, deployment
 	}
 }
 
-func (d *deploymentManager) CancelAll(identity substrate.Identity) error {
+func (d *deploymentManager) CancelAll() error {
 	sub := substratemanager.SubstrateImpl{}
 	for i := range d.deploymentIDs {
-		err := sub.Substrate.CancelContract(identity, uint64(i))
+		err := sub.Substrate.CancelContract(d.identity, uint64(i))
 		if err != nil {
 			return errors.Wrapf(err, "couldn't cancel contract with id %d", i)
 		}
@@ -152,14 +152,11 @@ func (d *deploymentManager) GetWorkload(nodeID uint32, name string) (gridtypes.W
 		for _, workload := range dl.Workloads {
 			if workload.Name == gridtypes.Name(name) {
 				return workload, nil
-			} else {
-				return w, errors.New("couldn't get workload")
 			}
-
 		}
+		return w, errors.New("couldn't get workload with name %q", name)
 	} else {
-		return w, errors.New("couldn't get deployment")
+		return w, errors.New("couldn't get deployment with node ID %d", nodeID)
 	}
-
 	return w, nil
 }

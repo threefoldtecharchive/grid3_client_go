@@ -1,16 +1,12 @@
 package workloads
 
 import (
-	"encoding/json"
-
-	"github.com/pkg/errors"
 	"github.com/threefoldtech/grid3-go/deployer"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
 type GatewayNameProxy struct {
-	NodeId uint32
 	// Name the fully qualified domain name to use (cannot be present with Name)
 	Name string
 
@@ -24,8 +20,7 @@ type GatewayNameProxy struct {
 	FQDN string
 }
 
-
-func (g *GatewayNameProxy) Stage(manager deployer.DeploymentManager) (err error) { //ZosWorkload()
+func (g *GatewayNameProxy) Stage(manager deployer.DeploymentManager, NodeId uint32) (err error) { //ZosWorkload()
 	workload := gridtypes.Workload{
 		Version: 0,
 		Type:    zos.GatewayNameProxyType,
@@ -37,6 +32,6 @@ func (g *GatewayNameProxy) Stage(manager deployer.DeploymentManager) (err error)
 			Backends:       g.Backends,
 		}),
 	}
-	err = manager.SetWorkload(g.NodeId, workload)
+	err = manager.SetWorkload(NodeId, workload)
 	return err
 }

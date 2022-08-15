@@ -30,7 +30,6 @@ func NewQSFSFromWorkload(manager deployer.DeploymentManager, nodeID uint32, name
 	log.Printf("wl.Result.unm: %s %s\n", res.MetricsEndpoint, res.Path)
 	data = wd.(*zos.QuantumSafeFS)
 	return workloads.QSFS{
-		NodeId:               nodeID,
 		Name:                 string(wl.Name),
 		Description:          string(wl.Description),
 		Cache:                int(data.Cache) / int(gridtypes.Megabyte),

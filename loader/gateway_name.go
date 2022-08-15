@@ -27,7 +27,6 @@ func GatewayNameProxyFromZosWorkload(manager deployer.DeploymentManager, nodeID 
 	data := dataI.(*zos.GatewayNameProxy)
 
 	return workloads.GatewayNameProxy{
-		NodeId:         nodeID,
 		Name:           data.Name,
 		TLSPassthrough: data.TLSPassthrough,
 		Backends:       data.Backends,

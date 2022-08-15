@@ -33,7 +33,6 @@ func NewZDBFromWorkload(manager deployer.DeploymentManager, nodeID uint32, name 
 		return workloads.ZDB{}, errors.Wrapf(err, "failed to get zdb result")
 	}
 	return workloads.ZDB{
-		NodeId:      nodeID,
 		Name:        wl.Name.String(),
 		Description: wl.Description,
 		Password:    data.Password,

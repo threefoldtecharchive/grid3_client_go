@@ -20,7 +20,6 @@ func GatewayFQDNProxyFromZosWorkload(manager deployer.DeploymentManager, nodeID 
 	data := dataI.(*zos.GatewayFQDNProxy)
 
 	return workloads.GatewayFQDNProxy{
-		NodeId:         nodeID,
 		Name:           wl.Name.String(),
 		TLSPassthrough: data.TLSPassthrough,
 		Backends:       data.Backends,

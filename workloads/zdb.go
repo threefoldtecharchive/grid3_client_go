@@ -1,16 +1,12 @@
 package workloads
 
 import (
-	"encoding/json"
-
-	"github.com/pkg/errors"
 	"github.com/threefoldtech/grid3-go/deployer"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
 type ZDB struct {
-	NodeId      uint32
 	Name        string
 	Password    string
 	Public      bool
@@ -22,7 +18,7 @@ type ZDB struct {
 	Namespace   string
 }
 
-func (z *ZDB) Stage(manager deployer.DeploymentManager) error {
+func (z *ZDB) Stage(manager deployer.DeploymentManager, NodeId uint32) error {
 	workload := gridtypes.Workload{
 		Name:        gridtypes.Name(z.Name),
 		Type:        zos.ZDBType,
@@ -35,8 +31,6 @@ func (z *ZDB) Stage(manager deployer.DeploymentManager) error {
 			Public:   z.Public,
 		}),
 	}
-	err := manager.SetWorkload(z.NodeId, workload)
+	err := manager.SetWorkload(NodeId, workload)
 	return err
 }
-
-

@@ -20,7 +20,6 @@ func NewDiskFromWorkload(manager deployer.DeploymentManager, nodeID uint32, name
 	// TODO: check ok?
 	data := dataI.(*zos.ZMount)
 	return workloads.Disk{
-		NodeId:      nodeID,
 		Name:        wl.Name.String(),
 		Description: wl.Description,
 		Size:        int(data.Size / gridtypes.Gigabyte),

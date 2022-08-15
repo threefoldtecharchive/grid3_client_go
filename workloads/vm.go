@@ -12,7 +12,6 @@ import (
 )
 
 type VM struct {
-	NodeId        uint32
 	Name          string
 	Flist         string
 	FlistChecksum string
@@ -44,7 +43,7 @@ type Zlog struct {
 	Output string
 }
 
-func (v VM) Stage(manager deployer.DeploymentManager) (err error) {
+func (v VM) Stage(manager deployer.DeploymentManager, NodeId uint32) (err error) {
 	workloads := make([]gridtypes.Workload, 0)
 	publicIPName := ""
 	if v.PublicIP || v.PublicIP6 {
@@ -89,7 +88,7 @@ func (v VM) Stage(manager deployer.DeploymentManager) (err error) {
 	workloads = append(workloads, workload)
 
 	for _, w := range workloads {
-		err = manager.SetWorkload(v.NodeId, w)
+		err = manager.SetWorkload(NodeId, w)
 		if err != nil {
 			return err
 		}
