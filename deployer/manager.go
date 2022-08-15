@@ -2,7 +2,6 @@ package deployer
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -27,6 +26,7 @@ type DeploymentManager interface {
 
 	SetWorkload(nodeID uint32, workload gridtypes.Workload) error
 	GetWorkload(nodeID uint32, name string) (gridtypes.Workload, error)
+	GetDeployment(nodeID uint32) (gridtypes.Deployment, error)
 }
 
 type deploymentManager struct {
@@ -55,10 +55,13 @@ func NewDeploymentManager(identity substrate.Identity, twinID uint32, deployment
 	}
 }
 
-func (d *deploymentManager) CancelAll() error {
-	sub := substratemanager.SubstrateImpl{}
-	for i := range d.deploymentIDs {
-		err := sub.Substrate.CancelContract(d.identity, uint64(i))
+func (d *deploymentManager) CancelAll() error { //TODO
+	sub, err := d.substrate.SubstrateExt()
+	if err != nil {
+		return errors.Wrapf(err, "couldn't get substrate ")
+	}
+	for i, contractID := range d.deploymentIDs {
+		err = sub.CancelContract(d.identity, contractID)
 		if err != nil {
 			return errors.Wrapf(err, "couldn't cancel contract with id %d", i)
 		}
@@ -154,8 +157,12 @@ func (d *deploymentManager) GetWorkload(nodeID uint32, name string) (gridtypes.W
 				return workload, nil
 			}
 		}
-		return w, errors.New("couldn't get workload with name %q", name)
+		return w, fmt.Errorf("couldn't get workload with name %s", name)
 	}
-	return w, errors.New("couldn't get deployment with node ID %d", nodeID)
+	return w, fmt.Errorf("couldn't get deployment with node ID %d", nodeID)
 
+}
+
+func (d *deploymentManager) GetDeployment(nodeID uint32) (gridtypes.Deployment, error) {
+	return gridtypes.Deployment{}, nil
 }

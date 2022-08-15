@@ -1,36 +1,20 @@
 package loader
 
 import (
-	"context"
 	"encoding/json"
 	"log"
 
 	"github.com/pkg/errors"
-	deployer "github.com/threefoldtech/grid3-go/deployer/manager"
+	deployer "github.com/threefoldtech/grid3-go/deployer"
 	"github.com/threefoldtech/grid3-go/workloads"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
 func LoadVmFromGrid(manager deployer.DeploymentManager, nodeID uint32, name string) (workloads.VM, error) {
-	dl := gridtypes.Deployment{}
-	dM := deployer.deploymentManager{}
-	if dID, ok := dM.deploymentIDs[nodeID]; ok {
-		s, err := dM.substrate.SubstrateExt()
-		if err != nil {
-			return workloads.VM{}, errors.Wrapf(err, "couldn't get substrate client")
-		}
-
-		defer s.Close()
-		nodeClient, err := dM.ncPool.GetNodeClient(s, nodeID)
-		if err != nil {
-			return workloads.VM{}, errors.Wrapf(err, "couldn't get node client: %d", nodeID)
-		}
-
-		dl, err = nodeClient.DeploymentGet(context.Background(), dID)
-		if err != nil {
-			return workloads.VM{}, errors.Wrapf(err, "couldn't get deployment from node %d", nodeID)
-		}
+	dl, err := manager.GetDeployment(nodeID)
+	if err != nil {
+		return workloads.VM{}, errors.Wrapf(err, "failed to get deployment with id %d", nodeID)
 	}
 
 	workload := gridtypes.Workload{}
