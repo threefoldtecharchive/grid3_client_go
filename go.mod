@@ -1,6 +1,6 @@
 module github.com/threefoldtech/grid3-go
 
-go 1.16
+go 1.18
 
 require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
