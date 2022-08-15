@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	client "github.com/threefoldtech/grid3-go/node"
@@ -11,12 +12,11 @@ import (
 	proxy "github.com/threefoldtech/grid_proxy_server/pkg/client"
 	"github.com/threefoldtech/substrate-client"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
-	"github.com/threefoldtech/terraform-provider-grid"
 )
 
 type DeploymentManager interface {
 	// CancelAll clears deployments, deploymentIDs, and deployments
-	CancelAll(identity Identity)
+	CancelAll(identity substrate.Identity) error
 	// CancelNodeDeployment removes the entry from deployments, deploymentIDs, and deployments
 	// CancelNodeDeployment(nodeID uint32)
 	// Commit loads initDeployments from deploymentIDs which wasn't loaded previously
@@ -55,17 +55,17 @@ func NewDeploymentManager(identity substrate.Identity, twinID uint32, deployment
 	}
 }
 
-func (d *deploymentManager) CancelAll(identity Identity) {
-	id := identity.FromPhrase(.....)
-	for i:= range d.deploymentIDs{
-		sub.cancelcontract(id,i)
+func (d *deploymentManager) CancelAll(identity substrate.Identity) error {
+	for i := range d.deploymentIDs {
+		err := sub.cancelcontract(identity, i)
+		if err != nil {
+			return errors.Wrapf(err, "couldn't cancel contract with id %d", i)
+		}
 	}
-
-	s.deploymentIDs = make(map[uint32]uint64)
-	d. affectedDeployments = make(map[uint32]uint64)
-	
-
-}	
+	d.deploymentIDs = make(map[uint32]uint64)
+	d.affectedDeployments = make(map[uint32]uint64)
+	return nil
+}
 
 func (d *deploymentManager) Commit(ctx context.Context) error {
 	// generate gridtypes.Deployment from plannedDeployments
@@ -162,4 +162,3 @@ func (d *deploymentManager) GetWorkload(nodeID uint32, name string) (gridtypes.W
 
 	return w, nil
 }
-
