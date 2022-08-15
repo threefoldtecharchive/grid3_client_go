@@ -155,8 +155,7 @@ func (d *deploymentManager) GetWorkload(nodeID uint32, name string) (gridtypes.W
 			}
 		}
 		return w, errors.New("couldn't get workload with name %q", name)
-	} else {
-		return w, errors.New("couldn't get deployment with node ID %d", nodeID)
 	}
-	return w, nil
+	return w, errors.New("couldn't get deployment with node ID %d", nodeID)
+
 }
