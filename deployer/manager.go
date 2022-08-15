@@ -56,8 +56,9 @@ func NewDeploymentManager(identity substrate.Identity, twinID uint32, deployment
 }
 
 func (d *deploymentManager) CancelAll(identity substrate.Identity) error {
+	sub := substratemanager.SubstrateImpl{}
 	for i := range d.deploymentIDs {
-		err := sub.cancelcontract(identity, i)
+		err := sub.Substrate.CancelContract(identity, uint64(i))
 		if err != nil {
 			return errors.Wrapf(err, "couldn't cancel contract with id %d", i)
 		}
