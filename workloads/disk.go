@@ -24,6 +24,6 @@ func (d *Disk) Stage(manager deployer.DeploymentManager, NodeId uint32) error {
 		}),
 	}
 	workloads = append(workloads, workload)
-	err := manager.SetWorkload(NodeId, workloads)
+	err := manager.SetWorkloads(NodeId, workloads)
 	return err
 }

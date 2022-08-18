@@ -34,6 +34,6 @@ func (g *GatewayNameProxy) Stage(manager deployer.DeploymentManager, NodeId uint
 		}),
 	}
 	workloads = append(workloads, workload)
-	err := manager.SetWorkload(NodeId, workloads)
+	err := manager.SetWorkloads(NodeId, workloads)
 	return err
 }

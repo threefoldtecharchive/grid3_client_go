@@ -24,7 +24,7 @@ type DeploymentManager interface {
 	//             it should load the deployment in initDeployments if it exists in deploymentIDs and not loaded
 	//             and return an error if the node is down for example
 
-	SetWorkload(nodeID uint32, workload []gridtypes.Workload) error
+	SetWorkloads(nodeID uint32, workload []gridtypes.Workload) error
 	GetWorkload(nodeID uint32, name string) (gridtypes.Workload, error)
 	GetDeployment(nodeID uint32) (gridtypes.Deployment, error)
 }
@@ -89,7 +89,7 @@ func (d *deploymentManager) Commit(ctx context.Context) error {
 	return nil
 }
 
-func (d *deploymentManager) SetWorkload(nodeID uint32, workload []gridtypes.Workload) error {
+func (d *deploymentManager) SetWorkloads(nodeID uint32, workloads []gridtypes.Workload) error {
 	// move workload to planned deployments
 	dl := gridtypes.Deployment{
 		Version: 0,
@@ -127,13 +127,13 @@ func (d *deploymentManager) SetWorkload(nodeID uint32, workload []gridtypes.Work
 		d.affectedDeployments[nodeID] = dl.ContractID
 	}
 
-	for _, wl := range workload {
+	for _, wl := range workloads { //TODO : need to be handled
 		if _, err := dl.Get(wl.Name); err == nil {
 			return fmt.Errorf("workload name already exists: %s", wl.Name)
 		}
 	}
-
-	for _, wl := range workload {
+	//renaming to workloads
+	for _, wl := range workloads {
 		dl.Workloads = append(dl.Workloads, wl)
 		d.plannedDeployments[nodeID] = dl
 	}
