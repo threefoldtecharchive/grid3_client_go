@@ -7,7 +7,6 @@ import (
 )
 
 type ZDB struct {
-	NodeId      uint32
 	Name        string
 	Password    string
 	Public      bool
@@ -19,7 +18,8 @@ type ZDB struct {
 	Namespace   string
 }
 
-func (z *ZDB) Stage(manager deployer.DeploymentManager) error {
+func (z *ZDB) Stage(manager deployer.DeploymentManager, NodeId uint32) error {
+	workloads := make([]gridtypes.Workload, 0)
 	workload := gridtypes.Workload{
 		Name:        gridtypes.Name(z.Name),
 		Type:        zos.ZDBType,
@@ -32,6 +32,7 @@ func (z *ZDB) Stage(manager deployer.DeploymentManager) error {
 			Public:   z.Public,
 		}),
 	}
-	err := manager.SetWorkload(z.NodeId, workload)
+	workloads = append(workloads, workload)
+	err := manager.SetWorkloads(NodeId, workloads)
 	return err
 }

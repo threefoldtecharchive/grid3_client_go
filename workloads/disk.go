@@ -7,13 +7,13 @@ import (
 )
 
 type Disk struct {
-	NodeId      uint32
 	Name        string
 	Size        int
 	Description string
 }
 
-func (d *Disk) Stage(manager deployer.DeploymentManager) error {
+func (d *Disk) Stage(manager deployer.DeploymentManager, NodeId uint32) error {
+	workloads := make([]gridtypes.Workload, 0)
 	workload := gridtypes.Workload{
 		Name:        gridtypes.Name(d.Name),
 		Version:     0,
@@ -23,6 +23,7 @@ func (d *Disk) Stage(manager deployer.DeploymentManager) error {
 			Size: gridtypes.Unit(d.Size) * gridtypes.Gigabyte,
 		}),
 	}
-	err := manager.SetWorkload(d.NodeId, workload)
+	workloads = append(workloads, workload)
+	err := manager.SetWorkloads(NodeId, workloads)
 	return err
 }

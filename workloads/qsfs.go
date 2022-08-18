@@ -9,7 +9,6 @@ import (
 )
 
 type QSFS struct {
-	NodeId               uint32
 	Name                 string
 	Description          string
 	Cache                int
@@ -67,7 +66,8 @@ func (b *Backends) zosBackends() []zos.ZdbBackend {
 	return z
 }
 
-func (q *QSFS) Stage(manager deployer.DeploymentManager) error {
+func (q *QSFS) Stage(manager deployer.DeploymentManager, NodeId uint32) error {
+	workloads := make([]gridtypes.Workload, 0)
 	k, err := hex.DecodeString(q.EncryptionKey)
 	if err != nil {
 		// return gridtypes.Workload{}, err
@@ -114,7 +114,8 @@ func (q *QSFS) Stage(manager deployer.DeploymentManager) error {
 		}),
 	}
 
-	err = manager.SetWorkload(q.NodeId, workload)
+	workloads = append(workloads, workload)
+	err = manager.SetWorkloads(NodeId, workloads)
 	return err
 
 }

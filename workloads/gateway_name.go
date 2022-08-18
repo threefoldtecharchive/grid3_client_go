@@ -7,7 +7,6 @@ import (
 )
 
 type GatewayNameProxy struct {
-	NodeId uint32
 	// Name the fully qualified domain name to use (cannot be present with Name)
 	Name string
 
@@ -21,7 +20,8 @@ type GatewayNameProxy struct {
 	FQDN string
 }
 
-func (g *GatewayNameProxy) Stage(manager deployer.DeploymentManager) (err error) { //ZosWorkload()
+func (g *GatewayNameProxy) Stage(manager deployer.DeploymentManager, NodeId uint32) error {
+	workloads := make([]gridtypes.Workload, 0)
 	workload := gridtypes.Workload{
 		Version: 0,
 		Type:    zos.GatewayNameProxyType,
@@ -33,6 +33,7 @@ func (g *GatewayNameProxy) Stage(manager deployer.DeploymentManager) (err error)
 			Backends:       g.Backends,
 		}),
 	}
-	err = manager.SetWorkload(g.NodeId, workload)
+	workloads = append(workloads, workload)
+	err := manager.SetWorkloads(NodeId, workloads)
 	return err
 }

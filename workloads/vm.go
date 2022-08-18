@@ -12,7 +12,6 @@ import (
 )
 
 type VM struct {
-	NodeId        uint32
 	Name          string
 	Flist         string
 	FlistChecksum string
@@ -44,18 +43,7 @@ type Zlog struct {
 	Output string
 }
 
-func mounts(mounts []zos.MachineMount) []Mount {
-	var res []Mount
-	for _, mount := range mounts {
-		res = append(res, Mount{
-			DiskName:   mount.Name.String(),
-			MountPoint: mount.Mountpoint,
-		})
-	}
-	return res
-}
-
-func (v VM) Stage(manager deployer.DeploymentManager) (err error) {
+func (v VM) Stage(manager deployer.DeploymentManager, NodeId uint32) error {
 	workloads := make([]gridtypes.Workload, 0)
 	publicIPName := ""
 	if v.PublicIP || v.PublicIP6 {
@@ -98,14 +86,7 @@ func (v VM) Stage(manager deployer.DeploymentManager) (err error) {
 		Description: v.Description,
 	}
 	workloads = append(workloads, workload)
-
-	for _, w := range workloads {
-		err = manager.SetWorkload(v.NodeId, w)
-		if err != nil {
-			return err
-		}
-	}
-
+	err := manager.SetWorkloads(NodeId, workloads)
 	return err
 }
 

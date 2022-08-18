@@ -17,5 +17,4 @@ func TestDecodeMsgData(t *testing.T) {
 
 	ret2 := getDecodedMsgData(s2After)
 	assert.Equal(t, s2Before, string(ret2))
-
 }
