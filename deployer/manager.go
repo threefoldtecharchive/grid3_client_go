@@ -136,20 +136,19 @@ func (d *deploymentManager) SetWorkload(nodeID uint32, workload gridtypes.Worklo
 }
 
 func (d *deploymentManager) GetWorkload(nodeID uint32, name string) (gridtypes.Workload, error) {
-	w := gridtypes.Workload{}
 	if deployment, ok := d.deploymentIDs[nodeID]; ok {
 		s, err := d.substrate.SubstrateExt()
 		if err != nil {
-			return w, errors.Wrap(err, "couldn't get substrate client")
+			return gridtypes.Workload{}, errors.Wrap(err, "couldn't get substrate client")
 		}
 		defer s.Close()
 		nodeClient, err := d.ncPool.GetNodeClient(s, nodeID)
 		if err != nil {
-			return w, errors.Wrapf(err, "couldn't get node client: %d", nodeID)
+			return gridtypes.Workload{}, errors.Wrapf(err, "couldn't get node client: %d", nodeID)
 		}
 		dl, err := nodeClient.DeploymentGet(context.Background(), deployment)
 		if err != nil {
-			return w, errors.Wrapf(err, "couldn't get deployment from node %d", nodeID)
+			return gridtypes.Workload{}, errors.Wrapf(err, "couldn't get deployment from node %d", nodeID)
 		}
 
 		for _, workload := range dl.Workloads {
@@ -157,12 +156,29 @@ func (d *deploymentManager) GetWorkload(nodeID uint32, name string) (gridtypes.W
 				return workload, nil
 			}
 		}
-		return w, fmt.Errorf("couldn't get workload with name %s", name)
+		return gridtypes.Workload{}, fmt.Errorf("couldn't get workload with name %s", name)
 	}
-	return w, fmt.Errorf("couldn't get deployment with node ID %d", nodeID)
+	return gridtypes.Workload{}, fmt.Errorf("couldn't get deployment with node ID %d", nodeID)
 
 }
 
 func (d *deploymentManager) GetDeployment(nodeID uint32) (gridtypes.Deployment, error) {
-	return gridtypes.Deployment{}, nil
+	dl := gridtypes.Deployment{}
+	if dID, ok := d.deploymentIDs[nodeID]; ok {
+		s, err := d.substrate.SubstrateExt()
+		if err != nil {
+			return gridtypes.Deployment{}, errors.Wrap(err, "couldn't get substrate client")
+		}
+		defer s.Close()
+		nodeClient, err := d.ncPool.GetNodeClient(s, nodeID)
+		if err != nil {
+			return gridtypes.Deployment{}, errors.Wrapf(err, "couldn't get node client: %d", nodeID)
+		}
+		dl, err = nodeClient.DeploymentGet(context.Background(), dID)
+		if err != nil {
+			return gridtypes.Deployment{}, errors.Wrapf(err, "couldn't get deployment from node %d", nodeID)
+		}
+		return dl, nil
+	}
+	return gridtypes.Deployment{}, fmt.Errorf("couldn't get deployment with node ID %d", nodeID)
 }
