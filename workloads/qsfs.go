@@ -67,6 +67,7 @@ func (b *Backends) zosBackends() []zos.ZdbBackend {
 }
 
 func (q *QSFS) Stage(manager deployer.DeploymentManager, NodeId uint32) error {
+	workloads := make([]gridtypes.Workload, 0)
 	k, err := hex.DecodeString(q.EncryptionKey)
 	if err != nil {
 		// return gridtypes.Workload{}, err
@@ -113,7 +114,13 @@ func (q *QSFS) Stage(manager deployer.DeploymentManager, NodeId uint32) error {
 		}),
 	}
 
-	err = manager.SetWorkload(NodeId, workload)
-	return err
+	workloads = append(workloads, workload)
+	for _, w := range workloads {
+		err := manager.SetWorkload(NodeId, w)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 
 }

@@ -19,6 +19,7 @@ type ZDB struct {
 }
 
 func (z *ZDB) Stage(manager deployer.DeploymentManager, NodeId uint32) error {
+	workloads := make([]gridtypes.Workload, 0)
 	workload := gridtypes.Workload{
 		Name:        gridtypes.Name(z.Name),
 		Type:        zos.ZDBType,
@@ -31,6 +32,12 @@ func (z *ZDB) Stage(manager deployer.DeploymentManager, NodeId uint32) error {
 			Public:   z.Public,
 		}),
 	}
-	err := manager.SetWorkload(NodeId, workload)
-	return err
+	workloads = append(workloads, workload)
+	for _, w := range workloads {
+		err := manager.SetWorkload(NodeId, w)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

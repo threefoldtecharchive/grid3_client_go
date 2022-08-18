@@ -13,6 +13,7 @@ type Disk struct {
 }
 
 func (d *Disk) Stage(manager deployer.DeploymentManager, NodeId uint32) error {
+	workloads := make([]gridtypes.Workload, 0)
 	workload := gridtypes.Workload{
 		Name:        gridtypes.Name(d.Name),
 		Version:     0,
@@ -22,6 +23,13 @@ func (d *Disk) Stage(manager deployer.DeploymentManager, NodeId uint32) error {
 			Size: gridtypes.Unit(d.Size) * gridtypes.Gigabyte,
 		}),
 	}
-	err := manager.SetWorkload(NodeId, workload)
-	return err
+	workloads = append(workloads, workload)
+	for _, w := range workloads {
+		err := manager.SetWorkload(NodeId, w)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

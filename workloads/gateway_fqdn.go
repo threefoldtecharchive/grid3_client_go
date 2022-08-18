@@ -21,6 +21,7 @@ type GatewayFQDNProxy struct {
 }
 
 func (g *GatewayFQDNProxy) Stage(manager deployer.DeploymentManager, NodeId uint32) (err error) { //ZosWorkload()
+	workloads := make([]gridtypes.Workload, 0)
 	workload := gridtypes.Workload{
 		Version: 0,
 		Type:    zos.GatewayFQDNProxyType,
@@ -32,7 +33,12 @@ func (g *GatewayFQDNProxy) Stage(manager deployer.DeploymentManager, NodeId uint
 			FQDN:           g.FQDN,
 		}),
 	}
-
-	err = manager.SetWorkload(NodeId, workload)
-	return err
+	workloads = append(workloads, workload)
+	for _, w := range workloads {
+		err := manager.SetWorkload(NodeId, w)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
