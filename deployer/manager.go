@@ -132,7 +132,6 @@ func (d *deploymentManager) SetWorkloads(nodeID uint32, workloads []gridtypes.Wo
 			return fmt.Errorf("workload name already exists: %s", wl.Name)
 		}
 	}
-	//renaming to workloads
 	for _, wl := range workloads {
 		dl.Workloads = append(dl.Workloads, wl)
 		d.plannedDeployments[nodeID] = dl
