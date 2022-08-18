@@ -20,7 +20,7 @@ type GatewayNameProxy struct {
 	FQDN string
 }
 
-func (g *GatewayNameProxy) Stage(manager deployer.DeploymentManager, NodeId uint32) (err error) { //ZosWorkload()
+func (g *GatewayNameProxy) Stage(manager deployer.DeploymentManager, NodeId uint32) error {
 	workloads := make([]gridtypes.Workload, 0)
 	workload := gridtypes.Workload{
 		Version: 0,
@@ -34,11 +34,6 @@ func (g *GatewayNameProxy) Stage(manager deployer.DeploymentManager, NodeId uint
 		}),
 	}
 	workloads = append(workloads, workload)
-	for _, w := range workloads {
-		err := manager.SetWorkload(NodeId, w)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+	err := manager.SetWorkload(NodeId, workloads)
+	return err
 }

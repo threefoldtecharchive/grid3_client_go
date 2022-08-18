@@ -115,12 +115,7 @@ func (q *QSFS) Stage(manager deployer.DeploymentManager, NodeId uint32) error {
 	}
 
 	workloads = append(workloads, workload)
-	for _, w := range workloads {
-		err := manager.SetWorkload(NodeId, w)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+	err = manager.SetWorkload(NodeId, workloads)
+	return err
 
 }

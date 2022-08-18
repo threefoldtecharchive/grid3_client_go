@@ -43,7 +43,7 @@ type Zlog struct {
 	Output string
 }
 
-func (v VM) Stage(manager deployer.DeploymentManager, NodeId uint32) (err error) {
+func (v VM) Stage(manager deployer.DeploymentManager, NodeId uint32) error {
 	workloads := make([]gridtypes.Workload, 0)
 	publicIPName := ""
 	if v.PublicIP || v.PublicIP6 {
@@ -86,14 +86,7 @@ func (v VM) Stage(manager deployer.DeploymentManager, NodeId uint32) (err error)
 		Description: v.Description,
 	}
 	workloads = append(workloads, workload)
-
-	for _, w := range workloads {
-		err = manager.SetWorkload(NodeId, w)
-		if err != nil {
-			return err
-		}
-	}
-
+	err := manager.SetWorkload(NodeId, workloads)
 	return err
 }
 
