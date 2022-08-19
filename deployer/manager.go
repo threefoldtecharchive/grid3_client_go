@@ -3,6 +3,7 @@ package deployer
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
@@ -127,14 +128,24 @@ func (d *deploymentManager) SetWorkloads(nodeID uint32, workloads []gridtypes.Wo
 		d.affectedDeployments[nodeID] = dl.ContractID
 	}
 
-	for _, wl := range workloads {
-		// If error is nil, workload will be overwritten
-		if _, err := dl.Get(wl.Name); err != nil {
-			if !errors.Is(err, substratemanager.ErrAccountNotFound) {
-				// This case the error that name is not valid
-				return errors.Wrapf(err, "couldn't assign workload with name %s", wl.Name)
-			}
+	for idx, wl := range workloads {
+		if workload, err := dl.Get(wl.Name); err == nil {
+			// override existing workload
+			workload.Data = wl.Data
+			workload.Description = wl.Description
+			workload.Metadata = wl.Metadata
+			workload.Result = wl.Result
+			workload.Type = wl.Type
+			workload.Version = wl.Version
+
+			swap := reflect.Swapper(workloads)
+			swap(idx, len(workloads)-1)
+			workloads = workloads[:len(workloads)-1]
+
 		}
+	}
+
+	for _, wl := range workloads {
 		dl.Workloads = append(dl.Workloads, wl)
 		d.plannedDeployments[nodeID] = dl
 	}
