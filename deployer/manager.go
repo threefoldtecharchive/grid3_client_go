@@ -3,7 +3,6 @@ package deployer
 import (
 	"context"
 	"fmt"
-	"reflect"
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
@@ -25,7 +24,7 @@ type DeploymentManager interface {
 	//             it should load the deployment in initDeployments if it exists in deploymentIDs and not loaded
 	//             and return an error if the node is down for example
 
-	SetWorkloads(nodeID uint32, workload []gridtypes.Workload) error
+	SetWorkloads(nodeID uint32, workoads map[uint32][]gridtypes.Workload) error
 	GetWorkload(nodeID uint32, name string) (gridtypes.Workload, error)
 	GetDeployment(nodeID uint32) (gridtypes.Deployment, error)
 }
@@ -90,7 +89,7 @@ func (d *deploymentManager) Commit(ctx context.Context) error {
 	return nil
 }
 
-func (d *deploymentManager) SetWorkloads(nodeID uint32, workloads []gridtypes.Workload) error {
+func (d *deploymentManager) SetWorkloads(nodeID uint32, workoads map[uint32][]gridtypes.Workload) error {
 	// move workload to planned deployments
 	dl := gridtypes.Deployment{
 		Version: 0,
@@ -128,28 +127,27 @@ func (d *deploymentManager) SetWorkloads(nodeID uint32, workloads []gridtypes.Wo
 		d.affectedDeployments[nodeID] = dl.ContractID
 	}
 
-	for idx, wl := range workloads {
-		if workload, err := dl.Get(wl.Name); err == nil {
+	for nodeId, wl := range workoads {
+		if workload, ok := dl.Get(wl[nodeId].Name); ok == nil {
 			// override existing workload
-			workload.Data = wl.Data
-			workload.Description = wl.Description
-			workload.Metadata = wl.Metadata
-			workload.Result = wl.Result
-			workload.Type = wl.Type
-			workload.Version = wl.Version
+			workload.Data = wl[nodeId].Data
+			workload.Description = wl[nodeId].Description
+			workload.Metadata = wl[nodeId].Metadata
+			workload.Result = wl[nodeId].Result
+			workload.Type = wl[nodeId].Type
+			workload.Version += 1
 
-			swap := reflect.Swapper(workloads)
-			swap(idx, len(workloads)-1)
-			workloads = workloads[:len(workloads)-1]
-
+			delete(workoads, nodeId)
 		}
 	}
 
-	for _, wl := range workloads {
-		dl.Workloads = append(dl.Workloads, wl)
+	for nodeId, wl := range workoads {
+		dl.Workloads = append(dl.Workloads, wl[nodeId])
 		d.plannedDeployments[nodeID] = dl
 	}
+
 	return nil
+
 }
 
 func (d *deploymentManager) GetWorkload(nodeID uint32, name string) (gridtypes.Workload, error) {
