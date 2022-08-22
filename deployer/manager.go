@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
 	client "github.com/threefoldtech/grid3-go/node"
 	substratemanager "github.com/threefoldtech/grid3-go/substrate_manager"
 	proxy "github.com/threefoldtech/grid_proxy_server/pkg/client"
@@ -80,11 +79,11 @@ func (d *deploymentManager) Commit(ctx context.Context) error {
 		return errors.Wrap(err, "couldn't get substrate client")
 	}
 	defer s.Close()
-	d.deploymentIDs, err = deployer.Deploy(ctx, s, d.affectedDeployments, d.plannedDeployments)
+	committedDeploymentsIDs, err := deployer.Deploy(ctx, s, d.affectedDeployments, d.plannedDeployments)
 	if err != nil {
 		return err
 	}
-	log.Debug().Msgf("Deployed %+v", d.deploymentIDs)
+	d.updateDeploymentIDs(committedDeploymentsIDs)
 	d.affectedDeployments = make(map[uint32]uint64)
 	d.plannedDeployments = make(map[uint32]gridtypes.Deployment)
 	return nil
@@ -187,6 +186,18 @@ func (d *deploymentManager) GetDeployment(nodeID uint32) (gridtypes.Deployment, 
 	}
 	return gridtypes.Deployment{}, fmt.Errorf("couldn't get deployment with node ID %d", nodeID)
 }
+
 func (d *deploymentManager) GetDeployments() map[uint32]uint64 {
 	return d.deploymentIDs
+}
+
+func (d *deploymentManager) updateDeploymentIDs(committedDeploymentsIDs map[uint32]uint64) {
+	for k, v := range committedDeploymentsIDs {
+		d.deploymentIDs[k] = v
+	}
+	for k := range d.affectedDeployments {
+		if _, ok := committedDeploymentsIDs[k]; !ok {
+			delete(d.deploymentIDs, k)
+		}
+	}
 }

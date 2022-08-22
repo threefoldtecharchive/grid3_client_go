@@ -6,7 +6,6 @@ require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/centrifuge/go-substrate-rpc-client/v4 v4.0.2
 	github.com/pkg/errors v0.9.1
-	github.com/rs/zerolog v1.26.0
 	github.com/stretchr/testify v1.7.0
 	github.com/threefoldtech/go-rmb v0.2.0
 	github.com/threefoldtech/grid_proxy_server v1.5.6
@@ -39,6 +38,7 @@ require (
 	github.com/pierrec/xxHash v0.1.5 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rs/cors v1.8.2 // indirect
+	github.com/rs/zerolog v1.26.0 // indirect
 	github.com/vedhavyas/go-subkey v1.0.3 // indirect
 	golang.org/x/crypto v0.0.0-20220518034528-6f7dac969898 // indirect
 	golang.org/x/sys v0.0.0-20220403020550-483a9cbc67c0 // indirect
