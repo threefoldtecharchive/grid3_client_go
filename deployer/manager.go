@@ -71,9 +71,6 @@ func (d *deploymentManager) CancelAll() error { //TODO
 	return nil
 }
 
-// func (d *deploymentManager) CancelNodeDeployment(nodeID uint32) {
-
-// }
 func (d *deploymentManager) Commit(ctx context.Context) error {
 	// generate gridtypes.Deployment from plannedDeployments
 	deployer := NewDeployer(d.identity, d.twinID, d.gridClient, d.ncPool, true)
