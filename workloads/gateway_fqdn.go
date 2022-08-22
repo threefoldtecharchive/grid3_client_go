@@ -21,6 +21,7 @@ type GatewayFQDNProxy struct {
 }
 
 func (g *GatewayFQDNProxy) Stage(manager deployer.DeploymentManager, NodeId uint32) error { //ZosWorkload()
+	workloadsMap := map[uint32][]gridtypes.Workload{}
 	workloads := make([]gridtypes.Workload, 0)
 	workload := gridtypes.Workload{
 		Version: 0,
@@ -34,6 +35,7 @@ func (g *GatewayFQDNProxy) Stage(manager deployer.DeploymentManager, NodeId uint
 		}),
 	}
 	workloads = append(workloads, workload)
-	err := manager.SetWorkloads(NodeId, workloads)
+	workloadsMap[NodeId] = workloads
+	err := manager.SetWorkloads(workloadsMap)
 	return err
 }

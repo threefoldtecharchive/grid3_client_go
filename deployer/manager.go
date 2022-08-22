@@ -3,6 +3,7 @@ package deployer
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	"github.com/pkg/errors"
 	client "github.com/threefoldtech/grid3-go/node"
@@ -23,7 +24,7 @@ type DeploymentManager interface {
 	//             it should load the deployment in initDeployments if it exists in deploymentIDs and not loaded
 	//             and return an error if the node is down for example
 
-	SetWorkloads(nodeID uint32, workload []gridtypes.Workload) error
+	SetWorkloads(workoads map[uint32][]gridtypes.Workload) error
 	GetWorkload(nodeID uint32, name string) (gridtypes.Workload, error)
 	GetDeployment(nodeID uint32) (gridtypes.Deployment, error)
 	GetDeployments() map[uint32]uint64
@@ -89,53 +90,57 @@ func (d *deploymentManager) Commit(ctx context.Context) error {
 	return nil
 }
 
-func (d *deploymentManager) SetWorkloads(nodeID uint32, workloads []gridtypes.Workload) error {
-	// move workload to planned deployments
-	dl := gridtypes.Deployment{
-		Version: 0,
-		TwinID:  d.twinID,
-		SignatureRequirement: gridtypes.SignatureRequirement{
-			WeightRequired: 1,
-			Requests: []gridtypes.SignatureRequest{
-				{
-					TwinID: d.twinID,
-					Weight: 1,
-				},
-			},
-		},
-		Workloads: []gridtypes.Workload{},
-	}
+func (d *deploymentManager) SetWorkloads(workloads map[uint32][]gridtypes.Workload) error {
 
-	if pdCopy, ok := d.plannedDeployments[nodeID]; ok {
-		dl = pdCopy
-	} else if dID, ok := d.deploymentIDs[nodeID]; ok {
-		s, err := d.substrate.SubstrateExt()
-		if err != nil {
-			return errors.Wrap(err, "couldn't get substrate client")
-		}
-		defer s.Close()
-		nodeClient, err := d.ncPool.GetNodeClient(s, nodeID)
-		if err != nil {
-			return errors.Wrapf(err, "couldn't get node client: %d", nodeID)
-		}
-		// TODO: check if deployment exist on deploymentIDs and doesn't exist on node
-		// TODO: use context from setWorkload
-		dl, err = nodeClient.DeploymentGet(context.Background(), dID)
-		if err != nil {
-			return errors.Wrapf(err, "couldn't get deployment from node %d", nodeID)
-		}
-		d.affectedDeployments[nodeID] = dl.ContractID
-	}
+	for nodeID, workloadsArray := range workloads {
 
-	for _, wl := range workloads { //TODO : need to be handled
-		if _, err := dl.Get(wl.Name); err == nil {
-			return fmt.Errorf("workload name already exists: %s", wl.Name)
+		// move workload to planned deployments
+		dl := gridtypes.Deployment{}
+
+		if pdCopy, ok := d.plannedDeployments[nodeID]; ok {
+			dl = pdCopy
+		} else if dID, ok := d.deploymentIDs[nodeID]; ok {
+			s, err := d.substrate.SubstrateExt()
+			if err != nil {
+				return errors.Wrap(err, "couldn't get substrate client")
+			}
+			defer s.Close()
+			nodeClient, err := d.ncPool.GetNodeClient(s, nodeID)
+			if err != nil {
+				return errors.Wrapf(err, "couldn't get node client: %d", nodeID)
+			}
+			// TODO: check if deployment exist on deploymentIDs and doesn't exist on node
+			// TODO: use context from setWorkload
+			dl, err = nodeClient.DeploymentGet(context.Background(), dID)
+			if err != nil {
+				return errors.Wrapf(err, "couldn't get deployment from node %d", nodeID)
+			}
+			d.affectedDeployments[nodeID] = dl.ContractID
 		}
-	}
-	for _, wl := range workloads {
-		dl.Workloads = append(dl.Workloads, wl)
+
+		for idx := 0; idx < len(workloadsArray); {
+			if workload, err := dl.Get(workloadsArray[idx].Name); err != nil {
+				//override existing workload
+				workload.Data = workloadsArray[idx].Data
+				workload.Description = workloadsArray[idx].Description
+				workload.Metadata = workloadsArray[idx].Metadata
+				workload.Result = workloadsArray[idx].Result
+				workload.Type = workloadsArray[idx].Type
+				workload.Version += 1
+
+				swap := reflect.Swapper(workloadsArray)
+				swap(idx, len(workloadsArray)-1)
+				workloadsArray = workloadsArray[:len(workloadsArray)-1]
+
+			} else {
+				idx++
+			}
+
+		}
+		dl.Workloads = append(dl.Workloads, workloadsArray...)
 		d.plannedDeployments[nodeID] = dl
 	}
+
 	return nil
 }
 

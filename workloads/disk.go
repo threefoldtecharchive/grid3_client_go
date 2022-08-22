@@ -13,6 +13,7 @@ type Disk struct {
 }
 
 func (d *Disk) Stage(manager deployer.DeploymentManager, NodeId uint32) error {
+	workloadsMap := map[uint32][]gridtypes.Workload{}
 	workloads := make([]gridtypes.Workload, 0)
 	workload := gridtypes.Workload{
 		Name:        gridtypes.Name(d.Name),
@@ -24,6 +25,7 @@ func (d *Disk) Stage(manager deployer.DeploymentManager, NodeId uint32) error {
 		}),
 	}
 	workloads = append(workloads, workload)
-	err := manager.SetWorkloads(NodeId, workloads)
+	workloadsMap[NodeId] = workloads
+	err := manager.SetWorkloads(workloadsMap)
 	return err
 }

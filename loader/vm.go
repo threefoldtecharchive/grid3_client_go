@@ -17,15 +17,14 @@ func LoadVmFromGrid(manager deployer.DeploymentManager, nodeID uint32, name stri
 		return workloads.VM{}, errors.Wrapf(err, "failed to get deployment with id %d", nodeID)
 	}
 
-	workload := gridtypes.Workload{}
-	dataI, err := workload.WorkloadData()
-	if err != nil {
-		return workloads.VM{}, errors.Wrap(err, "failed to get workload data")
-	}
-
 	wl, err := manager.GetWorkload(nodeID, name)
 	if err != nil {
 		return workloads.VM{}, errors.Wrapf(err, "couldn't get workload from node %d", nodeID)
+	}
+
+	dataI, err := wl.WorkloadData()
+	if err != nil {
+		return workloads.VM{}, errors.Wrap(err, "failed to get workload data")
 	}
 
 	data, ok := dataI.(*zos.ZMachine)
