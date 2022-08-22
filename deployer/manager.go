@@ -3,6 +3,7 @@ package deployer
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
@@ -117,16 +118,21 @@ func (d *deploymentManager) SetWorkloads(workloads map[uint32][]gridtypes.Worklo
 			d.affectedDeployments[nodeID] = dl.ContractID
 		}
 
-		if workload, error := dl.Get(workloadsArray[nodeID].Name); error == nil {
-			//override existing workload
-			workload.Data = workloadsArray[nodeID].Data
-			workload.Description = workloadsArray[nodeID].Description
-			workload.Metadata = workloadsArray[nodeID].Metadata
-			workload.Result = workloadsArray[nodeID].Result
-			workload.Type = workloadsArray[nodeID].Type
-			workload.Version += 1
+		for idx, wl := range workloadsArray {
+			if workload, error := dl.Get(wl.Name); error == nil {
+				//override existing workload
+				workload.Data = wl.Data
+				workload.Description = wl.Description
+				workload.Metadata = wl.Metadata
+				workload.Result = wl.Result
+				workload.Type = wl.Type
+				workload.Version += 1
 
-			delete(workloads, nodeID)
+				swap := reflect.Swapper(workloadsArray)
+				swap(idx, len(workloadsArray)-1)
+				workloadsArray = workloadsArray[:len(workloadsArray)-1]
+
+			}
 		}
 
 		dl.Workloads = append(dl.Workloads, workloadsArray...)
