@@ -129,7 +129,7 @@ func (d *deploymentManager) SetWorkloads(workoads map[uint32][]gridtypes.Workloa
 			d.affectedDeployments[nodeID] = dl.ContractID
 		}
 
-		if workload, ok := dl.Get(workloadsArray[nodeID].Name); ok == nil {
+		if workload, error := dl.Get(workloadsArray[nodeID].Name); error == nil {
 			//override existing workload
 			workload.Data = workloadsArray[nodeID].Data
 			workload.Description = workloadsArray[nodeID].Description
