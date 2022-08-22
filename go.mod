@@ -26,6 +26,7 @@ require (
 	github.com/ethereum/go-ethereum v1.10.17 // indirect
 	github.com/go-redis/redis/v8 v8.11.1 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
+	github.com/golang/mock v1.6.0
 	github.com/gomodule/redigo v2.0.0+incompatible // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
