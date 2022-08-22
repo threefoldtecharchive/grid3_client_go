@@ -118,23 +118,25 @@ func (d *deploymentManager) SetWorkloads(workloads map[uint32][]gridtypes.Worklo
 			d.affectedDeployments[nodeID] = dl.ContractID
 		}
 
-		for idx, wl := range workloadsArray {
-			if workload, error := dl.Get(wl.Name); error == nil {
+		for idx := 0; idx < len(workloadsArray); {
+			if workload, err := dl.Get(workloadsArray[idx].Name); err != nil {
 				//override existing workload
-				workload.Data = wl.Data
-				workload.Description = wl.Description
-				workload.Metadata = wl.Metadata
-				workload.Result = wl.Result
-				workload.Type = wl.Type
+				workload.Data = workloadsArray[idx].Data
+				workload.Description = workloadsArray[idx].Description
+				workload.Metadata = workloadsArray[idx].Metadata
+				workload.Result = workloadsArray[idx].Result
+				workload.Type = workloadsArray[idx].Type
 				workload.Version += 1
 
 				swap := reflect.Swapper(workloadsArray)
 				swap(idx, len(workloadsArray)-1)
 				workloadsArray = workloadsArray[:len(workloadsArray)-1]
 
+			} else {
+				idx++
 			}
-		}
 
+		}
 		dl.Workloads = append(dl.Workloads, workloadsArray...)
 		d.plannedDeployments[nodeID] = dl
 	}
