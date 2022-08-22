@@ -89,24 +89,12 @@ func (d *deploymentManager) Commit(ctx context.Context) error {
 	return nil
 }
 
-func (d *deploymentManager) SetWorkloads(workoads map[uint32][]gridtypes.Workload) error {
-	// move workload to planned deployments
-	dl := gridtypes.Deployment{
-		Version: 0,
-		TwinID:  d.twinID,
-		SignatureRequirement: gridtypes.SignatureRequirement{
-			WeightRequired: 1,
-			Requests: []gridtypes.SignatureRequest{
-				{
-					TwinID: d.twinID,
-					Weight: 1,
-				},
-			},
-		},
-		Workloads: []gridtypes.Workload{},
-	}
+func (d *deploymentManager) SetWorkloads(workloads map[uint32][]gridtypes.Workload) error {
 
-	for nodeID, workloadsArray := range workoads {
+	for nodeID, workloadsArray := range workloads {
+
+		// move workload to planned deployments
+		dl := gridtypes.Deployment{}
 
 		if pdCopy, ok := d.plannedDeployments[nodeID]; ok {
 			dl = pdCopy
@@ -138,12 +126,10 @@ func (d *deploymentManager) SetWorkloads(workoads map[uint32][]gridtypes.Workloa
 			workload.Type = workloadsArray[nodeID].Type
 			workload.Version += 1
 
-			delete(workoads, nodeID)
+			delete(workloads, nodeID)
 		}
-	}
 
-	for nodeID, wl := range workoads {
-		dl.Workloads = append(dl.Workloads, wl[nodeID])
+		dl.Workloads = append(dl.Workloads, workloadsArray...)
 		d.plannedDeployments[nodeID] = dl
 	}
 
