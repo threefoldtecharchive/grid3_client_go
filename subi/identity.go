@@ -1,4 +1,4 @@
-package substratemanager
+package subi
 
 import (
 	client "github.com/threefoldtech/substrate-client"

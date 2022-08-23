@@ -1,4 +1,4 @@
-package substratemanager
+package subi
 
 import (
 	"github.com/pkg/errors"

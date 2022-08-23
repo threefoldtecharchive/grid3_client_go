@@ -13,7 +13,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/go-rmb"
-	substratemanager "github.com/threefoldtech/grid3-go/substrate_manager"
+	substratemanager "github.com/threefoldtech/grid3-go/subi"
 	"github.com/threefoldtech/substrate-client"
 )
 
