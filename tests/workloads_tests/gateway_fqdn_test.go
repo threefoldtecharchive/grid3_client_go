@@ -5,7 +5,8 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	mock_deployer "github.com/threefoldtech/grid3-go/mocks"
+	mock_deployer "github.com/threefoldtech/grid3-go/tests/mocks"
+	"github.com/threefoldtech/grid3-go/workloads"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
@@ -15,7 +16,7 @@ func TestGatewayFQDNStage(t *testing.T) {
 	defer ctrl.Finish()
 	manager := mock_deployer.NewMockDeploymentManager(ctrl)
 
-	gateway := GatewayFQDNProxy{
+	gateway := workloads.GatewayFQDNProxy{
 		Name:           "test",
 		TLSPassthrough: true,
 		Backends:       []zos.Backend{"http://1.1.1.1"},

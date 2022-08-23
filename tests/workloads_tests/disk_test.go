@@ -5,7 +5,8 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	mock_deployer "github.com/threefoldtech/grid3-go/mocks"
+	mock_deployer "github.com/threefoldtech/grid3-go/tests/mocks"
+	"github.com/threefoldtech/grid3-go/workloads"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
@@ -14,7 +15,7 @@ func TestDiskStage(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	disk := Disk{
+	disk := workloads.Disk{
 		Name:        "test",
 		Size:        100,
 		Description: "test des",
