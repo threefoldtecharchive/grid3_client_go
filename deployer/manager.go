@@ -7,7 +7,7 @@ import (
 
 	"github.com/pkg/errors"
 	client "github.com/threefoldtech/grid3-go/node"
-	substratemanager "github.com/threefoldtech/grid3-go/substrate_manager"
+	substratemanager "github.com/threefoldtech/grid3-go/subi"
 	proxy "github.com/threefoldtech/grid_proxy_server/pkg/client"
 	"github.com/threefoldtech/substrate-client"
 	"github.com/threefoldtech/zos/pkg/gridtypes"

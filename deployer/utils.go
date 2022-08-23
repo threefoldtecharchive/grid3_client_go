@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	substratemanager "github.com/threefoldtech/grid3-go/substrate_manager"
+	substratemanager "github.com/threefoldtech/grid3-go/subi"
 	proxytypes "github.com/threefoldtech/grid_proxy_server/pkg/types"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
