@@ -63,26 +63,38 @@ func TestLoadZdbFromGrid(t *testing.T) {
 		assert.Equal(t, zdb, got)
 	})
 	t.Run("invalid type", func(t *testing.T) {
-		diskWlCp := zdbWl
-		diskWlCp.Type = "invalid"
+		zdbWlCp := zdbWl
+		zdbWlCp.Type = "invalid"
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 		manager := mock_deployer.NewMockDeploymentManager(ctrl)
-		manager.EXPECT().GetWorkload(uint32(1), "test").Return(diskWlCp, nil)
+		manager.EXPECT().GetWorkload(uint32(1), "test").Return(zdbWlCp, nil)
 		_, err := loader.LoadZdbFromGrid(manager, 1, "test")
 		assert.Error(t, err)
 	})
 	t.Run("wrong workload data", func(t *testing.T) {
-		diskWlCp := zdbWl
-		diskWlCp.Type = zos.GatewayNameProxyType
-		diskWlCp.Data = gridtypes.MustMarshal(zos.GatewayNameProxy{
+		zdbWlCp := zdbWl
+		zdbWlCp.Type = zos.GatewayNameProxyType
+		zdbWlCp.Data = gridtypes.MustMarshal(zos.GatewayNameProxy{
 			Name: "name",
 		})
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
 		manager := mock_deployer.NewMockDeploymentManager(ctrl)
-		manager.EXPECT().GetWorkload(uint32(1), "test").Return(diskWlCp, nil)
+		manager.EXPECT().GetWorkload(uint32(1), "test").Return(zdbWlCp, nil)
+
+		_, err := loader.LoadZdbFromGrid(manager, 1, "test")
+		assert.Error(t, err)
+	})
+	t.Run("invalid result data", func(t *testing.T) {
+		zdbWlCp := zdbWl
+		zdbWlCp.Result.Data = nil
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		manager := mock_deployer.NewMockDeploymentManager(ctrl)
+		manager.EXPECT().GetWorkload(uint32(1), "test").Return(zdbWlCp, nil)
 
 		_, err := loader.LoadZdbFromGrid(manager, 1, "test")
 		assert.Error(t, err)
