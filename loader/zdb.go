@@ -11,14 +11,13 @@ import (
 )
 
 func LoadZdbFromGrid(manager deployer.DeploymentManager, nodeID uint32, name string) (workloads.ZDB, error) {
-	workload := gridtypes.Workload{}
-	dataI, err := workload.WorkloadData()
-	if err != nil {
-		return workloads.ZDB{}, errors.Wrap(err, "failed to get workload data")
-	}
 	wl, err := manager.GetWorkload(nodeID, name)
 	if err != nil {
 		return workloads.ZDB{}, errors.Wrapf(err, "couldn't get workload from node %d", nodeID)
+	}
+	dataI, err := wl.WorkloadData()
+	if err != nil {
+		return workloads.ZDB{}, errors.Wrap(err, "failed to get workload data")
 	}
 
 	data, ok := dataI.(*zos.ZDB)
