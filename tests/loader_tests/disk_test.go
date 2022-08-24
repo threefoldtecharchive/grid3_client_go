@@ -24,7 +24,7 @@ func TestLoadDiskFromGrid(t *testing.T) {
 		Type:        zos.ZMountType,
 		Description: "test des",
 		Data: gridtypes.MustMarshal(zos.ZMount{
-			Size: gridtypes.Unit(100) * gridtypes.Gigabyte,
+			Size: 100 * gridtypes.Gigabyte,
 		}),
 	}
 	t.Run("success", func(t *testing.T) {

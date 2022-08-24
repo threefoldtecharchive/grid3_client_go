@@ -33,7 +33,7 @@ func TestLoadZdbFromGrid(t *testing.T) {
 			Data:    res,
 		},
 		Data: gridtypes.MustMarshal(zos.ZDB{
-			Size:     gridtypes.Unit(100) * gridtypes.Gigabyte,
+			Size:     100 * gridtypes.Gigabyte,
 			Mode:     zos.ZDBMode("user"),
 			Password: "password",
 			Public:   true,
