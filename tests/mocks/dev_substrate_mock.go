@@ -10,7 +10,7 @@ import (
 
 	types "github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	gomock "github.com/golang/mock/gomock"
-	subi "github.com/threefoldtech/terraform-provider-grid/pkg/subi"
+	subi "github.com/threefoldtech/grid3-go/subi"
 )
 
 // MockSubstrate is a mock of Substrate interface.

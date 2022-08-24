@@ -81,7 +81,7 @@ func TestCreate(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	gridClient := mock.NewMockClient(ctrl)
-	cl := mock.NewRMBMockClient(ctrl)
+	cl := mock.(ctrl)
 	sub := mock.NewMockSubstrateExt(ctrl)
 	ncPool := mock.NewMockNodeClientCollection(ctrl)
 	deployer := deployer.NewDeployer(
