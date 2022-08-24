@@ -208,7 +208,13 @@ func NewNetworkDeployer(manager deployer.DeploymentManager, userAccess UserAcces
 		ExternalIP:  userAccess.UserAddress,
 		ExternalSK:  userAccess.UserSecretKey,
 	}
-
+	if k.ExternalSK.String() == "" {
+		secretKey, err := wgtypes.GeneratePrivateKey()
+		if err != nil {
+			return NetworkDeployer{}, errors.Wrap(err, "couldn't generate new secret key")
+		}
+		k.ExternalSK = secretKey
+	}
 	for _, nodeID := range k.Nodes {
 		dl, err := manager.GetDeployment(nodeID)
 		if err != nil {
