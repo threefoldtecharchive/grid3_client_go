@@ -79,9 +79,9 @@ func TestVMStage(t *testing.T) {
 			},
 			ComputeCapacity: zos.MachineCapacity{
 				CPU:    uint8(2),
-				Memory: gridtypes.Unit(uint(2048)) * gridtypes.Megabyte,
+				Memory: 2048 * gridtypes.Megabyte,
 			},
-			Size:       gridtypes.Unit(4096) * gridtypes.Megabyte,
+			Size:       4096 * gridtypes.Megabyte,
 			Entrypoint: "entrypoint",
 			Corex:      false,
 			Mounts: []zos.MachineMount{
