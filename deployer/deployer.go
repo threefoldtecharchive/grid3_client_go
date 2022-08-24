@@ -25,7 +25,7 @@ type Deployer interface {
 type DeployerImpl struct {
 	identity        substrate.Identity
 	twinID          uint32
-	validator       Validator
+	Validator       Validator
 	ncPool          client.NodeClientCollection
 	revertOnFailure bool
 }
@@ -52,7 +52,7 @@ func (d *DeployerImpl) Deploy(ctx context.Context, sub substratemanager.Substrat
 		// check resources only when old deployments are readable
 		// being readable means it's a fresh deployment or an update with good nodes
 		// this is done to avoid preventing deletion of deployments on dead nodes
-		if err := d.validator.Validate(ctx, sub, oldDeployments, newDeployments); err != nil {
+		if err := d.Validator.Validate(ctx, sub, oldDeployments, newDeployments); err != nil {
 			return oldDeploymentIDs, err
 		}
 	}
@@ -120,7 +120,7 @@ func (d *DeployerImpl) deploy(
 
 			publicIPCount := countDeploymentPublicIPs(dl)
 			log.Printf("Number of public ips: %d\n", publicIPCount)
-			contractID, err := sub.CreateNodeContract(d.identity, node, nil, hashHex, publicIPCount)
+			contractID, err := sub.CreateNodeContract(d.identity, node, "", hashHex, publicIPCount)
 			log.Printf("CreateNodeContract returned id: %d\n", contractID)
 			if err != nil {
 				return currentDeployments, errors.Wrap(err, "failed to create contract")
@@ -216,7 +216,7 @@ func (d *DeployerImpl) deploy(
 			log.Printf("[DEBUG] HASH: %s", hashHex)
 			// TODO: Destroy and create if publicIPCount is changed
 			// publicIPCount := countDeploymentPublicIPs(dl)
-			contractID, err := sub.UpdateNodeContract(d.identity, dl.ContractID, nil, hashHex)
+			contractID, err := sub.UpdateNodeContract(d.identity, dl.ContractID, "", hashHex)
 			if err != nil {
 				return currentDeployments, errors.Wrap(err, "failed to update deployment")
 			}

@@ -8,7 +8,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	"github.com/threefoldtech/grid3-go/deployer"
+	deployer "github.com/threefoldtech/grid3-go/deployer"
 	client "github.com/threefoldtech/grid3-go/node"
 	mock "github.com/threefoldtech/grid3-go/tests/mocks"
 	"github.com/threefoldtech/grid3-go/workloads"
@@ -81,26 +81,23 @@ func TestCreate(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	gridClient := mock.NewMockClient(ctrl)
-	cl := mock.(ctrl)
+	cl := mock.NewRMBMockClient(ctrl)
 	sub := mock.NewMockSubstrateExt(ctrl)
 	ncPool := mock.NewMockNodeClientCollection(ctrl)
-	deployer := deployer.NewDeployer(
+	deployerr := deployer.NewDeployer(
 		identity,
 		214,
 		gridClient,
 		ncPool,
 		true,
 	)
-
 	dl1, dl2 := deployment1(identity, true, 0), deployment2(identity)
 	newDls := map[uint32]gridtypes.Deployment{
 		10: dl1,
 		20: dl2,
 	}
-
 	dl1.ContractID = 100
 	dl2.ContractID = 200
-
 	sub.EXPECT().
 		CreateNodeContract(
 			identity,
@@ -108,7 +105,6 @@ func TestCreate(t *testing.T) {
 			nil,
 			hash(&dl1),
 			uint32(0),
-			true,
 		).Return(uint64(100), nil)
 	sub.EXPECT().
 		CreateNodeContract(
@@ -117,7 +113,6 @@ func TestCreate(t *testing.T) {
 			nil,
 			hash(&dl2),
 			uint32(0),
-			true,
 		).Return(uint64(200), nil)
 	ncPool.EXPECT().
 		GetNodeClient(sub, uint32(10)).
@@ -153,15 +148,243 @@ func TestCreate(t *testing.T) {
 			*res = dl2
 			return nil
 		})
-	deployer.(*DeployerImpl).validator = &EmptyValidator{}
-	contracts, err := deployer.Deploy(context.Background(), sub, nil, newDls)
+	deployerr.(*deployer.DeployerImpl).Validator = &EmptyValidator{}
+	contracts, err := deployerr.Deploy(context.Background(), sub, nil, newDls)
 	assert.NoError(t, err)
 	assert.Equal(t, contracts, map[uint32]uint64{10: 100, 20: 200})
+
 }
 
-// func TestUpdate(t *testing.T) {
-// 	ctrl := gomock.NewController(t)
-// 	defer ctrl.Finish()
-// 	gridClient := mock.NewMockClient(ctrl)
-// 	// cl := mock.
-// }
+func TestUpdate(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	gridClient := mock.NewMockClient(ctrl)
+	cl := mock.NewRMBMockClient(ctrl)
+	sub := mock.NewMockSubstrateExt(ctrl)
+	ncPool := mock.NewMockNodeClientCollection(ctrl)
+	deployerr := deployer.NewDeployer(
+		identity,
+		214,
+		gridClient,
+		ncPool,
+		true,
+	)
+	dl1, dl2 := deployment1(identity, false, 0), deployment2(identity)
+	newDls := map[uint32]gridtypes.Deployment{
+		10: dl2,
+	}
+
+	dl1.ContractID = 100
+	dl2.ContractID = 100
+	sub.EXPECT().
+		UpdateNodeContract(
+			identity,
+			int64(100),
+			nil,
+			hash(&dl2),
+		).Return(uint64(100), nil)
+	ncPool.EXPECT().
+		GetNodeClient(sub, uint32(10)).
+		Return(client.NewNodeClient(13, cl), nil).AnyTimes()
+	cl.EXPECT().
+		Call(gomock.Any(), uint32(13), "zos.deployment.update", dl2, gomock.Any()).
+		DoAndReturn(func(ctx context.Context, twin uint32, fn string, data, result interface{}) error {
+			dl1.Workloads[0].Result.State = gridtypes.StateOk
+			dl1.Workloads[0].Result.Data, _ = json.Marshal(zos.GatewayFQDNProxy{})
+			dl1.Version = 1
+			dl1.Workloads[0].Version = 1
+			return nil
+		})
+	cl.EXPECT().
+		Call(gomock.Any(), uint32(13), "zos.deployment.get", gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, twin uint32, fn string, data, result interface{}) error {
+			var res *gridtypes.Deployment = result.(*gridtypes.Deployment)
+			*res = dl1
+			return nil
+		}).AnyTimes()
+	deployerr.(*deployer.DeployerImpl).Validator = &EmptyValidator{}
+	contracts, err := deployerr.Deploy(context.Background(), sub, map[uint32]uint64{10: 100}, newDls)
+	assert.NoError(t, err)
+	assert.Equal(t, contracts, map[uint32]uint64{10: 100})
+	assert.Equal(t, dl1.Version, dl2.Version)
+	assert.Equal(t, dl1.Workloads[0].Version, dl2.Workloads[0].Version)
+}
+
+func TestCancel(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	gridClient := mock.NewMockClient(ctrl)
+	cl := mock.NewRMBMockClient(ctrl)
+	sub := mock.NewMockSubstrateExt(ctrl)
+	ncPool := mock.NewMockNodeClientCollection(ctrl)
+	deployerr := deployer.NewDeployer(
+		identity,
+		11,
+		gridClient,
+		ncPool,
+		true,
+	)
+	dl1 := deployment1(identity, false, 0)
+	dl1.ContractID = 100
+	sub.EXPECT().
+		EnsureContractCanceled(
+			identity,
+			uint64(100),
+		).Return(nil)
+	ncPool.EXPECT().
+		GetNodeClient(sub, uint32(10)).
+		Return(client.NewNodeClient(13, cl), nil).AnyTimes()
+	cl.EXPECT().
+		Call(gomock.Any(), uint32(13), "zos.deployment.get", gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, twin uint32, fn string, data, result interface{}) error {
+			var res *gridtypes.Deployment = result.(*gridtypes.Deployment)
+			*res = dl1
+			return nil
+		})
+	cl.EXPECT().
+		Call(gomock.Any(), uint32(13), "zos.deployment.delete", gomock.Any(), gomock.Any()).
+		Return(nil)
+	deployerr.(*deployer.DeployerImpl).Validator = &EmptyValidator{}
+	contracts, err := deployerr.Deploy(context.Background(), sub, map[uint32]uint64{10: 100}, nil)
+	assert.NoError(t, err)
+	assert.Equal(t, contracts, map[uint32]uint64{})
+}
+
+func TestCocktail(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	gridClient := mock.NewMockClient(ctrl)
+	cl := mock.NewRMBMockClient(ctrl)
+	sub := mock.NewMockSubstrateExt(ctrl)
+	ncPool := mock.NewMockNodeClientCollection(ctrl)
+	deployerr := deployer.NewDeployer(
+		identity,
+		11,
+		gridClient,
+		ncPool,
+		true,
+	)
+	g := workloads.GatewayFQDNProxy{Name: "f", FQDN: "test.com", Backends: []zos.Backend{"http://1.1.1.1:10"}}
+	dl1 := deployment1(identity, false, 0)
+	dl2, dl3 := deployment1(identity, false, 0), deployment1(identity, true, 1)
+	dl5, dl6 := deployment1(identity, true, 0), deployment1(identity, true, 0)
+	gwl, err := g.GenerateWorkloadFromFQDN(g)
+	if err != nil {
+		panic(err)
+	}
+	dl2.Workloads = append(dl2.Workloads, gwl)
+	dl3.Workloads = append(dl3.Workloads, gwl)
+	assert.NoError(t, dl2.Sign(twinID, identity))
+	assert.NoError(t, dl3.Sign(twinID, identity))
+	dl4 := deployment1(identity, false, 0)
+	dl1.ContractID = 100
+	dl2.ContractID = 200
+	dl3.ContractID = 200
+	dl4.ContractID = 300
+	oldDls := map[uint32]uint64{
+		10: 100,
+		20: 200,
+		40: 400,
+	}
+	newDls := map[uint32]gridtypes.Deployment{
+		20: dl3,
+		30: dl4,
+		40: dl6,
+	}
+	sub.EXPECT().
+		CreateNodeContract(
+			identity,
+			uint32(30),
+			nil,
+			hash(&dl4),
+			uint32(0),
+		).Return(uint64(300), nil)
+
+	sub.EXPECT().
+		UpdateNodeContract(
+			identity,
+			uint64(200),
+			nil,
+			hash(&dl3),
+		).Return(uint64(200), nil)
+
+	sub.EXPECT().
+		EnsureContractCanceled(
+			identity,
+			uint64(100),
+		).Return(nil)
+	ncPool.EXPECT().
+		GetNodeClient(sub, uint32(10)).
+		Return(client.NewNodeClient(13, cl), nil).AnyTimes()
+	ncPool.EXPECT().
+		GetNodeClient(sub, uint32(20)).
+		Return(client.NewNodeClient(23, cl), nil).AnyTimes()
+	ncPool.EXPECT().
+		GetNodeClient(sub, uint32(30)).
+		Return(client.NewNodeClient(33, cl), nil).AnyTimes()
+	ncPool.EXPECT().
+		GetNodeClient(sub, uint32(40)).
+		Return(client.NewNodeClient(43, cl), nil).AnyTimes()
+	cl.EXPECT().
+		Call(gomock.Any(), uint32(13), "zos.deployment.get", gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, twin uint32, fn string, data, result interface{}) error {
+			var res *gridtypes.Deployment = result.(*gridtypes.Deployment)
+			*res = dl1
+			return nil
+		}).AnyTimes()
+	cl.EXPECT().
+		Call(gomock.Any(), uint32(23), "zos.deployment.get", gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, twin uint32, fn string, data, result interface{}) error {
+			var res *gridtypes.Deployment = result.(*gridtypes.Deployment)
+			*res = dl2
+			return nil
+		}).AnyTimes()
+	cl.EXPECT().
+		Call(gomock.Any(), uint32(33), "zos.deployment.get", gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, twin uint32, fn string, data, result interface{}) error {
+			var res *gridtypes.Deployment = result.(*gridtypes.Deployment)
+			*res = dl4
+			return nil
+		}).AnyTimes()
+	cl.EXPECT().
+		Call(gomock.Any(), uint32(43), "zos.deployment.get", gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, twin uint32, fn string, data, result interface{}) error {
+			var res *gridtypes.Deployment = result.(*gridtypes.Deployment)
+			*res = dl5
+			return nil
+		}).AnyTimes()
+	cl.EXPECT().
+		Call(gomock.Any(), uint32(13), "zos.deployment.delete", gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, twin uint32, fn string, data, result interface{}) error {
+			dl1.Workloads[0].Result.State = gridtypes.StateDeleted
+			dl1.Workloads[0].Result.Data, _ = json.Marshal(zos.GatewayProxyResult{})
+			return nil
+		})
+	cl.EXPECT().
+		Call(gomock.Any(), uint32(23), "zos.deployment.update", gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, twin uint32, fn string, data, result interface{}) error {
+			dl2.Workloads = dl3.Workloads
+			dl2.Version = 1
+			dl2.Workloads[0].Version = 1
+			dl2.Workloads[0].Result.State = gridtypes.StateOk
+			dl2.Workloads[0].Result.Data, _ = json.Marshal(zos.GatewayProxyResult{})
+			dl2.Workloads[1].Result.State = gridtypes.StateOk
+			dl2.Workloads[1].Result.Data, _ = json.Marshal(zos.GatewayProxyResult{})
+			return nil
+		})
+	cl.EXPECT().
+		Call(gomock.Any(), uint32(33), "zos.deployment.deploy", gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, twin uint32, fn string, data, result interface{}) error {
+			dl4.Workloads[0].Result.State = gridtypes.StateOk
+			dl4.Workloads[0].Result.Data, _ = json.Marshal(zos.GatewayProxyResult{})
+			return nil
+		})
+	deployerr.(*deployer.DeployerImpl).Validator = &EmptyValidator{}
+	contracts, err := deployerr.Deploy(context.Background(), sub, oldDls, newDls)
+	assert.NoError(t, err)
+	assert.Equal(t, contracts, map[uint32]uint64{
+		20: 200,
+		30: 300,
+		40: 400,
+	})
+}
