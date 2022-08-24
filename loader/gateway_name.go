@@ -24,7 +24,10 @@ func LoadGatewayNameFromGrid(manager deployer.DeploymentManager, nodeID uint32, 
 	if err != nil {
 		return workloads.GatewayNameProxy{}, errors.Wrap(err, "failed to get workload data")
 	}
-	data := dataI.(*zos.GatewayNameProxy)
+	data, ok := dataI.(*zos.GatewayNameProxy)
+	if !ok {
+		return workloads.GatewayNameProxy{}, errors.New("couldn't cast workload data")
+	}
 
 	return workloads.GatewayNameProxy{
 		Name:           data.Name,

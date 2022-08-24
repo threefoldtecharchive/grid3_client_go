@@ -17,7 +17,10 @@ func LoadGatewayFqdnFromGrid(manager deployer.DeploymentManager, nodeID uint32, 
 	if err != nil {
 		return workloads.GatewayFQDNProxy{}, errors.Wrap(err, "failed to get workload data")
 	}
-	data := dataI.(*zos.GatewayFQDNProxy)
+	data, ok := dataI.(*zos.GatewayFQDNProxy)
+	if !ok {
+		return workloads.GatewayFQDNProxy{}, errors.New("couldn't cast workload data")
+	}
 
 	return workloads.GatewayFQDNProxy{
 		Name:           wl.Name.String(),
