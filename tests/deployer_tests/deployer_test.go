@@ -75,6 +75,14 @@ func TestCreate(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	gridClient := mock.NewMockClient(ctrl)
-	// cl := mock.
+	// cl := mock.NewRMBMockClient(ctrl)
+	// sub := mock.
 
+}
+
+func TestUpdate(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	gridClient := mock.NewMockClient(ctrl)
+	// cl := mock.
 }

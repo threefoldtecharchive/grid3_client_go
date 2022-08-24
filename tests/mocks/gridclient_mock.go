@@ -12,12 +12,12 @@ import (
 )
 
 
-// // MockClientMockRecorder is the mock recorder for MockClient.
+// // // MockClientMockRecorder is the mock recorder for MockClient.
 // type MockClientMockRecorder struct {
 //         mock *MockClient
 // }
 
-// // NewMockClient creates a new mock instance.
+// // // NewMockClient creates a new mock instance.
 // func NewMockClient(ctrl *gomock.Controller) *MockClient {
 //         mock := &MockClient{ctrl: ctrl}
 //         mock.recorder = &MockClientMockRecorder{mock}
