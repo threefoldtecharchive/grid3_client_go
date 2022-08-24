@@ -94,14 +94,10 @@ func (k *K8sDeployer) Stage(
 	if err != nil {
 		return err
 	}
-	// TODO: check if needed
+
 	err = k.invalidateBrokenAttributes(apiClient.SubstrateExt)
 	if err != nil {
 		return err
-	}
-	err = k.assignNodesIPs()
-	if err != nil {
-		return errors.Wrap(err, "failed to assign node ips")
 	}
 
 	workloads := map[uint32][]gridtypes.Workload{}
@@ -110,12 +106,17 @@ func (k *K8sDeployer) Stage(
 	for _, worker := range k.Workers {
 		workloads[k.Master.Node] = append(workloads[k.Master.Node], worker.GenerateK8sWorkload(apiClient.Manager, k, k.Master.IP)...)
 	}
-	for node, list := range workloads {
-		err = apiClient.Manager.SetWorkloads(node, list)
-		if err != nil {
-			return err
-		}
+
+	err = k.assignNodesIPs()
+	if err != nil {
+		return errors.Wrap(err, "failed to assign node ips")
 	}
+
+	err = apiClient.Manager.SetWorkloads(workloads)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

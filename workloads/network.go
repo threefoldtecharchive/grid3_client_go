@@ -25,13 +25,13 @@ type APIClient struct {
 }
 type UserAccess struct {
 	UserAddress         *gridtypes.IPNet
-	UserSecretKey       string
+	UserSecretKey       wgtypes.Key
 	PublicNodePK        string
 	AllowedIPs          []gridtypes.IPNet
 	PersistentKeepalive int
 	PublicNodeEndpoint  string
 }
-type Network struct {
+type TargetNetwork struct {
 	Name        string
 	Description string
 	Nodes       []uint32
@@ -198,24 +198,64 @@ func (k *NetworkDeployer) invalidateBrokenAttributes(sub subi.SubstrateExt, ncPo
 	return nil
 }
 
-func (network *Network) Stage(
+func NewNetworkDeployer(manager deployer.DeploymentManager, userAccess UserAccess, target TargetNetwork) (NetworkDeployer, error) {
+	k := NetworkDeployer{
+		Name:        target.Name,
+		Description: target.Description,
+		Nodes:       target.Nodes,
+		IPRange:     target.IPRange,
+		AddWGAccess: target.AddWGAccess,
+		ExternalIP:  userAccess.UserAddress,
+		ExternalSK:  userAccess.UserSecretKey,
+	}
+
+	for _, nodeID := range k.Nodes {
+		dl, err := manager.GetDeployment(nodeID)
+		if err != nil {
+			return NetworkDeployer{}, errors.Wrap(err, "couldn't build newtork deployer")
+		}
+		for _, wl := range dl.Workloads {
+			if wl.Name.String() == target.Name {
+				dataI, err := wl.WorkloadData()
+				if err != nil {
+					return NetworkDeployer{}, errors.Wrap(err, "couldn't build newtork deployer")
+				}
+				data, ok := dataI.(*zos.Network)
+				if !ok {
+					return NetworkDeployer{}, errors.New("couldn't cast workload data")
+				}
+				privateKey, err := wgtypes.ParseKey(data.WGPrivateKey)
+				if err != nil {
+					return NetworkDeployer{}, errors.Wrap(err, "couldn't build newtork deployer")
+				}
+				if privateKey.PublicKey().String() == userAccess.PublicNodePK {
+					// this is the access node
+					k.PublicNodeID = nodeID
+				}
+				k.NodeDeploymentID[nodeID] = dl.ContractID
+				k.Keys[nodeID] = privateKey
+				k.WGPort[nodeID] = int(data.WGListenPort)
+				k.NodesIPRange[nodeID] = data.Subnet
+			}
+		}
+	}
+	return k, nil
+}
+
+func (network *TargetNetwork) Stage(
 	ctx context.Context,
-	apiClient types.APIClient,
-	userAccess loader.UserAccess) error {
+	apiClient APIClient,
+	userAccess UserAccess) error {
 	// TODO: to be copied to deployer manager, or maybe not needed
 	// err := k.Validate(ctx, sub, identity, ncPool)
 	// if err != nil {
 	// 	return err
 	// }
+	k, err := NewNetworkDeployer(apiClient.Manager, userAccess, *network)
+	if err != nil {
+		return errors.Wrap(err, "couldn't build network deployer")
+	}
 
-	// currentState, err := loader.LoadNetworkFromGrid(apiClient.Manager, network.Name)
-
-	k := NetworkDeployer{}
-
-	// TODO: load current state from grid
-	// TODO: build network deployer from current state and userAccess
-
-	// TODO: check if needed
 	err = k.invalidateBrokenAttributes(apiClient.SubstrateExt, apiClient.NCPool)
 	if err != nil {
 		return err
@@ -395,8 +435,9 @@ func (network *Network) Stage(
 		}
 		workloads[node] = append(workloads[node], workload)
 	}
-	for node, list := range workloads {
-		apiClient.Manager.SetWorkloads(node, list)
+	err = apiClient.Manager.SetWorkloads(workloads)
+	if err != nil {
+		return errors.Wrap(err, "couldn't ")
 	}
 	return nil
 }
