@@ -30,7 +30,7 @@ func TestZDBStage(t *testing.T) {
 		Description: "test des",
 		Version:     0,
 		Data: gridtypes.MustMarshal(zos.ZDB{
-			Size:     gridtypes.Unit(100) * gridtypes.Gigabyte,
+			Size:     100 * gridtypes.Gigabyte,
 			Mode:     zos.ZDBMode("user"),
 			Password: "password",
 			Public:   true,
