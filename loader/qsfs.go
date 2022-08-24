@@ -28,7 +28,10 @@ func LoadQsfsFromGrid(manager deployer.DeploymentManager, nodeID uint32, name st
 	}
 
 	log.Printf("wl.Result.unm: %s %s\n", res.MetricsEndpoint, res.Path)
-	data = wd.(*zos.QuantumSafeFS)
+	data, ok := wd.(*zos.QuantumSafeFS)
+	if !ok {
+		return workloads.QSFS{}, errors.New("couldn't cast workload data")
+	}
 	return workloads.QSFS{
 		Name:                 string(wl.Name),
 		Description:          string(wl.Description),
