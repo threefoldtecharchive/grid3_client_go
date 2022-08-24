@@ -11,6 +11,7 @@ require (
 	github.com/threefoldtech/grid_proxy_server v1.5.6
 	github.com/threefoldtech/substrate-client v0.0.0-20220808155028-1d74b8477705
 	github.com/threefoldtech/zos v0.5.6-0.20220804142531-495bf966448a
+	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20200609130330-bd2cb7843e1b
 )
 
 require (
