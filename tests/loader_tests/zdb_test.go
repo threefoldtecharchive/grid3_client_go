@@ -29,7 +29,7 @@ func TestLoadZdbFromGrid(t *testing.T) {
 		Version:     0,
 		Result: gridtypes.Result{
 			Created: 1000,
-			State:   "ok",
+			State:   gridtypes.StateOk,
 			Data:    res,
 		},
 		Data: gridtypes.MustMarshal(zos.ZDB{

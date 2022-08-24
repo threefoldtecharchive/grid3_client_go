@@ -28,7 +28,7 @@ func TestLoadGatewayNameFromGrid(t *testing.T) {
 		}),
 		Result: gridtypes.Result{
 			Created: 1000,
-			State:   "ok",
+			State:   gridtypes.StateOk,
 			Data:    res,
 		},
 	}
