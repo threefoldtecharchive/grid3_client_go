@@ -82,7 +82,7 @@ func (s *SubstrateImpl) GetNodeTwin(id uint32) (uint32, error) {
 	return uint32(node.TwinID), nil
 }
 func (s *SubstrateImpl) UpdateNodeContract(identity Identity, contract uint64, body string, hash string) (uint64, error) {
-	res, err := s.Substrate.UpdateNodeContract(identity, contract, string(body), hash)
+	res, err := s.Substrate.UpdateNodeContract(identity, contract, body, hash)
 	return res, terr(err)
 }
 func (s *SubstrateImpl) CreateNodeContract(identity Identity, node uint32, body string, hash string, publicIPs uint32) (uint64, error) {

@@ -133,7 +133,7 @@ func (mr *MockSubstrateMockRecorder) Close() *gomock.Call {
 }
 
 // CreateNodeContract mocks base method.
-func (m *MockSubstrate) CreateNodeContract(identity subi.Identity, node uint32, body []byte, hash string, publicIPs uint32) (uint64, error) {
+func (m *MockSubstrate) CreateNodeContract(identity subi.Identity, node uint32, body string, hash string, publicIPs uint32) (uint64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateNodeContract", identity, node, body, hash, publicIPs)
 	ret0, _ := ret[0].(uint64)
