@@ -120,7 +120,7 @@ func (d *DeployerImpl) deploy(
 
 			publicIPCount := countDeploymentPublicIPs(dl)
 			log.Printf("Number of public ips: %d\n", publicIPCount)
-			contractID, err := sub.CreateNodeContract(d.identity, node, nil, hashHex, publicIPCount)
+			contractID, err := sub.CreateNodeContract(d.identity, node, "", hashHex, publicIPCount, nil)
 			log.Printf("CreateNodeContract returned id: %d\n", contractID)
 			if err != nil {
 				return currentDeployments, errors.Wrap(err, "failed to create contract")
@@ -216,7 +216,7 @@ func (d *DeployerImpl) deploy(
 			log.Printf("[DEBUG] HASH: %s", hashHex)
 			// TODO: Destroy and create if publicIPCount is changed
 			// publicIPCount := countDeploymentPublicIPs(dl)
-			contractID, err := sub.UpdateNodeContract(d.identity, dl.ContractID, nil, hashHex)
+			contractID, err := sub.UpdateNodeContract(d.identity, dl.ContractID, "", hashHex)
 			if err != nil {
 				return currentDeployments, errors.Wrap(err, "failed to update deployment")
 			}
