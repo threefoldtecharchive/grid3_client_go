@@ -3,6 +3,7 @@ package deployer
 import (
 	"context"
 	"fmt"
+	"log"
 	"reflect"
 
 	"github.com/pkg/errors"
@@ -95,7 +96,20 @@ func (d *deploymentManager) SetWorkloads(workloads map[uint32][]gridtypes.Worklo
 	for nodeID, workloadsArray := range workloads {
 
 		// move workload to planned deployments
-		dl := gridtypes.Deployment{}
+		dl := gridtypes.Deployment{
+			Version: 0,
+			TwinID:  d.twinID,
+			SignatureRequirement: gridtypes.SignatureRequirement{
+				WeightRequired: 1,
+				Requests: []gridtypes.SignatureRequest{
+					{
+						TwinID: d.twinID,
+						Weight: 1,
+					},
+				},
+			},
+			Workloads: []gridtypes.Workload{},
+		}
 
 		if pdCopy, ok := d.plannedDeployments[nodeID]; ok {
 			dl = pdCopy
@@ -119,19 +133,23 @@ func (d *deploymentManager) SetWorkloads(workloads map[uint32][]gridtypes.Worklo
 		}
 
 		for idx := 0; idx < len(workloadsArray); {
-			if workload, err := dl.Get(workloadsArray[idx].Name); err != nil {
+			workloadWithID, err := dl.Get(workloadsArray[idx].Name)
+			if err == nil {
 				//override existing workload
-				workload.Data = workloadsArray[idx].Data
-				workload.Description = workloadsArray[idx].Description
-				workload.Metadata = workloadsArray[idx].Metadata
-				workload.Result = workloadsArray[idx].Result
-				workload.Type = workloadsArray[idx].Type
-				workload.Version += 1
+				log.Printf("idx: %d\nworkload: %+v", idx, workloadsArray[idx])
+				workloadWithID.Workload = &workloadsArray[idx]
+				// workload.Workload.Data = workloadsArray[idx].Data
+				// workload.Workload.Description = workloadsArray[idx].Description
+				// workload.Workload.Metadata = workloadsArray[idx].Metadata
+				// workload.Workload.Result = workloadsArray[idx].Result
+				// workload.Workload.Type = workloadsArray[idx].Type
+				// workload.Workload.Version += 1
+				// workload.W
 
 				swap := reflect.Swapper(workloadsArray)
 				swap(idx, len(workloadsArray)-1)
 				workloadsArray = workloadsArray[:len(workloadsArray)-1]
-
+				log.Printf("workloadwithid: %+v", workloadWithID)
 			} else {
 				idx++
 			}
