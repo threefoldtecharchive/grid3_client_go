@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	deployer "github.com/threefoldtech/grid3-go/deployer"
 	client "github.com/threefoldtech/grid3-go/node"
+	"github.com/threefoldtech/grid3-go/subi"
 	mock "github.com/threefoldtech/grid3-go/tests/mocks"
 	"github.com/threefoldtech/grid3-go/workloads"
 	"github.com/threefoldtech/substrate-client"
@@ -77,6 +78,10 @@ func hash(dl *gridtypes.Deployment) string {
 
 type EmptyValidator struct{}
 
+func (d *EmptyValidator) Validate(ctx context.Context, sub subi.SubstrateExt, oldDeployment map[uint32]gridtypes.Deployment, newDeployments map[uint32]gridtypes.Deployment) error {
+	return nil
+}
+
 func TestCreate(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -84,7 +89,7 @@ func TestCreate(t *testing.T) {
 	cl := mock.NewRMBMockClient(ctrl)
 	sub := mock.NewMockSubstrateExt(ctrl)
 	ncPool := mock.NewMockNodeClientCollection(ctrl)
-	deployerr := deployer.NewDeployer(
+	newDeployer := deployer.NewDeployer(
 		identity,
 		214,
 		gridClient,
@@ -148,8 +153,8 @@ func TestCreate(t *testing.T) {
 			*res = dl2
 			return nil
 		})
-	deployerr.(*deployer.DeployerImpl).Validator = &EmptyValidator{}
-	contracts, err := deployerr.Deploy(context.Background(), sub, nil, newDls)
+	newDeployer.(*deployer.DeployerImpl).Validator = &EmptyValidator{}
+	contracts, err := newDeployer.Deploy(context.Background(), sub, nil, newDls)
 	assert.NoError(t, err)
 	assert.Equal(t, contracts, map[uint32]uint64{10: 100, 20: 200})
 
@@ -162,7 +167,7 @@ func TestUpdate(t *testing.T) {
 	cl := mock.NewRMBMockClient(ctrl)
 	sub := mock.NewMockSubstrateExt(ctrl)
 	ncPool := mock.NewMockNodeClientCollection(ctrl)
-	deployerr := deployer.NewDeployer(
+	newDeployer := deployer.NewDeployer(
 		identity,
 		214,
 		gridClient,
@@ -202,8 +207,8 @@ func TestUpdate(t *testing.T) {
 			*res = dl1
 			return nil
 		}).AnyTimes()
-	deployerr.(*deployer.DeployerImpl).Validator = &EmptyValidator{}
-	contracts, err := deployerr.Deploy(context.Background(), sub, map[uint32]uint64{10: 100}, newDls)
+	newDeployer.(*deployer.DeployerImpl).Validator = &EmptyValidator{}
+	contracts, err := newDeployer.Deploy(context.Background(), sub, map[uint32]uint64{10: 100}, newDls)
 	assert.NoError(t, err)
 	assert.Equal(t, contracts, map[uint32]uint64{10: 100})
 	assert.Equal(t, dl1.Version, dl2.Version)
@@ -217,7 +222,7 @@ func TestCancel(t *testing.T) {
 	cl := mock.NewRMBMockClient(ctrl)
 	sub := mock.NewMockSubstrateExt(ctrl)
 	ncPool := mock.NewMockNodeClientCollection(ctrl)
-	deployerr := deployer.NewDeployer(
+	newDeployer := deployer.NewDeployer(
 		identity,
 		11,
 		gridClient,
@@ -244,8 +249,8 @@ func TestCancel(t *testing.T) {
 	cl.EXPECT().
 		Call(gomock.Any(), uint32(13), "zos.deployment.delete", gomock.Any(), gomock.Any()).
 		Return(nil)
-	deployerr.(*deployer.DeployerImpl).Validator = &EmptyValidator{}
-	contracts, err := deployerr.Deploy(context.Background(), sub, map[uint32]uint64{10: 100}, nil)
+	newDeployer.(*deployer.DeployerImpl).Validator = &EmptyValidator{}
+	contracts, err := newDeployer.Deploy(context.Background(), sub, map[uint32]uint64{10: 100}, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, contracts, map[uint32]uint64{})
 }
@@ -257,7 +262,7 @@ func TestCocktail(t *testing.T) {
 	cl := mock.NewRMBMockClient(ctrl)
 	sub := mock.NewMockSubstrateExt(ctrl)
 	ncPool := mock.NewMockNodeClientCollection(ctrl)
-	deployerr := deployer.NewDeployer(
+	newDeployer := deployer.NewDeployer(
 		identity,
 		11,
 		gridClient,
@@ -379,8 +384,8 @@ func TestCocktail(t *testing.T) {
 			dl4.Workloads[0].Result.Data, _ = json.Marshal(zos.GatewayProxyResult{})
 			return nil
 		})
-	deployerr.(*deployer.DeployerImpl).Validator = &EmptyValidator{}
-	contracts, err := deployerr.Deploy(context.Background(), sub, oldDls, newDls)
+	newDeployer.(*deployer.DeployerImpl).Validator = &EmptyValidator{}
+	contracts, err := newDeployer.Deploy(context.Background(), sub, oldDls, newDls)
 	assert.NoError(t, err)
 	assert.Equal(t, contracts, map[uint32]uint64{
 		20: 200,
