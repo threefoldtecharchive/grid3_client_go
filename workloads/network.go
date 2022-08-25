@@ -24,12 +24,11 @@ type APIClient struct {
 	Identity     subi.Identity
 }
 type UserAccess struct {
-	UserAddress         *gridtypes.IPNet
-	UserSecretKey       wgtypes.Key
-	PublicNodePK        string
-	AllowedIPs          []gridtypes.IPNet
-	PersistentKeepalive int
-	PublicNodeEndpoint  string
+	UserAddress        *gridtypes.IPNet
+	UserSecretKey      wgtypes.Key
+	PublicNodePK       wgtypes.Key
+	AllowedIPs         []gridtypes.IPNet
+	PublicNodeEndpoint string
 }
 type TargetNetwork struct {
 	Name        string
@@ -198,7 +197,7 @@ func (k *NetworkDeployer) invalidateBrokenAttributes(sub subi.SubstrateExt, ncPo
 	return nil
 }
 
-func NewNetworkDeployer(manager deployer.DeploymentManager, userAccess UserAccess, target TargetNetwork) (NetworkDeployer, error) {
+func NewNetworkDeployer(manager deployer.DeploymentManager, userAccess *UserAccess, target TargetNetwork) (NetworkDeployer, error) {
 	k := NetworkDeployer{
 		Name:        target.Name,
 		Description: target.Description,
@@ -234,7 +233,7 @@ func NewNetworkDeployer(manager deployer.DeploymentManager, userAccess UserAcces
 				if err != nil {
 					return NetworkDeployer{}, errors.Wrap(err, "couldn't build newtork deployer")
 				}
-				if privateKey.PublicKey().String() == userAccess.PublicNodePK {
+				if privateKey.PublicKey() == userAccess.PublicNodePK {
 					// this is the access node
 					k.PublicNodeID = nodeID
 				}
@@ -251,7 +250,7 @@ func NewNetworkDeployer(manager deployer.DeploymentManager, userAccess UserAcces
 func (network *TargetNetwork) Stage(
 	ctx context.Context,
 	apiClient APIClient,
-	userAccess UserAccess) error {
+	userAccess *UserAccess) error {
 	// TODO: to be copied to deployer manager, or maybe not needed
 	// err := k.Validate(ctx, sub, identity, ncPool)
 	// if err != nil {
@@ -349,6 +348,13 @@ func (network *TargetNetwork) Stage(
 			fmt.Sprintf("%s:%d", endpoints[k.PublicNodeID], k.WGPort[k.PublicNodeID]),
 			k.IPRange.String(),
 		)
+		userAccess = &UserAccess{
+			UserAddress:        k.ExternalIP,
+			UserSecretKey:      k.ExternalSK,
+			PublicNodePK:       k.Keys[k.PublicNodeID].PublicKey(),
+			AllowedIPs:         []gridtypes.IPNet{k.IPRange, ipNet(100, 64, 0, 0, 16)},
+			PublicNodeEndpoint: fmt.Sprintf("%s:%d", endpoints[k.PublicNodeID], k.WGPort[k.PublicNodeID]),
+		}
 	}
 	workloads := map[uint32][]gridtypes.Workload{}
 
@@ -441,6 +447,7 @@ func (network *TargetNetwork) Stage(
 		}
 		workloads[node] = append(workloads[node], workload)
 	}
+
 	err = apiClient.Manager.SetWorkloads(workloads)
 	if err != nil {
 		return errors.Wrap(err, "couldn't ")
