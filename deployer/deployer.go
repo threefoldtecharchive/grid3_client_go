@@ -86,6 +86,7 @@ func (d *DeployerImpl) deploy(
 	// deletions
 	for node, contractID := range oldDeployments {
 		if _, ok := newDeployments[node]; !ok {
+			log.Printf("deleting contract %d on node %d", contractID, node)
 			err = sub.EnsureContractCanceled(d.identity, contractID)
 			if err != nil && !strings.Contains(err.Error(), "ContractNotExists") {
 				return currentDeployments, errors.Wrap(err, "failed to delete deployment")

@@ -63,6 +63,17 @@ func TestDeployment(t *testing.T) {
 	log.Printf("user access after staging: %v", *userAccess)
 	err = manager.Commit(context.Background())
 	assert.Equal(t, nil, err)
+	log.Printf("current contracts: %+v", manager.GetDeployments())
+
+	log.Printf("modifying network")
+	network.AddWGAccess = true
+	network.Nodes = []uint32{33, 31}
+	err = network.Stage(context.Background(), apiClient, userAccess)
+	assert.Equal(t, nil, err)
+
+	log.Printf("user access after staging: %v", *userAccess)
+	err = manager.Commit(context.Background())
+	assert.Equal(t, nil, err)
 
 	log.Printf("current contracts: %+v", manager.GetDeployments())
 	err = manager.CancelAll()

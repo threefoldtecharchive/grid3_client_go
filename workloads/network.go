@@ -198,6 +198,7 @@ func (k *NetworkDeployer) invalidateBrokenAttributes(sub subi.SubstrateExt, ncPo
 }
 
 func NewNetworkDeployer(manager deployer.DeploymentManager, userAccess *UserAccess, target TargetNetwork) (NetworkDeployer, error) {
+	log.Printf("building new network deployer")
 	externalIP, err := gridtypes.ParseIPNet(userAccess.UserAddress)
 	if err != nil {
 		return NetworkDeployer{}, errors.Wrapf(err, "couldn't parse user address")
@@ -231,11 +232,19 @@ func NewNetworkDeployer(manager deployer.DeploymentManager, userAccess *UserAcce
 		Keys:             make(map[uint32]wgtypes.Key),
 	}
 
-	nodesWithDeployments := manager.GetDeployments()
+	// retrieve last network state
+	oldDeployments := map[uint32]uint64{}
+	for k, v := range manager.GetDeployments() {
+		oldDeployments[k] = v
+	}
 	for _, nodeID := range k.Nodes {
-		if _, ok := nodesWithDeployments[nodeID]; !ok {
+
+		if _, ok := oldDeployments[nodeID]; !ok {
+			// if node is new, it has no previous state and shouldn't be processed
 			continue
 		}
+		delete(oldDeployments, nodeID)
+
 		dl, err := manager.GetDeployment(nodeID)
 		if err != nil {
 			return NetworkDeployer{}, errors.Wrapf(err, "couldn't get deployment with nodeID %d", nodeID)
@@ -264,7 +273,26 @@ func NewNetworkDeployer(manager deployer.DeploymentManager, userAccess *UserAcce
 				k.NodesIPRange[nodeID] = data.Subnet
 			}
 		}
+
 	}
+	// TODO: if oldDeployments is not empty and has any of this networks' workloads, they should be canceled
+	toCancel := map[uint32]map[string]bool{}
+	for nodeID, contractID := range oldDeployments {
+		dl, err := manager.GetDeployment(nodeID)
+		if err != nil {
+			return NetworkDeployer{}, errors.Wrapf(err, "couldn't get deployment %d", contractID)
+		}
+		_, err = dl.Get(gridtypes.Name(target.Name))
+		if err == nil {
+			toCancel[nodeID] = make(map[string]bool)
+			toCancel[nodeID][target.Name] = true
+		}
+	}
+	err = manager.CancelWorkloads(toCancel)
+	if err != nil {
+		return NetworkDeployer{}, errors.Wrapf(err, "couldn't cancel workloads")
+	}
+
 	return k, nil
 }
 
@@ -369,6 +397,11 @@ func (network *TargetNetwork) Stage(
 			fmt.Sprintf("%s:%d", endpoints[k.PublicNodeID], k.WGPort[k.PublicNodeID]),
 			k.IPRange.String(),
 		)
+		userAccess.UserAddress = k.ExternalIP.String()
+		userAccess.UserSecretKey = k.ExternalSK.String()
+		userAccess.PublicNodePK = k.Keys[k.PublicNodeID].PublicKey().String()
+		userAccess.AllowedIPs = []string{k.IPRange.String(), "100.64.0.0/16"}
+		userAccess.PublicNodeEndpoint = fmt.Sprintf("%s:%d", endpoints[k.PublicNodeID], k.WGPort[k.PublicNodeID])
 	}
 	workloads := map[uint32][]gridtypes.Workload{}
 
@@ -468,10 +501,5 @@ func (network *TargetNetwork) Stage(
 		return errors.Wrap(err, "couldn't ")
 	}
 
-	userAccess.UserAddress = k.ExternalIP.String()
-	userAccess.UserSecretKey = k.ExternalSK.String()
-	userAccess.PublicNodePK = k.Keys[k.PublicNodeID].PublicKey().String()
-	userAccess.AllowedIPs = []string{k.IPRange.String(), "100.64.0.0/16"}
-	userAccess.PublicNodeEndpoint = fmt.Sprintf("%s:%d", endpoints[k.PublicNodeID], k.WGPort[k.PublicNodeID])
 	return nil
 }

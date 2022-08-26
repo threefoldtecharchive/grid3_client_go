@@ -25,7 +25,8 @@ type DeploymentManager interface {
 	//             it should load the deployment in initDeployments if it exists in deploymentIDs and not loaded
 	//             and return an error if the node is down for example
 
-	SetWorkloads(workoads map[uint32][]gridtypes.Workload) error
+	SetWorkloads(workloads map[uint32][]gridtypes.Workload) error
+	CancelWorkloads(workloads map[uint32]map[string]bool) error
 	GetWorkload(nodeID uint32, name string) (gridtypes.Workload, error)
 	GetDeployment(nodeID uint32) (gridtypes.Deployment, error)
 	GetDeployments() map[uint32]uint64
@@ -73,6 +74,47 @@ func (d *deploymentManager) CancelAll() error { //TODO
 	return nil
 }
 
+func (d *deploymentManager) CancelWorkloads(workloads map[uint32]map[string]bool) error {
+	// deployments with cancelled workloads should be added to affected deployments and planned deployments
+	// if a planned deployment had a cancelled workload, and now is empty, it should be removed from cancelled workloads
+
+	// workloads are not cancelled until a user commits changes
+	log.Printf("workloads to cancel: %+v", workloads)
+
+	planned := map[uint32]gridtypes.Deployment{}
+	for k, v := range d.plannedDeployments {
+		planned[k] = v
+	}
+	affected := map[uint32]uint64{}
+	for k, v := range d.affectedDeployments {
+		affected[k] = v
+	}
+	contracts := d.GetDeployments()
+	for nodeID, cancelledWorkloads := range workloads {
+		affected[nodeID] = contracts[nodeID]
+		dl, err := d.GetDeployment(nodeID)
+		if err != nil {
+			return errors.Wrapf(err, "couldn't get deployment at node %d", nodeID)
+		}
+		for idx := 0; idx < len(dl.Workloads); {
+			wlName := dl.Workloads[idx].Name.String()
+			lastIdx := len(dl.Workloads) - 1
+			if _, ok := cancelledWorkloads[wlName]; ok {
+				dl.Workloads[idx], dl.Workloads[lastIdx] = dl.Workloads[lastIdx], dl.Workloads[idx]
+				dl.Workloads = dl.Workloads[:lastIdx]
+			} else {
+				idx++
+			}
+		}
+		if len(dl.Workloads) > 0 {
+			planned[nodeID] = dl
+		}
+	}
+	d.plannedDeployments = planned
+	d.affectedDeployments = affected
+	return nil
+}
+
 func (d *deploymentManager) Commit(ctx context.Context) error {
 	// generate gridtypes.Deployment from plannedDeployments
 	deployer := NewDeployer(d.identity, d.twinID, d.gridClient, d.ncPool, true)
@@ -92,7 +134,14 @@ func (d *deploymentManager) Commit(ctx context.Context) error {
 }
 
 func (d *deploymentManager) SetWorkloads(workloads map[uint32][]gridtypes.Workload) error {
-
+	planned := map[uint32]gridtypes.Deployment{}
+	for k, v := range d.plannedDeployments {
+		planned[k] = v
+	}
+	affected := map[uint32]uint64{}
+	for k, v := range d.affectedDeployments {
+		affected[k] = v
+	}
 	for nodeID, workloadsArray := range workloads {
 
 		// move workload to planned deployments
@@ -111,7 +160,7 @@ func (d *deploymentManager) SetWorkloads(workloads map[uint32][]gridtypes.Worklo
 			Workloads: []gridtypes.Workload{},
 		}
 
-		if pdCopy, ok := d.plannedDeployments[nodeID]; ok {
+		if pdCopy, ok := planned[nodeID]; ok {
 			dl = pdCopy
 		} else if dID, ok := d.deploymentIDs[nodeID]; ok {
 			s, err := d.substrate.SubstrateExt()
@@ -129,22 +178,14 @@ func (d *deploymentManager) SetWorkloads(workloads map[uint32][]gridtypes.Worklo
 			if err != nil {
 				return errors.Wrapf(err, "couldn't get deployment from node %d", nodeID)
 			}
-			d.affectedDeployments[nodeID] = dl.ContractID
+			affected[nodeID] = dl.ContractID
 		}
-
 		for idx := 0; idx < len(workloadsArray); {
 			workloadWithID, err := dl.Get(workloadsArray[idx].Name)
 			if err == nil {
 				//override existing workload
 				log.Printf("idx: %d\nworkload: %+v", idx, workloadsArray[idx])
 				workloadWithID.Workload = &workloadsArray[idx]
-				// workload.Workload.Data = workloadsArray[idx].Data
-				// workload.Workload.Description = workloadsArray[idx].Description
-				// workload.Workload.Metadata = workloadsArray[idx].Metadata
-				// workload.Workload.Result = workloadsArray[idx].Result
-				// workload.Workload.Type = workloadsArray[idx].Type
-				// workload.Workload.Version += 1
-				// workload.W
 
 				swap := reflect.Swapper(workloadsArray)
 				swap(idx, len(workloadsArray)-1)
@@ -156,8 +197,10 @@ func (d *deploymentManager) SetWorkloads(workloads map[uint32][]gridtypes.Worklo
 
 		}
 		dl.Workloads = append(dl.Workloads, workloadsArray...)
-		d.plannedDeployments[nodeID] = dl
+		planned[nodeID] = dl
 	}
+	d.plannedDeployments = planned
+	d.affectedDeployments = affected
 
 	return nil
 }
@@ -190,6 +233,7 @@ func (d *deploymentManager) GetWorkload(nodeID uint32, name string) (gridtypes.W
 }
 
 func (d *deploymentManager) GetDeployment(nodeID uint32) (gridtypes.Deployment, error) {
+	log.Printf("current ids in getDeployment: %+v", d.GetDeployments())
 	dl := gridtypes.Deployment{}
 	if dID, ok := d.deploymentIDs[nodeID]; ok {
 		s, err := d.substrate.SubstrateExt()
