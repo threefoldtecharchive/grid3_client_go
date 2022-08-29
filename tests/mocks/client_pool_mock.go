@@ -8,7 +8,7 @@ import (
         reflect "reflect"
 
         gomock "github.com/golang/mock/gomock"
-        client "github.com/threefoldtech/grid3-go/node"
+	client "github.com/threefoldtech/grid3-go/node"
         subi "github.com/threefoldtech/grid3-go/subi"
 )
 
