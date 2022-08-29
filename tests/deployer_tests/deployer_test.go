@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 
-	// "encoding/json"
 
 	"testing"
 
@@ -19,7 +18,6 @@ import (
 	"github.com/threefoldtech/grid3-go/workloads"
 	"github.com/threefoldtech/substrate-client"
 
-	// "github.com/threefoldtech/zos/client"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
