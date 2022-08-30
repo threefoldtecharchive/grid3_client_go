@@ -11,7 +11,7 @@ import (
 	"github.com/threefoldtech/grid3-go/workloads"
 )
 
-func TestLoadDiskFromGrid(t *testing.T) {
+func TestDiskDeployment(t *testing.T) {
 	expected := workloads.Disk{
 		Name:        "testName",
 		Size:        20,
