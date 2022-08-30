@@ -96,21 +96,16 @@ func (d *deploymentManager) SetWorkloads(workloads map[uint32][]gridtypes.Worklo
 
 		// move workload to planned deployments
 		dl := gridtypes.Deployment{
-			Version:     0,
-			TwinID:      d.twinID,
-			ContractID:  0,
-			Metadata:    "",
-			Description: "",
-			Expiration:  0,
+			Version: 0,
+			TwinID:  d.twinID,
 			SignatureRequirement: gridtypes.SignatureRequirement{
 				Requests: []gridtypes.SignatureRequest{
 					{
-						TwinID:   d.twinID,
-						Required: true,
-						Weight:   0,
+						TwinID: d.twinID,
+						Weight: 1,
 					},
 				},
-				WeightRequired: 0,
+				WeightRequired: 1,
 			},
 			Workloads: []gridtypes.Workload{},
 		}
