@@ -103,10 +103,14 @@ func (d *deploymentManager) SetWorkloads(workloads map[uint32][]gridtypes.Worklo
 			Description: "",
 			Expiration:  0,
 			SignatureRequirement: gridtypes.SignatureRequirement{
-				Requests:       []gridtypes.SignatureRequest{},
+				Requests: []gridtypes.SignatureRequest{
+					{
+						TwinID:   d.twinID,
+						Required: true,
+						Weight:   0,
+					},
+				},
 				WeightRequired: 0,
-				Signatures:     []gridtypes.Signature{},
-				SignatureStyle: gridtypes.SignatureStyle(""),
 			},
 			Workloads: []gridtypes.Workload{},
 		}
