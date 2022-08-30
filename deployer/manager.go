@@ -96,14 +96,19 @@ func (d *deploymentManager) SetWorkloads(workloads map[uint32][]gridtypes.Worklo
 
 		// move workload to planned deployments
 		dl := gridtypes.Deployment{
-			Version:              0,
-			TwinID:               0,
-			ContractID:           0,
-			Metadata:             "",
-			Description:          "",
-			Expiration:           0,
-			SignatureRequirement: gridtypes.SignatureRequirement{},
-			Workloads:            []gridtypes.Workload{},
+			Version:     0,
+			TwinID:      d.twinID,
+			ContractID:  0,
+			Metadata:    "",
+			Description: "",
+			Expiration:  0,
+			SignatureRequirement: gridtypes.SignatureRequirement{
+				Requests:       []gridtypes.SignatureRequest{},
+				WeightRequired: 0,
+				Signatures:     []gridtypes.Signature{},
+				SignatureStyle: gridtypes.SignatureStyle(""),
+			},
+			Workloads: []gridtypes.Workload{},
 		}
 
 		if pdCopy, ok := d.plannedDeployments[nodeID]; ok {
@@ -128,7 +133,7 @@ func (d *deploymentManager) SetWorkloads(workloads map[uint32][]gridtypes.Worklo
 		}
 
 		for idx := 0; idx < len(workloadsArray); {
-			if workload, err := dl.Get(workloadsArray[idx].Name); err != nil {
+			if workload, err := dl.Get(workloadsArray[idx].Name); err == nil {
 				//override existing workload
 				workload.Data = workloadsArray[idx].Data
 				workload.Description = workloadsArray[idx].Description
