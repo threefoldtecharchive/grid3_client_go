@@ -27,7 +27,7 @@ type DeploymentManager interface {
 	SetWorkloads(workoads map[uint32][]gridtypes.Workload) error
 	GetWorkload(nodeID uint32, name string) (gridtypes.Workload, error)
 	GetDeployment(nodeID uint32) (gridtypes.Deployment, error)
-	GetDeployments() map[uint32]uint64
+	GetContractIDs() map[uint32]uint64
 }
 
 type deploymentManager struct {
@@ -205,7 +205,7 @@ func (d *deploymentManager) GetDeployment(nodeID uint32) (gridtypes.Deployment, 
 	return gridtypes.Deployment{}, fmt.Errorf("couldn't get deployment with node ID %d", nodeID)
 }
 
-func (d *deploymentManager) GetDeployments() map[uint32]uint64 {
+func (d *deploymentManager) GetContractIDs() map[uint32]uint64 {
 	return d.deploymentIDs
 }
 
