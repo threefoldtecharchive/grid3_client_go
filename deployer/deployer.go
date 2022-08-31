@@ -25,7 +25,7 @@ type Deployer interface {
 type DeployerImpl struct {
 	identity        substrate.Identity
 	twinID          uint32
-	Validator       Validator
+	validator       Validator
 	ncPool          client.NodeClientCollection
 	revertOnFailure bool
 }
@@ -52,7 +52,7 @@ func (d *DeployerImpl) Deploy(ctx context.Context, sub substratemanager.Substrat
 		// check resources only when old deployments are readable
 		// being readable means it's a fresh deployment or an update with good nodes
 		// this is done to avoid preventing deletion of deployments on dead nodes
-		if err := d.Validator.Validate(ctx, sub, oldDeployments, newDeployments); err != nil {
+		if err := d.validator.Validate(ctx, sub, oldDeployments, newDeployments); err != nil {
 			return oldDeploymentIDs, err
 		}
 	}

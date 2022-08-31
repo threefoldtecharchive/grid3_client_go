@@ -154,7 +154,7 @@ func TestCreate(t *testing.T) {
 			*res = dl2.Workloads
 			return nil
 		})
-	newDeployer.(*DeployerImpl).Validator = &EmptyValidator{}
+	newDeployer.(*DeployerImpl).validator = &EmptyValidator{}
 	contracts, err := newDeployer.Deploy(context.Background(), sub, nil, newDls)
 	assert.NoError(t, err)
 	assert.Equal(t, contracts, map[uint32]uint64{10: 100, 20: 200})
@@ -214,7 +214,7 @@ func TestUpdate(t *testing.T) {
 			*res = dl1.Workloads
 			return nil
 		}).AnyTimes()
-	newDeployer.(*DeployerImpl).Validator = &EmptyValidator{}
+	newDeployer.(*DeployerImpl).validator = &EmptyValidator{}
 	contracts, err := newDeployer.Deploy(context.Background(), sub, map[uint32]uint64{10: 100}, newDls)
 	assert.NoError(t, err)
 	assert.Equal(t, contracts, map[uint32]uint64{10: 100})
@@ -253,7 +253,7 @@ func TestCancel(t *testing.T) {
 			*res = dl1
 			return nil
 		})
-	newDeployer.(*DeployerImpl).Validator = &EmptyValidator{}
+	newDeployer.(*DeployerImpl).validator = &EmptyValidator{}
 	contracts, err := newDeployer.Deploy(context.Background(), sub, map[uint32]uint64{10: 100}, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, contracts, map[uint32]uint64{})
@@ -410,7 +410,7 @@ func TestCocktail(t *testing.T) {
 			dl4.Workloads[0].Result.Data, _ = json.Marshal(zos.GatewayProxyResult{})
 			return nil
 		})
-	newDeployer.(*DeployerImpl).Validator = &EmptyValidator{}
+	newDeployer.(*DeployerImpl).validator = &EmptyValidator{}
 	contracts, err := newDeployer.Deploy(context.Background(), sub, oldDls, newDls)
 	assert.NoError(t, err)
 	assert.Equal(t, contracts, map[uint32]uint64{
