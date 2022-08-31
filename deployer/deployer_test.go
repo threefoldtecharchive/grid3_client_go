@@ -1,4 +1,4 @@
-package deployertests
+package deployer
 
 import (
 	"context"
@@ -9,12 +9,11 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	"github.com/threefoldtech/grid3-go/deployer"
 
 	client "github.com/threefoldtech/grid3-go/node"
 	"github.com/threefoldtech/grid3-go/subi"
 	mock "github.com/threefoldtech/grid3-go/tests/mocks"
-	"github.com/threefoldtech/grid3-go/workloads"
+
 	"github.com/threefoldtech/substrate-client"
 
 	"github.com/threefoldtech/zos/pkg/gridtypes"
@@ -27,9 +26,9 @@ const twinID = 214
 var identity, _ = substrate.NewIdentityFromEd25519Phrase(Words)
 
 func deployment1(identity substrate.Identity, TLSPassthrough bool, version uint32) gridtypes.Deployment {
-	dl := workloads.NewDeployment(uint32(twinID))
+	dl := NewDeployment(uint32(twinID))
 	dl.Version = version
-	gw := workloads.GatewayNameProxy{
+	gw := GatewayNameProxy{
 		Name:           "name",
 		TLSPassthrough: TLSPassthrough,
 		Backends:       []zos.Backend{"http://1.1.1.1"},
@@ -49,8 +48,8 @@ func deployment1(identity substrate.Identity, TLSPassthrough bool, version uint3
 }
 
 func deployment2(identity substrate.Identity) gridtypes.Deployment {
-	dl := workloads.NewDeployment(uint32(twinID))
-	gw := workloads.GatewayFQDNProxy{
+	dl := NewDeployment(uint32(twinID))
+	gw := GatewayFQDNProxy{
 		Name:     "fqdn",
 		FQDN:     "a.b.com",
 		Backends: []zos.Backend{"http://1.1.1.1"},
@@ -89,7 +88,7 @@ func TestCreate(t *testing.T) {
 	cl := mock.NewRMBMockClient(ctrl)
 	sub := mock.NewMockSubstrateExt(ctrl)
 	ncPool := mock.NewMockNodeClientCollection(ctrl)
-	newDeployer := deployer.NewDeployer(
+	newDeployer := NewDeployer(
 		identity,
 		214,
 		gridClient,
@@ -155,7 +154,7 @@ func TestCreate(t *testing.T) {
 			*res = dl2.Workloads
 			return nil
 		})
-	newDeployer.(*deployer.DeployerImpl).Validator = &EmptyValidator{}
+	newDeployer.(*DeployerImpl).Validator = &EmptyValidator{}
 	contracts, err := newDeployer.Deploy(context.Background(), sub, nil, newDls)
 	assert.NoError(t, err)
 	assert.Equal(t, contracts, map[uint32]uint64{10: 100, 20: 200})
@@ -168,7 +167,7 @@ func TestUpdate(t *testing.T) {
 	cl := mock.NewRMBMockClient(ctrl)
 	sub := mock.NewMockSubstrateExt(ctrl)
 	ncPool := mock.NewMockNodeClientCollection(ctrl)
-	newDeployer := deployer.NewDeployer(
+	newDeployer := NewDeployer(
 		identity,
 		214,
 		gridClient,
@@ -215,7 +214,7 @@ func TestUpdate(t *testing.T) {
 			*res = dl1.Workloads
 			return nil
 		}).AnyTimes()
-	newDeployer.(*deployer.DeployerImpl).Validator = &EmptyValidator{}
+	newDeployer.(*DeployerImpl).Validator = &EmptyValidator{}
 	contracts, err := newDeployer.Deploy(context.Background(), sub, map[uint32]uint64{10: 100}, newDls)
 	assert.NoError(t, err)
 	assert.Equal(t, contracts, map[uint32]uint64{10: 100})
@@ -230,7 +229,7 @@ func TestCancel(t *testing.T) {
 	cl := mock.NewRMBMockClient(ctrl)
 	sub := mock.NewMockSubstrateExt(ctrl)
 	ncPool := mock.NewMockNodeClientCollection(ctrl)
-	newDeployer := deployer.NewDeployer(
+	newDeployer := NewDeployer(
 		identity,
 		214,
 		gridClient,
@@ -254,7 +253,7 @@ func TestCancel(t *testing.T) {
 			*res = dl1
 			return nil
 		})
-	newDeployer.(*deployer.DeployerImpl).Validator = &EmptyValidator{}
+	newDeployer.(*DeployerImpl).Validator = &EmptyValidator{}
 	contracts, err := newDeployer.Deploy(context.Background(), sub, map[uint32]uint64{10: 100}, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, contracts, map[uint32]uint64{})
@@ -267,14 +266,14 @@ func TestCocktail(t *testing.T) {
 	cl := mock.NewRMBMockClient(ctrl)
 	sub := mock.NewMockSubstrateExt(ctrl)
 	ncPool := mock.NewMockNodeClientCollection(ctrl)
-	newDeployer := deployer.NewDeployer(
+	newDeployer := NewDeployer(
 		identity,
 		11,
 		gridClient,
 		ncPool,
 		true,
 	)
-	g := workloads.GatewayFQDNProxy{Name: "f", FQDN: "test.com", Backends: []zos.Backend{"http://1.1.1.1:10"}}
+	g := GatewayFQDNProxy{Name: "f", FQDN: "test.com", Backends: []zos.Backend{"http://1.1.1.1:10"}}
 	workload, err := g.GenerateWorkloadFromFQDN(g)
 	if err != nil {
 		panic(err)
@@ -411,7 +410,7 @@ func TestCocktail(t *testing.T) {
 			dl4.Workloads[0].Result.Data, _ = json.Marshal(zos.GatewayProxyResult{})
 			return nil
 		})
-	newDeployer.(*deployer.DeployerImpl).Validator = &EmptyValidator{}
+	newDeployer.(*DeployerImpl).Validator = &EmptyValidator{}
 	contracts, err := newDeployer.Deploy(context.Background(), sub, oldDls, newDls)
 	assert.NoError(t, err)
 	assert.Equal(t, contracts, map[uint32]uint64{
@@ -419,4 +418,78 @@ func TestCocktail(t *testing.T) {
 		30: 300,
 		40: 400,
 	})
+}
+
+func NewDeployment(twin uint32) gridtypes.Deployment {
+	return gridtypes.Deployment{
+		Version: 0,
+		TwinID:  twin, //LocalTwin,
+		// this contract id must match the one on substrate
+		Workloads: []gridtypes.Workload{},
+		SignatureRequirement: gridtypes.SignatureRequirement{
+			WeightRequired: 1,
+			Requests: []gridtypes.SignatureRequest{
+				{
+					TwinID: twin,
+					Weight: 1,
+				},
+			},
+		},
+	}
+}
+
+type GatewayNameProxy struct {
+	// Name the fully qualified domain name to use (cannot be present with Name)
+	Name string
+
+	// Passthrough whether to pass tls traffic or not
+	TLSPassthrough bool
+
+	// Backends are list of backend ips
+	Backends []zos.Backend
+
+	// FQDN deployed on the node
+	FQDN string
+}
+
+func (g *GatewayNameProxy) GenerateWorkloadFromGName(gatewayName GatewayNameProxy) (gridtypes.Workload, error) {
+	return gridtypes.Workload{
+		Version: 0,
+		Type:    zos.GatewayNameProxyType,
+		Name:    gridtypes.Name(gatewayName.Name),
+		// REVISE: whether description should be set here
+		Data: gridtypes.MustMarshal(zos.GatewayNameProxy{
+			Name:           gatewayName.Name,
+			TLSPassthrough: gatewayName.TLSPassthrough,
+			Backends:       gatewayName.Backends,
+		}),
+	}, nil
+}
+
+type GatewayFQDNProxy struct {
+	// Name the fully qualified domain name to use (cannot be present with Name)
+	Name string
+
+	// Passthrough whether to pass tls traffic or not
+	TLSPassthrough bool
+
+	// Backends are list of backend ips
+	Backends []zos.Backend
+
+	// FQDN deployed on the node
+	FQDN string
+}
+
+func (g *GatewayFQDNProxy) GenerateWorkloadFromFQDN(gatewayFQDN GatewayFQDNProxy) (gridtypes.Workload, error) {
+	return gridtypes.Workload{
+		Version: 0,
+		Type:    zos.GatewayFQDNProxyType,
+		Name:    gridtypes.Name(gatewayFQDN.Name),
+		// REVISE: whether description should be set here
+		Data: gridtypes.MustMarshal(zos.GatewayFQDNProxy{
+			TLSPassthrough: gatewayFQDN.TLSPassthrough,
+			Backends:       gatewayFQDN.Backends,
+			FQDN:           gatewayFQDN.FQDN,
+		}),
+	}, nil
 }
