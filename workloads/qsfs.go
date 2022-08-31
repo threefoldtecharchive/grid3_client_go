@@ -66,60 +66,55 @@ func (b *Backends) zosBackends() []zos.ZdbBackend {
 	return z
 }
 
-func (q *QSFS)GenerateWorkloadFromQSFS(qsfs QSFS) (gridtypes.Workload, error) {
-	k, err := hex.DecodeString(qsfs.EncryptionKey)
-	if err != nil {
-		return gridtypes.Workload{}, err
-	}
-	mk, err := hex.DecodeString(qsfs.EncryptionKey)
-	if err != nil {
-		// return gridtypes.Workload{}, err
-		return gridtypes.Workload{}, err
-	}
-	return gridtypes.Workload{
-		Version:     0,
-		Name:        gridtypes.Name(qsfs.Name),
-		Type:        zos.QuantumSafeFSType,
-		Description: qsfs.Description,
-		Data: gridtypes.MustMarshal(zos.QuantumSafeFS{
-			Cache: gridtypes.Unit(uint64(qsfs.Cache) * uint64(gridtypes.Megabyte)),
-			Config: zos.QuantumSafeFSConfig{
-				MinimalShards:     qsfs.MinimalShards,
-				ExpectedShards:    qsfs.ExpectedShards,
-				RedundantGroups:   qsfs.RedundantGroups,
-				RedundantNodes:    qsfs.RedundantNodes,
-				MaxZDBDataDirSize: qsfs.MaxZDBDataDirSize,
-				Encryption: zos.Encryption{
-					Algorithm: zos.EncryptionAlgorithm(qsfs.EncryptionAlgorithm),
-					Key:       zos.EncryptionKey(k),
-				},
-				Meta: zos.QuantumSafeMeta{
-					Type: qsfs.Metadata.Type,
-					Config: zos.QuantumSafeConfig{
-						Prefix: qsfs.Metadata.Prefix,
-						Encryption: zos.Encryption{
-							Algorithm: zos.EncryptionAlgorithm(qsfs.EncryptionAlgorithm),
-							Key:       zos.EncryptionKey(mk),
-						},
-						Backends: qsfs.Metadata.Backends.zosBackends(),
-					},
-				},
-				Groups: qsfs.Groups.zosGroups(),
-				Compression: zos.QuantumCompression{
-					Algorithm: qsfs.CompressionAlgorithm,
-				},
-			},
-		}),
-	}, nil
-}
-
 func (q *QSFS) Stage(manager deployer.DeploymentManager, NodeId uint32) error {
 	workloadsMap := map[uint32][]gridtypes.Workload{}
 	workloads := make([]gridtypes.Workload, 0)
-	workload, err := q.GenerateWorkloadFromQSFS(*q)
+	k, err := hex.DecodeString(q.EncryptionKey)
 	if err != nil {
+		// return gridtypes.Workload{}, err
 		return err
 	}
+	mk, err := hex.DecodeString(q.EncryptionKey)
+	if err != nil {
+		// return gridtypes.Workload{}, err
+		return err
+	}
+	workload := gridtypes.Workload{
+		Version:     0,
+		Name:        gridtypes.Name(q.Name),
+		Type:        zos.QuantumSafeFSType,
+		Description: q.Description,
+		Data: gridtypes.MustMarshal(zos.QuantumSafeFS{
+			Cache: gridtypes.Unit(uint64(q.Cache) * uint64(gridtypes.Megabyte)),
+			Config: zos.QuantumSafeFSConfig{
+				MinimalShards:     q.MinimalShards,
+				ExpectedShards:    q.ExpectedShards,
+				RedundantGroups:   q.RedundantGroups,
+				RedundantNodes:    q.RedundantNodes,
+				MaxZDBDataDirSize: q.MaxZDBDataDirSize,
+				Encryption: zos.Encryption{
+					Algorithm: zos.EncryptionAlgorithm(q.EncryptionAlgorithm),
+					Key:       zos.EncryptionKey(k),
+				},
+				Meta: zos.QuantumSafeMeta{
+					Type: q.Metadata.Type,
+					Config: zos.QuantumSafeConfig{
+						Prefix: q.Metadata.Prefix,
+						Encryption: zos.Encryption{
+							Algorithm: zos.EncryptionAlgorithm(q.EncryptionAlgorithm),
+							Key:       zos.EncryptionKey(mk),
+						},
+						Backends: q.Metadata.Backends.zosBackends(),
+					},
+				},
+				Groups: q.Groups.zosGroups(),
+				Compression: zos.QuantumCompression{
+					Algorithm: q.CompressionAlgorithm,
+				},
+			},
+		}),
+	}
+
 	workloads = append(workloads, workload)
 	workloadsMap[NodeId] = workloads
 	err = manager.SetWorkloads(workloadsMap)

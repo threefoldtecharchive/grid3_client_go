@@ -43,61 +43,52 @@ type Zlog struct {
 	Output string
 }
 
-func (v VM)GenerateWorkloadFromVM(vm VM) ([]gridtypes.Workload, error) {
+func (v VM) Stage(manager deployer.DeploymentManager, NodeId uint32) error {
+	workloadsMap := map[uint32][]gridtypes.Workload{}
 	workloads := make([]gridtypes.Workload, 0)
 	publicIPName := ""
-	if vm.PublicIP || vm.PublicIP6 {
-		publicIPName = fmt.Sprintf("%sip", vm.Name)
-		workloads = append(workloads, constructPublicIPWorkload(publicIPName, vm.PublicIP, vm.PublicIP6))
+	if v.PublicIP || v.PublicIP6 {
+		publicIPName = fmt.Sprintf("%sip", v.Name)
+		workloads = append(workloads, constructPublicIPWorkload(publicIPName, v.PublicIP, v.PublicIP6))
 	}
 	mounts := make([]zos.MachineMount, 0)
-	for _, mount := range vm.Mounts {
+	for _, mount := range v.Mounts {
 		mounts = append(mounts, zos.MachineMount{Name: gridtypes.Name(mount.DiskName), Mountpoint: mount.MountPoint})
 	}
-	for _, zlog := range vm.Zlogs {
-		workloads = append(workloads, zlog.GenerateWorkload(vm.Name))
+	for _, zlog := range v.Zlogs {
+		workloads = append(workloads, zlog.GenerateWorkload(v.Name))
 	}
-
 	workload := gridtypes.Workload{
 		Version: 0,
-		Name:    gridtypes.Name(vm.Name),
+		Name:    gridtypes.Name(v.Name),
 		Type:    zos.ZMachineType,
 		Data: gridtypes.MustMarshal(zos.ZMachine{
-			FList: vm.Flist,
+			FList: v.Flist,
 			Network: zos.MachineNetwork{
 				Interfaces: []zos.MachineInterface{
 					{
-						Network: gridtypes.Name(vm.NetworkName),
-						IP:      net.ParseIP(vm.IP),
+						Network: gridtypes.Name(v.NetworkName),
+						IP:      net.ParseIP(v.IP),
 					},
 				},
 				PublicIP:  gridtypes.Name(publicIPName),
-				Planetary: vm.Planetary,
+				Planetary: v.Planetary,
 			},
 			ComputeCapacity: zos.MachineCapacity{
-				CPU:    uint8(vm.Cpu),
-				Memory: gridtypes.Unit(uint(vm.Memory)) * gridtypes.Megabyte,
+				CPU:    uint8(v.Cpu),
+				Memory: gridtypes.Unit(uint(v.Memory)) * gridtypes.Megabyte,
 			},
-			Size:       gridtypes.Unit(vm.RootfsSize) * gridtypes.Megabyte,
-			Entrypoint: vm.Entrypoint,
-			Corex:      vm.Corex,
+			Size:       gridtypes.Unit(v.RootfsSize) * gridtypes.Megabyte,
+			Entrypoint: v.Entrypoint,
+			Corex:      v.Corex,
 			Mounts:     mounts,
-			Env:        vm.EnvVars,
+			Env:        v.EnvVars,
 		}),
-		Description: vm.Description,
+		Description: v.Description,
 	}
 	workloads = append(workloads, workload)
-	return workloads, nil
-}
-
-func (v VM) Stage(manager deployer.DeploymentManager, NodeId uint32) error {
-	workloadsMap := map[uint32][]gridtypes.Workload{}
-	workloads, err := v.GenerateWorkloadFromVM(v)
-	if err != nil {
-		return err
-	}
 	workloadsMap[NodeId] = workloads
-	err = manager.SetWorkloads(workloadsMap)
+	err := manager.SetWorkloads(workloadsMap)
 	return err
 }
 

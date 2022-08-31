@@ -2,7 +2,7 @@
 // Source: .\deployer\manager.go
 
 // Package mock_deployer is a generated GoMock package.
-package mocks
+package mock_deployer
 
 import (
 	context "context"
