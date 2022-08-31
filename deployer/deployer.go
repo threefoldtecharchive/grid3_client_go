@@ -120,7 +120,7 @@ func (d *DeployerImpl) deploy(
 
 			publicIPCount := countDeploymentPublicIPs(dl)
 			log.Printf("Number of public ips: %d\n", publicIPCount)
-			contractID, err := sub.CreateNodeContract(d.identity, node, "", hashHex, publicIPCount, 0)
+			contractID, err := sub.CreateNodeContract(d.identity, node, "", hashHex, publicIPCount, nil)
 			log.Printf("CreateNodeContract returned id: %d\n", contractID)
 			if err != nil {
 				return currentDeployments, errors.Wrap(err, "failed to create contract")

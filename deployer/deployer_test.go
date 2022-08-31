@@ -109,7 +109,7 @@ func TestCreate(t *testing.T) {
 			"",
 			hash(&dl1),
 			uint32(0),
-			uint64(0),
+			nil,
 		).Return(uint64(100), nil)
 	sub.EXPECT().
 		CreateNodeContract(
@@ -118,7 +118,7 @@ func TestCreate(t *testing.T) {
 			"",
 			hash(&dl2),
 			uint32(0),
-			uint64(0),
+			nil,
 		).Return(uint64(200), nil)
 	ncPool.EXPECT().
 		GetNodeClient(sub, uint32(10)).
@@ -307,7 +307,7 @@ func TestCocktail(t *testing.T) {
 			"",
 			hash(&dl4),
 			uint32(0),
-			uint64(0),
+			nil,
 		).Return(uint64(300), nil)
 
 	sub.EXPECT().
