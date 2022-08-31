@@ -49,7 +49,7 @@ func TestQSFSStage(t *testing.T) {
 		Type:        zos.QuantumSafeFSType,
 		Description: "test des",
 		Data: gridtypes.MustMarshal(zos.QuantumSafeFS{
-			Cache: gridtypes.Unit(uint64(2048) * uint64(gridtypes.Megabyte)),
+			Cache: 2048 * gridtypes.Megabyte,
 			Config: zos.QuantumSafeFSConfig{
 				MinimalShards:     10,
 				ExpectedShards:    20,
