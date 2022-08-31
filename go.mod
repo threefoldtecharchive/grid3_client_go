@@ -11,8 +11,9 @@ require (
 	github.com/threefoldtech/grid_proxy_server v1.5.6
 	github.com/threefoldtech/substrate-client v0.0.0-20220822132933-d0d75781793c
 	github.com/threefoldtech/zos v0.5.6-0.20220823125932-7df5043ab018
-	
 )
+
+require github.com/goombaio/namegenerator v0.0.0-20181006234301-989e774b106e
 
 require (
 	github.com/ChainSafe/go-schnorrkel v1.0.0 // indirect
@@ -42,7 +43,7 @@ require (
 	github.com/rs/cors v1.8.2 // indirect
 	github.com/rs/zerolog v1.26.0 // indirect
 	github.com/vedhavyas/go-subkey v1.0.3 // indirect
-	golang.org/x/crypto v0.0.0-20220518034528-6f7dac969898 // indirect
+	golang.org/x/crypto v0.0.0-20220518034528-6f7dac969898
 	golang.org/x/sys v0.0.0-20220403020550-483a9cbc67c0 // indirect
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
