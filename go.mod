@@ -11,6 +11,7 @@ require (
 	github.com/threefoldtech/grid_proxy_server v1.5.6
 	github.com/threefoldtech/substrate-client v0.0.0-20220822132933-d0d75781793c
 	github.com/threefoldtech/zos v0.5.6-0.20220823125932-7df5043ab018
+	
 )
 
 require (
