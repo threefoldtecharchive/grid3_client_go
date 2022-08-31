@@ -20,22 +20,29 @@ type GatewayNameProxy struct {
 	FQDN string
 }
 
+func (g *GatewayNameProxy) GenerateWorkloadFromGName(gatewayName GatewayNameProxy) (gridtypes.Workload, error) {
+	return gridtypes.Workload{
+		Version: 0,
+		Type:    zos.GatewayNameProxyType,
+		Name:    gridtypes.Name(gatewayName.Name),
+		// REVISE: whether description should be set here
+		Data: gridtypes.MustMarshal(zos.GatewayNameProxy{
+			Name:           gatewayName.Name,
+			TLSPassthrough: gatewayName.TLSPassthrough,
+			Backends:       gatewayName.Backends,
+		}),
+	}, nil
+}
+
 func (g *GatewayNameProxy) Stage(manager deployer.DeploymentManager, NodeId uint32) error {
 	workloadsMap := map[uint32][]gridtypes.Workload{}
 	workloads := make([]gridtypes.Workload, 0)
-	workload := gridtypes.Workload{
-		Version: 0,
-		Type:    zos.GatewayNameProxyType,
-		Name:    gridtypes.Name(g.Name),
-		// REVISE: whether description should be set here
-		Data: gridtypes.MustMarshal(zos.GatewayNameProxy{
-			Name:           g.Name,
-			TLSPassthrough: g.TLSPassthrough,
-			Backends:       g.Backends,
-		}),
+	workload, err := g.GenerateWorkloadFromGName(*g)
+	if err != nil {
+		return err
 	}
 	workloads = append(workloads, workload)
 	workloadsMap[NodeId] = workloads
-	err := manager.SetWorkloads(workloadsMap)
+	err = manager.SetWorkloads(workloadsMap)
 	return err
 }

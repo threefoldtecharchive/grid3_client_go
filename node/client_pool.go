@@ -2,12 +2,12 @@ package client
 
 import (
 	"github.com/pkg/errors"
-	substratemanager "github.com/threefoldtech/grid3-go/subi"
+	subi "github.com/threefoldtech/grid3-go/subi"
 	"github.com/threefoldtech/zos/pkg/rmb"
 )
 
 type NodeClientCollection interface {
-	GetNodeClient(sub substratemanager.SubstrateExt, nodeID uint32) (*NodeClient, error)
+	GetNodeClient(sub subi.SubstrateExt, nodeID uint32) (*NodeClient, error)
 }
 type NodeClientPool struct {
 	nodeClients map[uint32]*NodeClient
@@ -21,7 +21,7 @@ func NewNodeClientPool(rmb rmb.Client) *NodeClientPool {
 	}
 }
 
-func (k *NodeClientPool) GetNodeClient(sub substratemanager.SubstrateExt, nodeID uint32) (*NodeClient, error) {
+func (k *NodeClientPool) GetNodeClient(sub subi.SubstrateExt, nodeID uint32) (*NodeClient, error) {
 	cl, ok := k.nodeClients[nodeID]
 	if ok {
 		return cl, nil

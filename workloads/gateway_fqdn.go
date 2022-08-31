@@ -20,22 +20,29 @@ type GatewayFQDNProxy struct {
 	FQDN string
 }
 
+func (g *GatewayFQDNProxy)GenerateWorkloadFromFQDN(gatewayFQDN GatewayFQDNProxy) (gridtypes.Workload, error) {
+	return gridtypes.Workload{
+		Version: 0,
+		Type:    zos.GatewayFQDNProxyType,
+		Name:    gridtypes.Name(gatewayFQDN.Name),
+		// REVISE: whether description should be set here
+		Data: gridtypes.MustMarshal(zos.GatewayFQDNProxy{
+			TLSPassthrough: gatewayFQDN.TLSPassthrough,
+			Backends:       gatewayFQDN.Backends,
+			FQDN:           gatewayFQDN.FQDN,
+		}),
+	}, nil
+}
+
 func (g *GatewayFQDNProxy) Stage(manager deployer.DeploymentManager, NodeId uint32) error { //ZosWorkload()
 	workloadsMap := map[uint32][]gridtypes.Workload{}
 	workloads := make([]gridtypes.Workload, 0)
-	workload := gridtypes.Workload{
-		Version: 0,
-		Type:    zos.GatewayFQDNProxyType,
-		Name:    gridtypes.Name(g.Name),
-		// REVISE: whether description should be set here
-		Data: gridtypes.MustMarshal(zos.GatewayFQDNProxy{
-			TLSPassthrough: g.TLSPassthrough,
-			Backends:       g.Backends,
-			FQDN:           g.FQDN,
-		}),
+	workload, err := g.GenerateWorkloadFromFQDN(*g)
+	if err != nil {
+		return err
 	}
 	workloads = append(workloads, workload)
 	workloadsMap[NodeId] = workloads
-	err := manager.SetWorkloads(workloadsMap)
+	err = manager.SetWorkloads(workloadsMap)
 	return err
 }
