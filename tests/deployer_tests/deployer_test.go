@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 
-
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -36,7 +35,7 @@ func deployment1(identity substrate.Identity, TLSPassthrough bool, version uint3
 		Backends:       []zos.Backend{"http://1.1.1.1"},
 	}
 
-	workload , err := gw.GenerateWorkloadFromGName(gw)
+	workload, err := gw.GenerateWorkloadFromGName(gw)
 	if err != nil {
 		panic(err)
 	}
@@ -111,6 +110,7 @@ func TestCreate(t *testing.T) {
 			"",
 			hash(&dl1),
 			uint32(0),
+			uint64(0),
 		).Return(uint64(100), nil)
 	sub.EXPECT().
 		CreateNodeContract(
@@ -119,6 +119,7 @@ func TestCreate(t *testing.T) {
 			"",
 			hash(&dl2),
 			uint32(0),
+			uint64(0),
 		).Return(uint64(200), nil)
 	ncPool.EXPECT().
 		GetNodeClient(sub, uint32(10)).
@@ -307,6 +308,7 @@ func TestCocktail(t *testing.T) {
 			"",
 			hash(&dl4),
 			uint32(0),
+			uint64(0),
 		).Return(uint64(300), nil)
 
 	sub.EXPECT().
