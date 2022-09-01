@@ -1,4 +1,4 @@
-package inegration
+package integration
 
 import (
 	"bytes"
@@ -61,7 +61,8 @@ func setup() (deployer.DeploymentManager, APIClient) {
 	if err != nil {
 		panic(err)
 	}
-	defer subext.Close()
+
+	subext.Close()
 	twin, err := subext.GetTwinByPubKey(pub)
 	if err != nil {
 		panic(err)
@@ -81,6 +82,10 @@ func setup() (deployer.DeploymentManager, APIClient) {
 		Identity:     identity,
 	}
 	return manager, apiClient
+}
+
+func CloseConnection(sub subi.SubstrateExt) {
+	defer sub.Close()
 }
 
 // UpWg used for up wireguard

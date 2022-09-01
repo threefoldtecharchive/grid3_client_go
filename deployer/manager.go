@@ -80,6 +80,7 @@ func (d *deploymentManager) Commit(ctx context.Context) error {
 		return errors.Wrap(err, "couldn't get substrate client")
 	}
 	defer s.Close()
+	
 	committedDeploymentsIDs, err := deployer.Deploy(ctx, s, d.affectedDeployments, d.plannedDeployments)
 	if err != nil {
 		return err
