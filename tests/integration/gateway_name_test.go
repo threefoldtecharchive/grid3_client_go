@@ -3,7 +3,6 @@ package integration
 import (
 	"context"
 
-	"fmt"
 	"testing"
 	"time"
 
@@ -16,43 +15,31 @@ import (
 )
 
 func TestGatewayNameDeployment(t *testing.T) {
-	manager, apiClient := setup()
-	id, err := apiClient.SubstrateExt.CreateNameContract(apiClient.Identity, "TestGatewayName")
-	if err != nil {
-		panic(err)
-	}
-	backend := "http://185.206.122.36/24"
+	manager, _ := setup()
+	backend := "http://185.206.122.36"
 	expected := workloads.GatewayNameProxy{
-		Name:           "TestGatewayName",
+		Name:           "tsst",
 		TLSPassthrough: false,
 		Backends:       []zos.Backend{zos.Backend(backend)},
-		FQDN:           "test.gname.alaa",
+		FQDN:           "tsssst.gent01.dev.grid.tf",
 	}
-	fmt.Println(apiClient)
-	err = expected.Stage(manager, 14)
+
+	err := expected.Stage(manager, 14)
 	assert.NoError(t, err)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
 	err = manager.Commit(ctx)
 	assert.NoError(t, err)
-	result, err := loader.LoadGatewayNameFromGrid(manager, 14, "TestGatewayName")
+	result, err := loader.LoadGatewayNameFromGrid(manager, 14, "tsst")
 	assert.NoError(t, err)
-	fmt.Println(result)
-	fmt.Println(id)
 
-	assert.NotEmpty(t, result.Backends)
-	assert.NotEmpty(t, result.FQDN)
-	assert.NotEmpty(t, result.Name)
-	assert.NotEmpty(t, result.TLSPassthrough)
+	assert.Equal(t, expected.Backends, result.Backends)
+	assert.Equal(t, expected.Name, result.Name)
+	assert.Equal(t, expected.TLSPassthrough, result.TLSPassthrough)
 
-	result.Backends = nil
-	result.FQDN = ""
-	result.Name = ""
-	result.TLSPassthrough = false
-	assert.Equal(t, expected, result)
 	err = manager.CancelAll()
 	assert.NoError(t, err)
-	_, err = loader.LoadGatewayNameFromGrid(manager, 11, "testName")
+	_, err = loader.LoadGatewayNameFromGrid(manager, 14, "tsst")
 	assert.Error(t, err)
 
 }

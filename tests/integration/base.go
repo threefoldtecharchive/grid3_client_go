@@ -62,7 +62,7 @@ func setup() (deployer.DeploymentManager, APIClient) {
 		panic(err)
 	}
 
-	subext.Close()
+	defer subext.Close()
 	twin, err := subext.GetTwinByPubKey(pub)
 	if err != nil {
 		panic(err)

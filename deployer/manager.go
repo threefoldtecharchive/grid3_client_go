@@ -7,10 +7,12 @@ import (
 
 	"github.com/pkg/errors"
 	client "github.com/threefoldtech/grid3-go/node"
+	"github.com/threefoldtech/grid3-go/subi"
 	substratemanager "github.com/threefoldtech/grid3-go/subi"
 	proxy "github.com/threefoldtech/grid_proxy_server/pkg/client"
 	"github.com/threefoldtech/substrate-client"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
+	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
 type DeploymentManager interface {
@@ -31,15 +33,25 @@ type DeploymentManager interface {
 }
 
 type deploymentManager struct {
-	identity            substrate.Identity
-	twinID              uint32
-	deploymentIDs       map[uint32]uint64 //TODO : should include all contracts of user
-	affectedDeployments map[uint32]uint64
-	plannedDeployments  map[uint32]gridtypes.Deployment
-	gridClient          proxy.Client
-	ncPool              client.NodeClientCollection
-	substrate           substratemanager.ManagerInterface
-	//connection field
+	// identity            substrate.Identity
+	// twinID              uint32
+	// deploymentIDs       map[uint32]uint64 //TODO : should include all contracts of user
+	// affectedDeployments map[uint32]uint64
+	// plannedDeployments  map[uint32]gridtypes.Deployment
+	// gridClient          proxy.Client
+	// ncPool              client.NodeClientCollection
+	// substrate           substratemanager.ManagerInterface
+	// //connection field
+	identity             substrate.Identity
+	twinID               uint32
+	deploymentIDs        map[uint32]uint64
+	affectedDeployments  map[uint32]uint64
+	plannedDeployments   map[uint32]gridtypes.Deployment
+	nameContracts        map[string]uint64
+	plannedNameContracts []string
+	gridClient           proxy.Client
+	ncPool               client.NodeClientCollection
+	substrate            subi.ManagerInterface
 }
 
 func NewDeploymentManager(identity substrate.Identity, twinID uint32, deploymentIDs map[uint32]uint64, gridClient proxy.Client, ncPool client.NodeClientCollection, sub substratemanager.ManagerInterface) DeploymentManager {
@@ -49,7 +61,9 @@ func NewDeploymentManager(identity substrate.Identity, twinID uint32, deployment
 		twinID,
 		deploymentIDs,
 		make(map[uint32]uint64),
-		make(map[uint32]gridtypes.Deployment),
+		make(map[uint32]gridtypes.Deployment), ///2 lines down
+		make(map[string]uint64),
+		make([]string, 0),
 		gridClient,
 		ncPool,
 		sub,
@@ -80,7 +94,18 @@ func (d *deploymentManager) Commit(ctx context.Context) error {
 		return errors.Wrap(err, "couldn't get substrate client")
 	}
 	defer s.Close()
-	
+	/////////////////////
+	createdNameContracts := map[string]uint64{}
+	err = createNameContracts(createdNameContracts, *d, s)
+	if err != nil {
+		// revert changes
+		revErr := cancelNameContracts(createdNameContracts, *d, s)
+		if revErr != nil {
+			return errors.Wrapf(revErr, "couldn't revert changes")
+		}
+		return err
+	}
+	////////////////////////////
 	committedDeploymentsIDs, err := deployer.Deploy(ctx, s, d.affectedDeployments, d.plannedDeployments)
 	if err != nil {
 		return err
@@ -88,6 +113,9 @@ func (d *deploymentManager) Commit(ctx context.Context) error {
 	d.updateDeploymentIDs(committedDeploymentsIDs)
 	d.affectedDeployments = make(map[uint32]uint64)
 	d.plannedDeployments = make(map[uint32]gridtypes.Deployment)
+	/////
+	d.plannedNameContracts = make([]string, 0)
+	////
 	return nil
 }
 
@@ -133,6 +161,12 @@ func (d *deploymentManager) SetWorkloads(workloads map[uint32][]gridtypes.Worklo
 		}
 
 		for idx := 0; idx < len(workloadsArray); {
+			/////
+			if workloadsArray[idx].Type == zos.GatewayNameProxyType {
+				// if this is a gatewayNameProxy worklaod, stage name contract
+				d.plannedNameContracts = append(d.plannedNameContracts, workloadsArray[idx].Name.String())
+			}
+			////
 			if workload, err := dl.Get(workloadsArray[idx].Name); err == nil {
 				//override existing workload
 				workload.Data = workloadsArray[idx].Data
@@ -219,4 +253,37 @@ func (d *deploymentManager) updateDeploymentIDs(committedDeploymentsIDs map[uint
 			delete(d.deploymentIDs, k)
 		}
 	}
+}
+
+/////
+func createNameContracts(createdNameContracts map[string]uint64, d deploymentManager, sub subi.SubstrateExt) error {
+	for _, contractName := range d.plannedNameContracts {
+		var contractID uint64
+		if _, ok := d.nameContracts[contractName]; ok {
+			id, err := sub.InvalidateNameContract(context.Background(), d.identity, d.nameContracts[contractName], contractName)
+			if err != nil {
+				return err
+			}
+			contractID = id
+		}
+		if contractID == 0 {
+			id, err := sub.CreateNameContract(d.identity, contractName)
+			if err != nil {
+				return err
+			}
+			contractID = id
+			createdNameContracts[contractName] = id
+		}
+	}
+	return nil
+}
+
+func cancelNameContracts(createdNameContracts map[string]uint64, d deploymentManager, sub subi.SubstrateExt) error {
+	for _, id := range createdNameContracts {
+		err := sub.CancelContract(d.identity, id)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
