@@ -1,10 +1,9 @@
-//go:build integration
-// +build integration
-
 package integration
 
 import (
+	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/threefoldtech/grid3-go/loader"
@@ -13,7 +12,7 @@ import (
 )
 
 func TestZDBDeployment(t *testing.T) {
-	expected := workloads.ZDB{
+	zdb := workloads.ZDB{
 		Name:        "testName",
 		Password:    "password",
 		Public:      true,
@@ -21,7 +20,13 @@ func TestZDBDeployment(t *testing.T) {
 		Description: "test des",
 		Mode:        zos.ZDBModeUser,
 	}
-	manager := deployWorkload(t, &expected, "panther traffic explain chest source kiss elegant sense resist travel make drip", 192, 13)
+	manager, _ := setup()
+	err := zdb.Stage(manager, 13)
+	assert.NoError(t, err)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+	err = manager.Commit(ctx)
+	assert.NoError(t, err)
 	result, err := loader.LoadZdbFromGrid(manager, 13, "testName")
 	assert.NoError(t, err)
 	// TODO: try connecting to zdb
@@ -31,7 +36,7 @@ func TestZDBDeployment(t *testing.T) {
 	result.IPs = nil
 	result.Port = 0
 	result.Namespace = ""
-	assert.Equal(t, expected, result)
+	assert.Equal(t, zdb, result)
 	err = manager.CancelAll()
 	assert.NoError(t, err)
 	_, err = loader.LoadZdbFromGrid(manager, 13, "testName")
