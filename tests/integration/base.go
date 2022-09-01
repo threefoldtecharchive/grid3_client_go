@@ -84,10 +84,6 @@ func setup() (deployer.DeploymentManager, APIClient) {
 	return manager, apiClient
 }
 
-func CloseConnection(sub subi.SubstrateExt) {
-	defer sub.Close()
-}
-
 // UpWg used for up wireguard
 func UpWg(wgConfig string) {
 	f, err := os.Create("/tmp/test.conf")
