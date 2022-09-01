@@ -8,13 +8,13 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	substratemanager "github.com/threefoldtech/grid3-go/subi"
+	"github.com/threefoldtech/grid3-go/subi"
 	proxytypes "github.com/threefoldtech/grid_proxy_server/pkg/types"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
-func (d *DeployerImpl) GetDeploymentObjects(ctx context.Context, sub substratemanager.SubstrateExt, dls map[uint32]uint64) (map[uint32]gridtypes.Deployment, error) {
+func (d *DeployerImpl) GetDeploymentObjects(ctx context.Context, sub subi.SubstrateExt, dls map[uint32]uint64) (map[uint32]gridtypes.Deployment, error) {
 	res := make(map[uint32]gridtypes.Deployment)
 	for nodeID, dlID := range dls {
 		nc, err := d.ncPool.GetNodeClient(sub, nodeID)

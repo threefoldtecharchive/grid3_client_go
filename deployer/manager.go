@@ -3,11 +3,12 @@ package deployer
 import (
 	"context"
 	"fmt"
+	"log"
 	"reflect"
 
 	"github.com/pkg/errors"
 	client "github.com/threefoldtech/grid3-go/node"
-	substratemanager "github.com/threefoldtech/grid3-go/subi"
+	"github.com/threefoldtech/grid3-go/subi"
 	proxy "github.com/threefoldtech/grid_proxy_server/pkg/client"
 	"github.com/threefoldtech/substrate-client"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
@@ -24,7 +25,8 @@ type DeploymentManager interface {
 	//             it should load the deployment in initDeployments if it exists in deploymentIDs and not loaded
 	//             and return an error if the node is down for example
 
-	SetWorkloads(workoads map[uint32][]gridtypes.Workload) error
+	SetWorkloads(workloads map[uint32][]gridtypes.Workload) error
+	CancelWorkloads(workloads map[uint32]map[string]bool) error
 	GetWorkload(nodeID uint32, name string) (gridtypes.Workload, error)
 	GetDeployment(nodeID uint32) (gridtypes.Deployment, error)
 	GetContractIDs() map[uint32]uint64
@@ -38,11 +40,11 @@ type deploymentManager struct {
 	plannedDeployments  map[uint32]gridtypes.Deployment
 	gridClient          proxy.Client
 	ncPool              client.NodeClientCollection
-	substrate           substratemanager.ManagerInterface
+	substrate           subi.ManagerInterface
 	//connection field
 }
 
-func NewDeploymentManager(identity substrate.Identity, twinID uint32, deploymentIDs map[uint32]uint64, gridClient proxy.Client, ncPool client.NodeClientCollection, sub substratemanager.ManagerInterface) DeploymentManager {
+func NewDeploymentManager(identity substrate.Identity, twinID uint32, deploymentIDs map[uint32]uint64, gridClient proxy.Client, ncPool client.NodeClientCollection, sub subi.ManagerInterface) DeploymentManager {
 
 	return &deploymentManager{
 		identity,
@@ -72,6 +74,47 @@ func (d *deploymentManager) CancelAll() error { //TODO
 	return nil
 }
 
+func (d *deploymentManager) CancelWorkloads(workloads map[uint32]map[string]bool) error {
+	// deployments with cancelled workloads should be added to affected deployments and planned deployments
+	// if a planned deployment had a cancelled workload, and now is empty, it should be removed from cancelled workloads
+
+	// workloads are not cancelled until a user commits changes
+	log.Printf("workloads to cancel: %+v", workloads)
+
+	planned := map[uint32]gridtypes.Deployment{}
+	for k, v := range d.plannedDeployments {
+		planned[k] = v
+	}
+	affected := map[uint32]uint64{}
+	for k, v := range d.affectedDeployments {
+		affected[k] = v
+	}
+	contracts := d.GetContractIDs()
+	for nodeID, cancelledWorkloads := range workloads {
+		affected[nodeID] = contracts[nodeID]
+		dl, err := d.GetDeployment(nodeID)
+		if err != nil {
+			return errors.Wrapf(err, "couldn't get deployment at node %d", nodeID)
+		}
+		for idx := 0; idx < len(dl.Workloads); {
+			wlName := dl.Workloads[idx].Name.String()
+			lastIdx := len(dl.Workloads) - 1
+			if _, ok := cancelledWorkloads[wlName]; ok {
+				dl.Workloads[idx], dl.Workloads[lastIdx] = dl.Workloads[lastIdx], dl.Workloads[idx]
+				dl.Workloads = dl.Workloads[:lastIdx]
+			} else {
+				idx++
+			}
+		}
+		if len(dl.Workloads) > 0 {
+			planned[nodeID] = dl
+		}
+	}
+	d.plannedDeployments = planned
+	d.affectedDeployments = affected
+	return nil
+}
+
 func (d *deploymentManager) Commit(ctx context.Context) error {
 	// generate gridtypes.Deployment from plannedDeployments
 	deployer := NewDeployer(d.identity, d.twinID, d.gridClient, d.ncPool, true)
@@ -91,7 +134,14 @@ func (d *deploymentManager) Commit(ctx context.Context) error {
 }
 
 func (d *deploymentManager) SetWorkloads(workloads map[uint32][]gridtypes.Workload) error {
-
+	planned := map[uint32]gridtypes.Deployment{}
+	for k, v := range d.plannedDeployments {
+		planned[k] = v
+	}
+	affected := map[uint32]uint64{}
+	for k, v := range d.affectedDeployments {
+		affected[k] = v
+	}
 	for nodeID, workloadsArray := range workloads {
 
 		// move workload to planned deployments
@@ -99,18 +149,18 @@ func (d *deploymentManager) SetWorkloads(workloads map[uint32][]gridtypes.Worklo
 			Version: 0,
 			TwinID:  d.twinID,
 			SignatureRequirement: gridtypes.SignatureRequirement{
+				WeightRequired: 1,
 				Requests: []gridtypes.SignatureRequest{
 					{
 						TwinID: d.twinID,
 						Weight: 1,
 					},
 				},
-				WeightRequired: 1,
 			},
 			Workloads: []gridtypes.Workload{},
 		}
 
-		if pdCopy, ok := d.plannedDeployments[nodeID]; ok {
+		if pdCopy, ok := planned[nodeID]; ok {
 			dl = pdCopy
 		} else if dID, ok := d.deploymentIDs[nodeID]; ok {
 			s, err := d.substrate.SubstrateExt()
@@ -128,31 +178,27 @@ func (d *deploymentManager) SetWorkloads(workloads map[uint32][]gridtypes.Worklo
 			if err != nil {
 				return errors.Wrapf(err, "couldn't get deployment from node %d", nodeID)
 			}
-			d.affectedDeployments[nodeID] = dl.ContractID
+			affected[nodeID] = dl.ContractID
 		}
-
 		for idx := 0; idx < len(workloadsArray); {
-			if workload, err := dl.Get(workloadsArray[idx].Name); err == nil {
+			workloadWithID, err := dl.Get(workloadsArray[idx].Name)
+			if err == nil {
 				//override existing workload
-				workload.Data = workloadsArray[idx].Data
-				workload.Description = workloadsArray[idx].Description
-				workload.Metadata = workloadsArray[idx].Metadata
-				workload.Result = workloadsArray[idx].Result
-				workload.Type = workloadsArray[idx].Type
-				workload.Version += 1
+				*(workloadWithID.Workload) = workloadsArray[idx]
 
 				swap := reflect.Swapper(workloadsArray)
 				swap(idx, len(workloadsArray)-1)
 				workloadsArray = workloadsArray[:len(workloadsArray)-1]
-
 			} else {
 				idx++
 			}
 
 		}
 		dl.Workloads = append(dl.Workloads, workloadsArray...)
-		d.plannedDeployments[nodeID] = dl
+		planned[nodeID] = dl
 	}
+	d.plannedDeployments = planned
+	d.affectedDeployments = affected
 
 	return nil
 }
