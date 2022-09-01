@@ -177,6 +177,7 @@ func (d *deploymentManager) Commit(ctx context.Context) error {
 	d.updateDeploymentIDs(committedDeploymentsIDs)
 	d.affectedDeployments = make(map[uint32]uint64)
 	d.plannedDeployments = make(map[uint32]gridtypes.Deployment)
+	d.plannedNameContracts = make([]string, 0)
 	return nil
 }
 
