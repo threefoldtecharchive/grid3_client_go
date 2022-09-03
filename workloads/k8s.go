@@ -4,15 +4,12 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net"
 	"net/http"
 	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/grid3-go/deployer"
-	client "github.com/threefoldtech/grid3-go/node"
-	"github.com/threefoldtech/grid3-go/subi"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
@@ -34,116 +31,36 @@ type K8sNodeData struct {
 	Memory        int
 }
 
-type K8sDeployer struct {
-	Master       *K8sNodeData
-	Workers      []K8sNodeData
-	NodesIPRange map[uint32]gridtypes.IPNet
-	Token        string
-	SSHKey       string
-	NetworkName  string
-
-	NodeDeploymentID map[uint32]uint64
-	UsedIPs          map[uint32][]string
-}
-
 type K8sCluster struct {
-	Master       *K8sNodeData
-	Workers      []K8sNodeData
-	NodesIPRange map[uint32]gridtypes.IPNet
-	Token        string
-	SSHKey       string
-	NetworkName  string
+	Master      *K8sNodeData
+	Workers     []K8sNodeData
+	Token       string
+	SSHKey      string
+	NetworkName string
 }
 
-func (k *K8sDeployer) assignNodesIPs() error {
-	// TODO: when a k8s node changes its zos node, remove its ip from the used ones. better at the beginning
-	masterNodeRange := k.NodesIPRange[k.Master.Node]
-	if k.Master.IP == "" || !masterNodeRange.Contains(net.ParseIP(k.Master.IP)) {
-		ip, err := getK8sFreeIP(masterNodeRange, k.UsedIPs[k.Master.Node])
-		if err != nil {
-			return errors.Wrap(err, "failed to find free ip for master")
-		}
-		k.Master.IP = ip
-		k.UsedIPs[k.Master.Node] = append(k.UsedIPs[k.Master.Node], ip)
-	}
-	for idx, w := range k.Workers {
-		workerNodeRange := k.NodesIPRange[w.Node]
-		if w.IP != "" && workerNodeRange.Contains(net.ParseIP(w.IP)) {
-			continue
-		}
-		ip, err := getK8sFreeIP(workerNodeRange, k.UsedIPs[w.Node])
-		if err != nil {
-			return errors.Wrap(err, "failed to find free ip for worker")
-		}
-		k.Workers[idx].IP = ip
-		k.UsedIPs[w.Node] = append(k.UsedIPs[w.Node], ip)
-	}
-	return nil
-}
-
-func (k *K8sDeployer) Stage(
+func (k *K8sCluster) Stage(
 	ctx context.Context,
-	apiClient APIClient,
+	manager deployer.DeploymentManager,
 ) error {
-	// TODO: check if needed
-	err := k.Validate(ctx, apiClient.SubstrateExt, apiClient.Identity, apiClient.NCPool)
-	if err != nil {
-		return err
-	}
-	err = k.validateChecksums()
-	if err != nil {
-		return err
-	}
 
-	err = k.invalidateBrokenAttributes(apiClient.SubstrateExt)
+	err := k.validateChecksums()
 	if err != nil {
 		return err
 	}
 
 	workloads := map[uint32][]gridtypes.Workload{}
 
-	workloads[k.Master.Node] = append(workloads[k.Master.Node], k.Master.GenerateK8sWorkload(apiClient.Manager, k, "")...)
+	workloads[k.Master.Node] = append(workloads[k.Master.Node], k.Master.GenerateK8sWorkload(manager, k, "")...)
 	for _, worker := range k.Workers {
-		workloads[k.Master.Node] = append(workloads[k.Master.Node], worker.GenerateK8sWorkload(apiClient.Manager, k, k.Master.IP)...)
+		workloads[worker.Node] = append(workloads[worker.Node], worker.GenerateK8sWorkload(manager, k, k.Master.IP)...)
 	}
 
-	err = k.assignNodesIPs()
-	if err != nil {
-		return errors.Wrap(err, "failed to assign node ips")
-	}
-
-	err = apiClient.Manager.SetWorkloads(workloads)
+	err = manager.SetWorkloads(workloads)
 	if err != nil {
 		return err
 	}
 
-	return nil
-}
-
-func (k *K8sDeployer) invalidateBrokenAttributes(sub subi.SubstrateExt) error {
-	newWorkers := make([]K8sNodeData, 0)
-	validNodes := make(map[uint32]struct{})
-	for node, contractID := range k.NodeDeploymentID {
-		contract, err := sub.GetContract(contractID)
-		if (err == nil && !contract.IsCreated()) || errors.Is(err, subi.ErrNotFound) {
-			delete(k.NodeDeploymentID, node)
-			delete(k.NodesIPRange, node)
-		} else if err != nil {
-			return errors.Wrapf(err, "couldn't get node %d contract %d", node, contractID)
-		} else {
-			validNodes[node] = struct{}{}
-		}
-
-	}
-	if _, ok := validNodes[k.Master.Node]; !ok {
-		k.Master = &K8sNodeData{}
-	}
-	for _, worker := range k.Workers {
-		if _, ok := validNodes[worker.Node]; ok {
-			newWorkers = append(newWorkers, worker)
-		}
-	}
-	k.Workers = newWorkers
 	return nil
 }
 
@@ -160,7 +77,7 @@ func getFlistChecksum(url string) (string, error) {
 	return strings.TrimSpace(string(hash)), err
 }
 
-func (d *K8sDeployer) validateChecksums() error {
+func (d *K8sCluster) validateChecksums() error {
 	nodes := append(d.Workers, *d.Master)
 	for _, vm := range nodes {
 		if vm.FlistChecksum == "" {
@@ -182,52 +99,7 @@ func (d *K8sDeployer) validateChecksums() error {
 	return nil
 }
 
-func (k *K8sDeployer) ValidateNames(ctx context.Context) error {
-
-	names := make(map[string]bool)
-	names[k.Master.Name] = true
-	for _, w := range k.Workers {
-		if _, ok := names[w.Name]; ok {
-			return fmt.Errorf("k8s workers and master must have unique names: %s occured more than once", w.Name)
-		}
-		names[w.Name] = true
-	}
-	return nil
-}
-
-func (k *K8sDeployer) ValidateIPranges(ctx context.Context) error {
-
-	if _, ok := k.NodesIPRange[k.Master.Node]; !ok {
-		return fmt.Errorf("the master node %d doesn't exist in the network's ip ranges", k.Master.Node)
-	}
-	for _, w := range k.Workers {
-		if _, ok := k.NodesIPRange[w.Node]; !ok {
-			return fmt.Errorf("the node with id %d in worker %s doesn't exist in the network's ip ranges", w.Node, w.Name)
-		}
-	}
-	return nil
-}
-
-func (k *K8sDeployer) Validate(ctx context.Context, sub subi.SubstrateExt, identity subi.Identity, ncPool *client.NodeClientPool) error {
-	if err := validateAccountMoneyForExtrinsics(sub, identity); err != nil {
-		return err
-	}
-	if err := k.ValidateNames(ctx); err != nil {
-		return err
-	}
-	if err := k.ValidateIPranges(ctx); err != nil {
-		return err
-	}
-	nodes := make([]uint32, 0)
-	nodes = append(nodes, k.Master.Node)
-	for _, w := range k.Workers {
-		nodes = append(nodes, w.Node)
-
-	}
-	return isNodesUp(ctx, sub, nodes, ncPool)
-}
-
-func (k *K8sNodeData) GenerateK8sWorkload(manager deployer.DeploymentManager, deployer *K8sDeployer, masterIP string) []gridtypes.Workload {
+func (k *K8sNodeData) GenerateK8sWorkload(manager deployer.DeploymentManager, deployer *K8sCluster, masterIP string) []gridtypes.Workload {
 	diskName := fmt.Sprintf("%sdisk", k.Name)
 	workloads := make([]gridtypes.Workload, 0)
 	diskWorkload := gridtypes.Workload{
@@ -285,19 +157,4 @@ func (k *K8sNodeData) GenerateK8sWorkload(manager deployer.DeploymentManager, de
 	}
 	workloads = append(workloads, workload)
 	return workloads
-}
-
-func getK8sFreeIP(ipRange gridtypes.IPNet, usedIPs []string) (string, error) {
-	i := 254
-	l := len(ipRange.IP)
-	for i >= 2 {
-		ip := ipNet(ipRange.IP[l-4], ipRange.IP[l-3], ipRange.IP[l-2], byte(i), 32)
-		ipStr := fmt.Sprintf("%d.%d.%d.%d", ip.IP[l-4], ip.IP[l-3], ip.IP[l-2], ip.IP[l-1])
-		log.Printf("ip string: %s\n", ipStr)
-		if !isInStr(usedIPs, ipStr) {
-			return ipStr, nil
-		}
-		i -= 1
-	}
-	return "", errors.New("all ips are used")
 }

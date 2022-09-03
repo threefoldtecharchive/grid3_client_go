@@ -12,8 +12,8 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
-func LoadK8sFromGrid(manager deployer.DeploymentManager, masterNode map[uint32]string, workerNodes map[uint32][]string) (workloads.K8sDeployer, error) {
-	ret := workloads.K8sDeployer{}
+func LoadK8sFromGrid(manager deployer.DeploymentManager, masterNode map[uint32]string, workerNodes map[uint32][]string) (workloads.K8sCluster, error) {
+	ret := workloads.K8sCluster{}
 	nodes := []uint32{}
 
 	for nodeID := range masterNode {
@@ -33,7 +33,7 @@ func LoadK8sFromGrid(manager deployer.DeploymentManager, masterNode map[uint32]s
 	for idx := range nodes {
 		dl, err := manager.GetDeployment(nodes[idx])
 		if err != nil {
-			return workloads.K8sDeployer{}, err
+			return workloads.K8sCluster{}, err
 		}
 		currentDeployments[nodes[idx]] = dl
 		for _, w := range dl.Workloads {
@@ -72,58 +72,59 @@ func LoadK8sFromGrid(manager deployer.DeploymentManager, masterNode map[uint32]s
 
 		wl, err := manager.GetWorkload(nodeID, masterName)
 		if err != nil {
-			return workloads.K8sDeployer{}, errors.Wrapf(err, "couldn't get workload %s", masterName)
+			return workloads.K8sCluster{}, errors.Wrapf(err, "couldn't get workload %s", masterName)
 		}
 		dataI, err := wl.WorkloadData()
 		if err != nil {
-			return workloads.K8sDeployer{}, errors.Wrapf(err, "couldn't get workload %s data", masterName)
+			return workloads.K8sCluster{}, errors.Wrapf(err, "couldn't get workload %s data", masterName)
 		}
 		data, ok := dataI.(*zos.ZMachine)
 		if !ok {
-			return workloads.K8sDeployer{}, errors.New("couldn't cast workload data")
+			return workloads.K8sCluster{}, errors.New("couldn't cast workload data")
 		}
 		ret.NetworkName = data.Network.Interfaces[0].Network.String()
 		ret.SSHKey = data.Env["SSH_KEY"]
+		ret.Token = data.Env["K3S_TOKEN"]
 		var result zos.ZMachineResult
 		err = wl.Result.Unmarshal(&result)
 		if err != nil {
-			return workloads.K8sDeployer{}, err
+			return workloads.K8sCluster{}, err
 		}
-		master := generateK8sNodeData(masterName, nodeID, data, workloadComputedIP[masterName], workloadComputedIP6[masterName], result.YggIP, result.IP)
-		ret.UsedIPs[nodeID] = []string{master.IP}
+		master := generateK8sNodeData(masterName, nodeID, data, workloadComputedIP[masterName], workloadComputedIP6[masterName], result.YggIP, result.IP, workloadDiskSize[masterName])
+		ret.Master = &master
 	}
 
 	for nodeID, workerNames := range workerNodes {
 		for _, name := range workerNames {
 			wl, err := manager.GetWorkload(nodeID, name)
 			if err != nil {
-				return workloads.K8sDeployer{}, errors.Wrapf(err, "couldn't get workload %s", name)
+				return workloads.K8sCluster{}, errors.Wrapf(err, "couldn't get workload %s", name)
 			}
 			dataI, err := wl.WorkloadData()
 			if err != nil {
-				return workloads.K8sDeployer{}, errors.Wrapf(err, "couldn't get workload %s data", name)
+				return workloads.K8sCluster{}, errors.Wrapf(err, "couldn't get workload %s data", name)
 			}
 			data, ok := dataI.(*zos.ZMachine)
 			if !ok {
-				return workloads.K8sDeployer{}, errors.New("couldn't cast workload data")
+				return workloads.K8sCluster{}, errors.New("couldn't cast workload data")
 			}
 			var result zos.ZMachineResult
 			err = wl.Result.Unmarshal(&result)
 			if err != nil {
-				return workloads.K8sDeployer{}, err
+				return workloads.K8sCluster{}, err
 			}
-			worker := generateK8sNodeData(name, nodeID, data, workloadComputedIP[name], workloadComputedIP6[name], result.YggIP, result.IP)
-			ret.UsedIPs[nodeID] = append(ret.UsedIPs[nodeID], worker.IP)
+			worker := generateK8sNodeData(name, nodeID, data, workloadComputedIP[name], workloadComputedIP6[name], result.YggIP, result.IP, workloadDiskSize[name])
+			ret.Workers = append(ret.Workers, worker)
 		}
 	}
 	return ret, nil
 }
 
-func generateK8sNodeData(name string, nodeID uint32, data *zos.ZMachine, computedIP string, computedIP6 string, yggIP string, ip string) workloads.K8sNodeData {
+func generateK8sNodeData(name string, nodeID uint32, data *zos.ZMachine, computedIP string, computedIP6 string, yggIP string, ip string, diskSize int) workloads.K8sNodeData {
 	return workloads.K8sNodeData{
 		Name:        name,
 		Node:        nodeID,
-		DiskSize:    int(data.Size),
+		DiskSize:    diskSize,
 		PublicIP:    computedIP != "",
 		PublicIP6:   computedIP6 != "",
 		Planetary:   yggIP != "",

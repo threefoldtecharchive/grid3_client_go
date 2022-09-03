@@ -17,16 +17,8 @@ import (
 )
 
 type DeploymentManager interface {
-	// CancelAll clears deployments, deploymentIDs, and deployments
 	CancelAll() error
-	// CancelNodeDeployment removes the entry from deployments, deploymentIDs, and deployments
-	// CancelNodeDeployment(nodeID uint32)
-	// Commit loads initDeployments from deploymentIDs which wasn't loaded previously
 	Commit(ctx context.Context) error
-	// SetWorkload adds the workload to the deployment associated with the node
-	//             it should load the deployment in initDeployments if it exists in deploymentIDs and not loaded
-	//             and return an error if the node is down for example
-
 	SetWorkloads(workloads map[uint32][]gridtypes.Workload) error
 	CancelWorkloads(workloads map[uint32]map[string]bool) error
 	GetWorkload(nodeID uint32, name string) (gridtypes.Workload, error)
@@ -161,6 +153,9 @@ func getUsedIPs(d gridtypes.Deployment) (map[string]map[string]bool, error) {
 			continue
 		}
 		networkName := data.Network.Interfaces[0].Network.String()
+		if _, ok := usedIPs[networkName]; !ok {
+			usedIPs[networkName] = map[string]bool{}
+		}
 		usedIPs[networkName][ip] = true
 	}
 	return usedIPs, nil
@@ -203,7 +198,10 @@ func (d *deploymentManager) assignVMIPs() error {
 			cur := byte(2)
 			ip = cidr.IP
 			ip[3] = cur
-			for _, ok := usedIPs[networkName][ip.String()]; ok; {
+			for {
+				if _, ok := usedIPs[networkName][ip.String()]; !ok {
+					break
+				}
 				if cur == 254 {
 					return errors.New("all 253 ips of the network are exhausted")
 				}
