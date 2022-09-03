@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net"
 	"reflect"
 
 	"github.com/pkg/errors"
@@ -12,6 +13,7 @@ import (
 	proxy "github.com/threefoldtech/grid_proxy_server/pkg/client"
 	"github.com/threefoldtech/substrate-client"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
+	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
 type DeploymentManager interface {
@@ -44,7 +46,13 @@ type deploymentManager struct {
 	//connection field
 }
 
-func NewDeploymentManager(identity substrate.Identity, twinID uint32, deploymentIDs map[uint32]uint64, gridClient proxy.Client, ncPool client.NodeClientCollection, sub subi.ManagerInterface) DeploymentManager {
+func NewDeploymentManager(
+	identity substrate.Identity,
+	twinID uint32,
+	deploymentIDs map[uint32]uint64,
+	gridClient proxy.Client,
+	ncPool client.NodeClientCollection,
+	sub subi.ManagerInterface) DeploymentManager {
 
 	return &deploymentManager{
 		identity,
@@ -115,6 +123,102 @@ func (d *deploymentManager) CancelWorkloads(workloads map[uint32]map[string]bool
 	return nil
 }
 
+func getNodeSubnets(d gridtypes.Deployment) (map[string]string, error) {
+	subnets := map[string]string{}
+	for _, wl := range d.Workloads {
+		if wl.Type != zos.NetworkType {
+			continue
+		}
+		dataI, err := wl.WorkloadData()
+		if err != nil {
+			return map[string]string{}, errors.Wrap(err, "failed to get workload data")
+		}
+		data, ok := dataI.(*zos.Network)
+		if !ok {
+			return map[string]string{}, errors.New("couldn't cast workload data")
+		}
+		subnets[wl.Name.String()] = data.Subnet.String()
+	}
+	return subnets, nil
+}
+
+func getUsedIPs(d gridtypes.Deployment) (map[string]map[string]bool, error) {
+	usedIPs := map[string]map[string]bool{}
+	for _, wl := range d.Workloads {
+		if wl.Type != zos.ZMachineType {
+			continue
+		}
+		dataI, err := wl.WorkloadData()
+		if err != nil {
+			return map[string]map[string]bool{}, errors.Wrap(err, "failed to get workload data")
+		}
+		data, ok := dataI.(*zos.ZMachine)
+		if !ok {
+			return map[string]map[string]bool{}, errors.New("couldn't cast workload data")
+		}
+		ip := data.Network.Interfaces[0].IP.String()
+		if ip == "" {
+			continue
+		}
+		networkName := data.Network.Interfaces[0].Network.String()
+		usedIPs[networkName][ip] = true
+	}
+	return usedIPs, nil
+}
+
+func (d *deploymentManager) assignVMIPs() error {
+	for _, deployment := range d.plannedDeployments {
+		subnets, err := getNodeSubnets(deployment)
+		if err != nil {
+			return err
+		}
+		usedIPs, err := getUsedIPs(deployment)
+		if err != nil {
+			return err
+		}
+		for idx, wl := range deployment.Workloads {
+			if wl.Type != zos.ZMachineType {
+				continue
+			}
+			dataI, err := wl.WorkloadData()
+			if err != nil {
+				return errors.Wrap(err, "failed to get workload data")
+			}
+			data, ok := dataI.(*zos.ZMachine)
+			if !ok {
+				return errors.New("couldn't cast workload data")
+			}
+			ip := data.Network.Interfaces[0].IP
+
+			networkName := data.Network.Interfaces[0].Network.String()
+			_, cidr, err := net.ParseCIDR(subnets[networkName])
+			if err != nil {
+				return errors.Wrapf(err, "invalid ip %s", subnets[networkName])
+			}
+
+			if ip != nil && cidr.Contains(net.ParseIP(ip.String())) {
+				// this vm already has a valid assigned ip
+				continue
+			}
+			cur := byte(2)
+			ip = cidr.IP
+			ip[3] = cur
+			for _, ok := usedIPs[networkName][ip.String()]; ok; {
+				if cur == 254 {
+					return errors.New("all 253 ips of the network are exhausted")
+				}
+				cur++
+				ip[3] = cur
+			}
+			data.Network.Interfaces[0].IP = ip
+			wl.Data = gridtypes.MustMarshal(data)
+			deployment.Workloads[idx] = wl
+			usedIPs[networkName][ip.String()] = true
+		}
+	}
+	return nil
+}
+
 func (d *deploymentManager) Commit(ctx context.Context) error {
 	// generate gridtypes.Deployment from plannedDeployments
 	deployer := NewDeployer(d.identity, d.twinID, d.gridClient, d.ncPool, true)
@@ -123,6 +227,10 @@ func (d *deploymentManager) Commit(ctx context.Context) error {
 		return errors.Wrap(err, "couldn't get substrate client")
 	}
 	defer s.Close()
+	err = d.assignVMIPs()
+	if err != nil {
+		return err
+	}
 	committedDeploymentsIDs, err := deployer.Deploy(ctx, s, d.affectedDeployments, d.plannedDeployments)
 	if err != nil {
 		return err

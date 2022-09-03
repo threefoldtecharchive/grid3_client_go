@@ -136,3 +136,12 @@ func addCapacity(cap *proxytypes.Capacity, add *gridtypes.Capacity) {
 	cap.SRU += add.SRU
 	cap.HRU += add.HRU
 }
+
+func isInStr(l []string, i string) bool {
+	for _, x := range l {
+		if i == x {
+			return true
+		}
+	}
+	return false
+}
