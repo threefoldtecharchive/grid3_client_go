@@ -6,6 +6,8 @@ import (
 	"log"
 	"net"
 	"reflect"
+	"strconv"
+	"strings"
 
 	"github.com/pkg/errors"
 	client "github.com/threefoldtech/grid3-go/node"
@@ -162,7 +164,11 @@ func getUsedIPs(d gridtypes.Deployment) (map[string]map[string]bool, error) {
 }
 
 func (d *deploymentManager) assignVMIPs() error {
-	for _, deployment := range d.plannedDeployments {
+
+	// if there is a k8s cluster, master node ip should be assigned in workers' env vars
+	masterIPs := map[uint32]map[string]string{}
+
+	for nodeID, deployment := range d.plannedDeployments {
 		subnets, err := getNodeSubnets(deployment)
 		if err != nil {
 			return err
@@ -209,9 +215,46 @@ func (d *deploymentManager) assignVMIPs() error {
 				ip[3] = cur
 			}
 			data.Network.Interfaces[0].IP = ip
-			wl.Data = gridtypes.MustMarshal(data)
-			deployment.Workloads[idx] = wl
+			if s, ok := data.Env["K3S_URL"]; ok {
+				if s == "" {
+					if _, ok := masterIPs[nodeID]; !ok {
+						masterIPs[nodeID] = make(map[string]string)
+					}
+					masterIPs[nodeID][wl.Name.String()] = ip.String()
+				}
+			}
+
+			deployment.Workloads[idx].Data = gridtypes.MustMarshal(data)
 			usedIPs[networkName][ip.String()] = true
+		}
+
+	}
+	// assign k8s worker ips
+	for _, deployment := range d.plannedDeployments {
+		for idx, wl := range deployment.Workloads {
+			if wl.Type != zos.ZMachineType {
+				continue
+			}
+			dataI, err := wl.WorkloadData()
+			if err != nil {
+				return errors.Wrap(err, "failed to get workload data")
+			}
+			data, ok := dataI.(*zos.ZMachine)
+			if !ok {
+				return errors.New("couldn't cast workload data")
+			}
+			if s, ok := data.Env["K3S_URL"]; ok {
+				if s != "" {
+					master := strings.Split(s, ":")
+					masterNodeID, err := strconv.Atoi(master[0])
+					if err != nil {
+						return err
+					}
+					masterName := master[1]
+					data.Env["K3S_URL"] = fmt.Sprintf("https://%s:6443", masterIPs[uint32(masterNodeID)][masterName])
+					deployment.Workloads[idx].Data = gridtypes.MustMarshal(data)
+				}
+			}
 		}
 	}
 	return nil

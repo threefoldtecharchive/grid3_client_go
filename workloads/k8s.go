@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net"
 	"net/http"
 	"strings"
@@ -51,9 +52,9 @@ func (k *K8sCluster) Stage(
 
 	workloads := map[uint32][]gridtypes.Workload{}
 
-	workloads[k.Master.Node] = append(workloads[k.Master.Node], k.Master.GenerateK8sWorkload(manager, k, "")...)
+	workloads[k.Master.Node] = append(workloads[k.Master.Node], k.Master.GenerateK8sWorkload(manager, k, false)...)
 	for _, worker := range k.Workers {
-		workloads[worker.Node] = append(workloads[worker.Node], worker.GenerateK8sWorkload(manager, k, k.Master.IP)...)
+		workloads[worker.Node] = append(workloads[worker.Node], worker.GenerateK8sWorkload(manager, k, true)...)
 	}
 
 	err = manager.SetWorkloads(workloads)
@@ -99,7 +100,7 @@ func (d *K8sCluster) validateChecksums() error {
 	return nil
 }
 
-func (k *K8sNodeData) GenerateK8sWorkload(manager deployer.DeploymentManager, deployer *K8sCluster, masterIP string) []gridtypes.Workload {
+func (k *K8sNodeData) GenerateK8sWorkload(manager deployer.DeploymentManager, deployer *K8sCluster, worker bool) []gridtypes.Workload {
 	diskName := fmt.Sprintf("%sdisk", k.Name)
 	workloads := make([]gridtypes.Workload, 0)
 	diskWorkload := gridtypes.Workload{
@@ -125,9 +126,10 @@ func (k *K8sNodeData) GenerateK8sWorkload(manager deployer.DeploymentManager, de
 		"K3S_NODE_NAME":     k.Name,
 		"K3S_URL":           "",
 	}
-	if masterIP != "" {
-		envVars["K3S_URL"] = fmt.Sprintf("https://%s:6443", masterIP)
+	if worker {
+		envVars["K3S_URL"] = fmt.Sprintf("%d:%s", deployer.Master.Node, deployer.Master.Name)
 	}
+	log.Printf("env k3s: %+v", envVars)
 	workload := gridtypes.Workload{
 		Version: 0,
 		Name:    gridtypes.Name(k.Name),

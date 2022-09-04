@@ -78,6 +78,19 @@ func setup() (deployer.DeploymentManager, workloads.APIClient) {
 	return manager, apiClient
 }
 
+func generateWGConfig(userAccess workloads.UserAccess) string {
+	return fmt.Sprintf(`
+[Interface]
+Address = %s
+PrivateKey = %s
+[Peer]
+PublicKey = %s
+AllowedIPs = %s, 100.64.0.0/16
+PersistentKeepalive = 25
+Endpoint = %s
+	`, userAccess.UserAddress, userAccess.UserSecretKey, userAccess.PublicNodePK, userAccess.AllowedIPs[0], userAccess.PublicNodeEndpoint)
+}
+
 // UpWg used for up wireguard
 func UpWg(wgConfig string) {
 	f, err := os.Create("/tmp/test.conf")
@@ -189,7 +202,7 @@ func Wait(addr string, port string) bool {
 }
 
 func SshKeys() {
-	os.Mkdir("/tmp/.ssh", 0755)
+	os.Mkdir("~/tmp/.ssh", 0755)
 	cmd := exec.Command("ssh-keygen", "-t", "rsa", "-f", "/tmp/.ssh/id_rsa", "-q")
 	stdout, err := cmd.Output()
 
