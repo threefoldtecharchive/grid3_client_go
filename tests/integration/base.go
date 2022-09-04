@@ -202,7 +202,7 @@ func Wait(addr string, port string) bool {
 }
 
 func SshKeys() {
-	os.Mkdir("~/tmp/.ssh", 0755)
+	os.Mkdir("/tmp/.ssh", 0755)
 	cmd := exec.Command("ssh-keygen", "-t", "rsa", "-f", "/tmp/.ssh/id_rsa", "-q")
 	stdout, err := cmd.Output()
 
