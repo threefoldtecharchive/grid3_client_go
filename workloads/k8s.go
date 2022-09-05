@@ -127,6 +127,7 @@ func (k *K8sNodeData) GenerateK8sWorkload(manager deployer.DeploymentManager, de
 		"K3S_URL":           "",
 	}
 	if worker {
+		// K3S_URL marks where to find the master node
 		envVars["K3S_URL"] = fmt.Sprintf("%d:%s", deployer.Master.Node, deployer.Master.Name)
 	}
 	log.Printf("env k3s: %+v", envVars)
