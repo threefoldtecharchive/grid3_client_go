@@ -43,7 +43,7 @@ type Zlog struct {
 	Output string
 }
 
-func (v VM)GenerateWorkloadFromVM(vm VM) ([]gridtypes.Workload, error) {
+func (v VM) GenerateWorkloadFromVM(vm VM) ([]gridtypes.Workload, error) {
 	workloads := make([]gridtypes.Workload, 0)
 	publicIPName := ""
 	if vm.PublicIP || vm.PublicIP6 {

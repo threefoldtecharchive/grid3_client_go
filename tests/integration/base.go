@@ -1,4 +1,4 @@
-package inegration
+package integration
 
 import (
 	"bytes"
@@ -15,17 +15,10 @@ import (
 	"github.com/threefoldtech/grid3-go/deployer"
 	client "github.com/threefoldtech/grid3-go/node"
 	"github.com/threefoldtech/grid3-go/subi"
+	"github.com/threefoldtech/grid3-go/workloads"
 	proxy "github.com/threefoldtech/grid_proxy_server/pkg/client"
 	"golang.org/x/crypto/ssh"
 )
-
-type APIClient struct {
-	SubstrateExt subi.SubstrateExt
-	NCPool       *client.NodeClientPool
-	ProxyClient  proxy.Client
-	Manager      deployer.DeploymentManager
-	Identity     subi.Identity
-}
 
 var (
 	SUBSTRATE_URL = map[string]string{
@@ -42,7 +35,7 @@ var (
 	}
 )
 
-func setup() (deployer.DeploymentManager, APIClient) {
+func setup() (deployer.DeploymentManager, workloads.APIClient) {
 	mnemonics := os.Getenv("MNEMONICS")
 	SshKeys()
 	identity, err := subi.NewIdentityFromSr25519Phrase(mnemonics)
@@ -54,14 +47,14 @@ func setup() (deployer.DeploymentManager, APIClient) {
 		panic(err)
 	}
 	network := os.Getenv("NETWORK")
-
+	log.Printf("network: %s", network)
 	sub := subi.NewManager(SUBSTRATE_URL[network])
 	pub := sk.Public()
 	subext, err := sub.SubstrateExt()
 	if err != nil {
 		panic(err)
 	}
-	defer subext.Close()
+	// defer subext.Close()
 	twin, err := subext.GetTwinByPubKey(pub)
 	if err != nil {
 		panic(err)
@@ -73,14 +66,29 @@ func setup() (deployer.DeploymentManager, APIClient) {
 	gridClient := proxy.NewRetryingClient(proxy.NewClient(RMB_PROXY_URL[network]))
 	ncPool := client.NewNodeClientPool(cl)
 	manager := deployer.NewDeploymentManager(identity, twin, map[uint32]uint64{}, gridClient, ncPool, sub)
-	apiClient := APIClient{
+	apiClient := workloads.APIClient{
 		SubstrateExt: subext,
 		NCPool:       ncPool,
 		ProxyClient:  gridClient,
 		Manager:      manager,
 		Identity:     identity,
 	}
+	log.Printf("api client: %+v", apiClient.NCPool)
+	log.Printf("api client: %+v", apiClient.SubstrateExt)
 	return manager, apiClient
+}
+
+func generateWGConfig(userAccess workloads.UserAccess) string {
+	return fmt.Sprintf(`
+[Interface]
+Address = %s
+PrivateKey = %s
+[Peer]
+PublicKey = %s
+AllowedIPs = %s, 100.64.0.0/16
+PersistentKeepalive = 25
+Endpoint = %s
+	`, userAccess.UserAddress, userAccess.UserSecretKey, userAccess.PublicNodePK, userAccess.AllowedIPs[0], userAccess.PublicNodeEndpoint)
 }
 
 // UpWg used for up wireguard
