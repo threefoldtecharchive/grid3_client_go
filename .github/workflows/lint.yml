@@ -1,10 +1,11 @@
-name: Lint Go Code
+- name: Go-linter
+  uses: Jerome1337/golint-action@v1.0.2
 
 on: 
   push:
     branches:
       - master
-      - development_liner_workflow
+    
       
 jobs:
   lint:
