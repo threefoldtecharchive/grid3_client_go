@@ -13,7 +13,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/go-rmb"
-	substratemanager "github.com/threefoldtech/grid3-go/subi"
+	"github.com/threefoldtech/grid3-go/subi"
 	"github.com/threefoldtech/substrate-client"
 )
 
@@ -29,7 +29,7 @@ type ProxyBus struct {
 	resolver    rmb.TwinResolver
 }
 
-func NewProxyBus(endpoint string, twinID uint32, sub substratemanager.ManagerInterface, signer substrate.Identity, verifyReply bool) (*ProxyBus, error) {
+func NewProxyBus(endpoint string, twinID uint32, sub subi.ManagerInterface, signer substrate.Identity, verifyReply bool) (*ProxyBus, error) {
 	if len(endpoint) != 0 && endpoint[len(endpoint)-1] == '/' {
 		endpoint = endpoint[:len(endpoint)-1]
 	}

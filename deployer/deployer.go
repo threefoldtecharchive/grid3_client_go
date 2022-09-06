@@ -11,15 +11,15 @@ import (
 	"github.com/cenkalti/backoff"
 	"github.com/pkg/errors"
 	client "github.com/threefoldtech/grid3-go/node"
-	substratemanager "github.com/threefoldtech/grid3-go/subi"
+	"github.com/threefoldtech/grid3-go/subi"
 	proxy "github.com/threefoldtech/grid_proxy_server/pkg/client"
 	"github.com/threefoldtech/substrate-client"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 )
 
 type Deployer interface {
-	Deploy(ctx context.Context, sub substratemanager.SubstrateExt, oldDeployments map[uint32]uint64, newDeployments map[uint32]gridtypes.Deployment) (map[uint32]uint64, error)
-	GetDeploymentObjects(ctx context.Context, sub substratemanager.SubstrateExt, dls map[uint32]uint64) (map[uint32]gridtypes.Deployment, error)
+	Deploy(ctx context.Context, sub subi.SubstrateExt, oldDeployments map[uint32]uint64, newDeployments map[uint32]gridtypes.Deployment) (map[uint32]uint64, error)
+	GetDeploymentObjects(ctx context.Context, sub subi.SubstrateExt, dls map[uint32]uint64) (map[uint32]gridtypes.Deployment, error)
 }
 
 type DeployerImpl struct {
@@ -46,7 +46,7 @@ func NewDeployer(
 	}
 }
 
-func (d *DeployerImpl) Deploy(ctx context.Context, sub substratemanager.SubstrateExt, oldDeploymentIDs map[uint32]uint64, newDeployments map[uint32]gridtypes.Deployment) (map[uint32]uint64, error) {
+func (d *DeployerImpl) Deploy(ctx context.Context, sub subi.SubstrateExt, oldDeploymentIDs map[uint32]uint64, newDeployments map[uint32]gridtypes.Deployment) (map[uint32]uint64, error) {
 	oldDeployments, oldErr := d.GetDeploymentObjects(ctx, sub, oldDeploymentIDs)
 	if oldErr == nil {
 		// check resources only when old deployments are readable
@@ -74,7 +74,7 @@ func (d *DeployerImpl) Deploy(ctx context.Context, sub substratemanager.Substrat
 
 func (d *DeployerImpl) deploy(
 	ctx context.Context,
-	sub substratemanager.SubstrateExt,
+	sub subi.SubstrateExt,
 	oldDeployments map[uint32]uint64,
 	newDeployments map[uint32]gridtypes.Deployment,
 	revertOnFailure bool,
@@ -86,6 +86,7 @@ func (d *DeployerImpl) deploy(
 	// deletions
 	for node, contractID := range oldDeployments {
 		if _, ok := newDeployments[node]; !ok {
+			log.Printf("deleting contract %d on node %d", contractID, node)
 			err = sub.EnsureContractCanceled(d.identity, contractID)
 			if err != nil && !strings.Contains(err.Error(), "ContractNotExists") {
 				return currentDeployments, errors.Wrap(err, "failed to delete deployment")

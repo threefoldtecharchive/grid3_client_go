@@ -2,7 +2,7 @@ package client
 
 import (
 	"github.com/pkg/errors"
-	subi "github.com/threefoldtech/grid3-go/subi"
+	"github.com/threefoldtech/grid3-go/subi"
 	"github.com/threefoldtech/zos/pkg/rmb"
 )
 
