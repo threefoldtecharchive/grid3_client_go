@@ -19,7 +19,7 @@ func TestDiskDeployment(t *testing.T) {
 	manager, _ := setup()
 	err := disk.Stage(manager, 13)
 	assert.NoError(t, err)
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 	defer cancel()
 	err = manager.Commit(ctx)
 	assert.NoError(t, err)

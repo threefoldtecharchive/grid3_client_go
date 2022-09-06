@@ -55,7 +55,7 @@ func TestQSFSDeployment(t *testing.T) {
 		assert.NoError(t, err)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 	defer cancel()
 	err = manager.Commit(ctx)
 	assert.NoError(t, err)
