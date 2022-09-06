@@ -1,5 +1,4 @@
-- name: Go-linter
-
+name: Go-linter
 on: 
   push:
     branches:
