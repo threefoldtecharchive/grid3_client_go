@@ -20,6 +20,7 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
+// comment
 const Words = "secret add bag cluster deposit beach illness letter crouch position rain arctic"
 const twinID = 214
 
