@@ -21,7 +21,7 @@ func (d *DeployerImpl) GetDeploymentObjects(ctx context.Context, sub subi.Substr
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to get node %d client", nodeID)
 		}
-		sub, cancel := context.WithTimeout(ctx, 10*time.Minute)
+		sub, cancel := context.WithTimeout(ctx, 10*time.Second)
 		defer cancel()
 		dl, err := nc.DeploymentGet(sub, dlID)
 		if err != nil {
