@@ -1,7 +1,7 @@
-name: Go-linter
+name: golangci-lint
 
 on: [push]
-     
+
 jobs:
   lint:
     runs-on: ubuntu-latest
