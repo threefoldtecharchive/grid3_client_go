@@ -29,14 +29,16 @@ type DeploymentManager interface {
 }
 
 type deploymentManager struct {
-	identity            substrate.Identity
-	twinID              uint32
-	deploymentIDs       map[uint32]uint64 //TODO : should include all contracts of user
-	affectedDeployments map[uint32]uint64
-	plannedDeployments  map[uint32]gridtypes.Deployment
-	gridClient          proxy.Client
-	ncPool              client.NodeClientCollection
-	substrate           subi.ManagerInterface
+	identity             substrate.Identity
+	twinID               uint32
+	deploymentIDs        map[uint32]uint64 //TODO : should include all contracts of user
+	affectedDeployments  map[uint32]uint64
+	plannedDeployments   map[uint32]gridtypes.Deployment
+	nameContracts        map[string]uint64
+	plannedNameContracts []string
+	gridClient           proxy.Client
+	ncPool               client.NodeClientCollection
+	substrate            subi.ManagerInterface
 	//connection field
 }
 
@@ -53,7 +55,9 @@ func NewDeploymentManager(
 		twinID,
 		deploymentIDs,
 		make(map[uint32]uint64),
-		make(map[uint32]gridtypes.Deployment),
+		make(map[uint32]gridtypes.Deployment), ///2 lines down
+		make(map[string]uint64),
+		make([]string, 0),
 		gridClient,
 		ncPool,
 		sub,
@@ -114,6 +118,38 @@ func (d *deploymentManager) CancelWorkloads(workloads map[uint32]map[string]bool
 	}
 	d.plannedDeployments = planned
 	d.affectedDeployments = affected
+	return nil
+}
+
+func createNameContracts(createdNameContracts map[string]uint64, d deploymentManager, sub subi.SubstrateExt) error {
+	for _, contractName := range d.plannedNameContracts {
+		var contractID uint64
+		if _, ok := d.nameContracts[contractName]; ok {
+			id, err := sub.InvalidateNameContract(context.Background(), d.identity, d.nameContracts[contractName], contractName)
+			if err != nil {
+				return err
+			}
+			contractID = id
+		}
+		if contractID == 0 {
+			id, err := sub.CreateNameContract(d.identity, contractName)
+			if err != nil {
+				return err
+			}
+			contractID = id
+			createdNameContracts[contractName] = id
+		}
+	}
+	return nil
+}
+
+func cancelNameContracts(createdNameContracts map[string]uint64, d deploymentManager, sub subi.SubstrateExt) error {
+	for _, id := range createdNameContracts {
+		err := sub.CancelContract(d.identity, id)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -268,10 +304,22 @@ func (d *deploymentManager) Commit(ctx context.Context) error {
 		return errors.Wrap(err, "couldn't get substrate client")
 	}
 	defer s.Close()
+
+	createdNameContracts := map[string]uint64{}
+	err = createNameContracts(createdNameContracts, *d, s)
+	if err != nil {
+		// revert changes
+		revErr := cancelNameContracts(createdNameContracts, *d, s)
+		if revErr != nil {
+			return errors.Wrapf(revErr, "couldn't revert changes")
+		}
+		return err
+	}
 	err = d.assignVMIPs()
 	if err != nil {
 		return err
 	}
+
 	committedDeploymentsIDs, err := deployer.Deploy(ctx, s, d.affectedDeployments, d.plannedDeployments)
 	if err != nil {
 		return err
@@ -279,6 +327,7 @@ func (d *deploymentManager) Commit(ctx context.Context) error {
 	d.updateDeploymentIDs(committedDeploymentsIDs)
 	d.affectedDeployments = make(map[uint32]uint64)
 	d.plannedDeployments = make(map[uint32]gridtypes.Deployment)
+	d.plannedNameContracts = make([]string, 0)
 	return nil
 }
 
@@ -330,6 +379,10 @@ func (d *deploymentManager) SetWorkloads(workloads map[uint32][]gridtypes.Worklo
 			affected[nodeID] = dl.ContractID
 		}
 		for idx := 0; idx < len(workloadsArray); {
+			if workloadsArray[idx].Type == zos.GatewayNameProxyType {
+				// if this is a gatewayNameProxy worklaod, stage name contract
+				d.plannedNameContracts = append(d.plannedNameContracts, workloadsArray[idx].Name.String())
+			}
 			workloadWithID, err := dl.Get(workloadsArray[idx].Name)
 			if err == nil {
 				//override existing workload
@@ -346,6 +399,7 @@ func (d *deploymentManager) SetWorkloads(workloads map[uint32][]gridtypes.Worklo
 		dl.Workloads = append(dl.Workloads, workloadsArray...)
 		planned[nodeID] = dl
 	}
+
 	d.plannedDeployments = planned
 	d.affectedDeployments = affected
 
