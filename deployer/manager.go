@@ -294,9 +294,7 @@ func (d *deploymentManager) Commit(ctx context.Context) error {
 	d.updateDeploymentIDs(committedDeploymentsIDs)
 	d.affectedDeployments = make(map[uint32]uint64)
 	d.plannedDeployments = make(map[uint32]gridtypes.Deployment)
-	/////
 	d.plannedNameContracts = make([]string, 0)
-	////
 	return nil
 }
 
@@ -375,7 +373,7 @@ func (d *deploymentManager) SetWorkloads(workloads map[uint32][]gridtypes.Worklo
 	return nil
 }
 
-func (d *deploymentManager) GetWorkload(nodeID uint32, name string) (gridtypes.Workload, error) {
+func (d *deploymentManager) GetWorkload(nodeID uint32 , name string) (gridtypes.Workload, error) {
 	if deployment, ok := d.deploymentIDs[nodeID]; ok {
 		s, err := d.substrate.SubstrateExt()
 		if err != nil {
