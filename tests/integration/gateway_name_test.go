@@ -2,6 +2,7 @@ package integration
 
 import (
 	"context"
+	"reflect"
 
 	"testing"
 	"time"
@@ -21,26 +22,24 @@ func TestGatewayNameDeployment(t *testing.T) {
 		Name:           "testt",
 		TLSPassthrough: false,
 		Backends:       []zos.Backend{zos.Backend(backend)},
-		FQDN:           "tsst.gent01.dev.grid.tf",
+		FQDN:           "testt.gent01.dev.grid.tf",
 	}
 
 	err := expected.Stage(manager, 14)
 	assert.NoError(t, err)
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
 	err = manager.Commit(ctx)
-defer manager.CancelAll()
 	assert.NoError(t, err)
 	result, err := loader.LoadGatewayNameFromGrid(manager, 14, "testt")
 	assert.NoError(t, err)
 
-	assert.Equal(t, expected.Backends, result.Backends)
-	assert.Equal(t, expected.Name, result.Name)
-	assert.Equal(t, expected.TLSPassthrough, result.TLSPassthrough)
+	assert.Equal(t, reflect.DeepEqual(expected, result), true)
 
 	err = manager.CancelAll()
 	assert.NoError(t, err)
-	_, err = loader.LoadGatewayNameFromGrid(manager, 14, "testt")
+	expected = workloads.GatewayNameProxy{}
+	wl, err := loader.LoadGatewayNameFromGrid(manager, 14, "testt")
 	assert.Error(t, err)
-
+	assert.Equal(t, reflect.DeepEqual(expected, wl), true)
 }

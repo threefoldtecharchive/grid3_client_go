@@ -2,6 +2,7 @@ package integration
 
 import (
 	"context"
+	"reflect"
 
 	"testing"
 	"time"
@@ -35,14 +36,14 @@ func TestGatewayFQDNDeployment(t *testing.T) {
 	result, err := loader.LoadGatewayFqdnFromGrid(manager, 14, "tf")
 	assert.NoError(t, err)
 
-	assert.Equal(t, expected.Backends, result.Backends)
-	assert.Equal(t, expected.Name, result.Name)
-	assert.Equal(t, expected.TLSPassthrough, result.TLSPassthrough)
+	assert.Equal(t, reflect.DeepEqual(expected, result), true)
 
 	err = manager.CancelAll()
 	assert.NoError(t, err)
+	expected = workloads.GatewayFQDNProxy{}
 
-	_, err = loader.LoadGatewayFqdnFromGrid(manager, 14, "tf")
+	wl, err := loader.LoadGatewayFqdnFromGrid(manager, 14, "tf")
 	assert.Error(t, err)
+	assert.Equal(t, reflect.DeepEqual(expected, wl), true)
 
 }
