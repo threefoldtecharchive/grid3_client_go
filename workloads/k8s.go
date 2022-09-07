@@ -15,6 +15,8 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
+var ErrDuplicateName = errors.New("node names are not unique")
+
 type K8sNodeData struct {
 	Name          string
 	Node          uint32
@@ -50,6 +52,11 @@ func (k *K8sCluster) Stage(
 		return err
 	}
 
+	err = k.validateNames()
+	if err != nil {
+		return err
+	}
+
 	workloads := map[uint32][]gridtypes.Workload{}
 
 	workloads[k.Master.Node] = append(workloads[k.Master.Node], k.Master.GenerateK8sWorkload(manager, k, false)...)
@@ -62,6 +69,18 @@ func (k *K8sCluster) Stage(
 		return err
 	}
 
+	return nil
+}
+
+func (k *K8sCluster) validateNames() error {
+	names := map[string]bool{}
+	names[k.Master.Name] = true
+	for _, worker := range k.Workers {
+		if _, ok := names[worker.Name]; ok {
+			return errors.Wrapf(ErrDuplicateName, "name %s is duplicated", worker.Name)
+		}
+		names[worker.Name] = true
+	}
 	return nil
 }
 
