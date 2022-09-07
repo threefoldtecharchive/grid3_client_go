@@ -135,14 +135,14 @@ func (mr *MockSubstrateMockRecorder) Close() *gomock.Call {
 // CreateNodeContract mocks base method.
 func (m *MockSubstrate) CreateNodeContract(identity subi.Identity, node uint32, body string, hash string, publicIPs uint32, solutionProviderID uint64) (uint64, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateNodeContract", identity, node, body, hash, publicIPs,solutionProviderID )
+	ret := m.ctrl.Call(m, "CreateNodeContract", identity, node, body, hash, publicIPs, solutionProviderID)
 	ret0, _ := ret[0].(uint64)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateNodeContract indicates an expected call of CreateNodeContract.
-func (mr *MockSubstrateMockRecorder) CreateNodeContract(identity, node, body, hash, publicIPs interface{}, solutionProviderID interface{} ) *gomock.Call {
+func (mr *MockSubstrateMockRecorder) CreateNodeContract(identity, node, body, hash, publicIPs interface{}, solutionProviderID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateNodeContract", reflect.TypeOf((*MockSubstrate)(nil).CreateNodeContract), identity, node, body, hash, publicIPs, solutionProviderID)
 }
@@ -242,16 +242,16 @@ func (mr *MockSubstrateExtMockRecorder) CreateNameContract(identity, name interf
 }
 
 // CreateNodeContract mocks base method.
-func (m *MockSubstrateExt) CreateNodeContract(identity subi.Identity, node uint32, body string, hash string, publicIPs uint32,solutionProviderID *uint64) (uint64, error) {
+func (m *MockSubstrateExt) CreateNodeContract(identity subi.Identity, node uint32, body string, hash string, publicIPs uint32, solutionProviderID *uint64) (uint64, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateNodeContract", identity, node, body, hash, publicIPs,solutionProviderID)
+	ret := m.ctrl.Call(m, "CreateNodeContract", identity, node, body, hash, publicIPs, solutionProviderID)
 	ret0, _ := ret[0].(uint64)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateNodeContract indicates an expected call of CreateNodeContract.
-func (mr *MockSubstrateExtMockRecorder) CreateNodeContract(identity, node, body, hash, publicIPs interface{},solutionProviderID interface{}) *gomock.Call {
+func (mr *MockSubstrateExtMockRecorder) CreateNodeContract(identity, node, body, hash, publicIPs interface{}, solutionProviderID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateNodeContract", reflect.TypeOf((*MockSubstrateExt)(nil).CreateNodeContract), identity, node, body, hash, publicIPs, solutionProviderID)
 }
