@@ -1,12 +1,12 @@
 PWD := $(shell pwd)
 GOPATH := $(shell go env GOPATH)
 
-all: build
+all: verifiers test
 
 getdeps: 
 	@echo "Installing golint" && go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.42.0
 
-verifiers: vet fmt lint cyclo 
+verifiers: getdeps vet fmt lint cyclo
 
 vet:
 	@echo "Running $@"
@@ -19,3 +19,6 @@ fmt:
 lint:
 	@echo "Running $@"
 	@${GOPATH}/bin/golangci-lint run
+
+test: 
+	@echo "Running Tests"
