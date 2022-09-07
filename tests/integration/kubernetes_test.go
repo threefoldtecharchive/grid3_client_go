@@ -20,11 +20,10 @@ func TestKubernetes(t *testing.T) {
 	sshPublicKey := os.Getenv("PUBLICKEY")
 	master := workloads.K8sNodeData{
 		Name:      "ms",
-		Node:      33,
+		Node:      45,
 		DiskSize:  1,
 		PublicIP:  false,
 		Planetary: true,
-		Flist:     "https://hub.grid.tf/tf-official-apps/threefoldtech-k3s-latest.flist",
 		Cpu:       1,
 		Memory:    2048,
 	}
@@ -45,7 +44,7 @@ func TestKubernetes(t *testing.T) {
 	network := workloads.TargetNetwork{
 		Name:        "skynet",
 		Description: "not skynet",
-		Nodes:       []uint32{33, 45},
+		Nodes:       []uint32{45},
 		IPRange: gridtypes.NewIPNet(net.IPNet{
 			IP:   net.IPv4(10, 1, 0, 0),
 			Mask: net.CIDRMask(16, 32),
@@ -53,16 +52,20 @@ func TestKubernetes(t *testing.T) {
 		AddWGAccess: false,
 	}
 
-	t.Run("master, 2 workers", func(t *testing.T) {
+	t.Run("cluster with 3 nodes", func(t *testing.T) {
 
-		err := cluster.Stage(context.Background(), manager)
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+		defer cancel()
+
+		err := cluster.Stage(ctx, manager)
 		assert.NoError(t, err)
 
-		_, err = network.Stage(context.Background(), apiClient)
+		_, err = network.Stage(ctx, apiClient)
 		assert.NoError(t, err)
 
-		err = manager.Commit(context.Background())
+		err = manager.Commit(ctx)
 		assert.NoError(t, err)
+		defer cancelDeployments(t, manager)
 
 		masterNode := map[uint32]string{master.Node: master.Name}
 		workerNodes := map[uint32][]string{}
@@ -82,9 +85,9 @@ func TestKubernetes(t *testing.T) {
 		}
 
 		time.Sleep(30 * (time.Second))
-		res, errors := RemoteRun("root", masterIP, "kubectl get node")
+		res, err := RemoteRun("root", masterIP, "kubectl get node")
 		log.Printf("res: %s", res)
-		assert.Empty(t, errors)
+		assert.NoError(t, err)
 
 		res = strings.Trim(res, "\n")
 		nodes := strings.Split(string(res), "\n")[1:]
@@ -95,15 +98,15 @@ func TestKubernetes(t *testing.T) {
 		for i := 0; i < len(nodes); i++ {
 			assert.Contains(t, nodes[i], "Ready")
 		}
-
-		err = manager.CancelAll()
-		assert.NoError(t, err)
 	})
 
-	t.Run("k8s with duplicate names", func(t *testing.T) {
+	t.Run("nodes with duplicate names", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		defer cancel()
+
 		cluster.Workers[0].Name = cluster.Master.Name
 
-		err := cluster.Stage(context.Background(), manager)
+		err := cluster.Stage(ctx, manager)
 		assert.ErrorIs(t, err, workloads.ErrDuplicateName)
 	})
 

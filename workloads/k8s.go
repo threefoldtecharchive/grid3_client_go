@@ -18,20 +18,15 @@ import (
 var ErrDuplicateName = errors.New("node names are not unique")
 
 type K8sNodeData struct {
-	Name          string
-	Node          uint32
-	DiskSize      int
-	PublicIP      bool
-	PublicIP6     bool
-	Planetary     bool
-	Flist         string
-	FlistChecksum string
-	ComputedIP    string
-	ComputedIP6   string
-	YggIP         string
-	IP            string
-	Cpu           int
-	Memory        int
+	Name      string
+	Node      uint32
+	DiskSize  int
+	PublicIP  bool
+	PublicIP6 bool
+	Planetary bool
+	IP        string
+	Cpu       int
+	Memory    int
 }
 
 type K8sCluster struct {
@@ -47,12 +42,7 @@ func (k *K8sCluster) Stage(
 	manager deployer.DeploymentManager,
 ) error {
 
-	err := k.validateChecksums()
-	if err != nil {
-		return err
-	}
-
-	err = k.validateNames()
+	err := k.validateNames()
 	if err != nil {
 		return err
 	}
@@ -97,28 +87,6 @@ func getFlistChecksum(url string) (string, error) {
 	return strings.TrimSpace(string(hash)), err
 }
 
-func (d *K8sCluster) validateChecksums() error {
-	nodes := append(d.Workers, *d.Master)
-	for _, vm := range nodes {
-		if vm.FlistChecksum == "" {
-			continue
-		}
-		checksum, err := getFlistChecksum(vm.Flist)
-		if err != nil {
-			return errors.Wrapf(err, "couldn't get flist %s hash", vm.Flist)
-		}
-		if vm.FlistChecksum != checksum {
-			return fmt.Errorf("passed checksum %s of %s doesn't match %s returned from %s",
-				vm.FlistChecksum,
-				vm.Name,
-				checksum,
-				flistChecksumURL(vm.Flist),
-			)
-		}
-	}
-	return nil
-}
-
 func (k *K8sNodeData) GenerateK8sWorkload(manager deployer.DeploymentManager, deployer *K8sCluster, worker bool) []gridtypes.Workload {
 	diskName := fmt.Sprintf("%sdisk", k.Name)
 	workloads := make([]gridtypes.Workload, 0)
@@ -155,7 +123,7 @@ func (k *K8sNodeData) GenerateK8sWorkload(manager deployer.DeploymentManager, de
 		Name:    gridtypes.Name(k.Name),
 		Type:    zos.ZMachineType,
 		Data: gridtypes.MustMarshal(zos.ZMachine{
-			FList: k.Flist,
+			FList: "https://hub.grid.tf/tf-official-apps/threefoldtech-k3s-latest.flist",
 			Network: zos.MachineNetwork{
 				Interfaces: []zos.MachineInterface{
 					{
