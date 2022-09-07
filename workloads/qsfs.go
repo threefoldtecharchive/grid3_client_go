@@ -66,7 +66,7 @@ func (b *Backends) zosBackends() []zos.ZdbBackend {
 	return z
 }
 
-func (q *QSFS)GenerateWorkloadFromQSFS(qsfs QSFS) (gridtypes.Workload, error) {
+func (q *QSFS) GenerateWorkloadFromQSFS(qsfs QSFS) (gridtypes.Workload, error) {
 	k, err := hex.DecodeString(qsfs.EncryptionKey)
 	if err != nil {
 		return gridtypes.Workload{}, err

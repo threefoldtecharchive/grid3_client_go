@@ -20,7 +20,7 @@ type GatewayFQDNProxy struct {
 	FQDN string
 }
 
-func (g *GatewayFQDNProxy)GenerateWorkloadFromFQDN(gatewayFQDN GatewayFQDNProxy) (gridtypes.Workload, error) {
+func (g *GatewayFQDNProxy) GenerateWorkloadFromFQDN(gatewayFQDN GatewayFQDNProxy) (gridtypes.Workload, error) {
 	return gridtypes.Workload{
 		Version: 0,
 		Type:    zos.GatewayFQDNProxyType,
