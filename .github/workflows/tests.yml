@@ -1,27 +1,20 @@
-name: Tests and Coverage
+name: Testing
+
 on: [push]
 
 jobs:
-  daemons:
-    name: Running Daemon Tests
+  build:
     runs-on: ubuntu-latest
     steps:
-      - name: Set up Go 1.18
-        uses: actions/setup-go@v1
-        with:
-          go-version: 1.18
-        id: go
+    - uses: actions/checkout@v2
 
-      - name: Prepare dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libjansson-dev libhiredis-dev
-      - name: Checkout code into the Go module directory
-        uses: actions/checkout@v1
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.18
 
-      - name: Run tests
-        run: |
-          cd test
-          make testrace
-        env:
-          GO111MODULE: on
+    - name: Build
+      run: go build -v ./...
+
+    - name: Test
+      run: go test -v ./...
