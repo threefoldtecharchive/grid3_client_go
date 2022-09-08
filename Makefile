@@ -18,7 +18,7 @@ fmt:
 
 lint:
 	@echo "Running $@"
-	@curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.26.0 golangci-lint run
+	@${GOPATH}/bin/golangci-lint run 
 
 test: 
 	@echo "Running Tests"
