@@ -1,5 +1,5 @@
 PWD := $(shell pwd)
-GOPATH := $(shell go env GOPATH)
+GOPATH := $(shell go env GOPATH)/bin
 
 all: verifiers test
 
