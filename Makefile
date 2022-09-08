@@ -1,5 +1,5 @@
 PWD := $(shell pwd)
-GOPATH := $(shell go env GOPATH)/bin
+GOPATH := $(shell go env GOPATH)
 
 all: verifiers test
 
@@ -18,7 +18,7 @@ fmt:
 
 lint:
 	@echo "Running $@"
-	@${GOPATH}/bin/golangci-lint run
+	@curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.26.0 golangci-lint run
 
 test: 
 	@echo "Running Tests"
