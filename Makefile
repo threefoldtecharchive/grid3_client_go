@@ -18,7 +18,7 @@ fmt:
 
 lint:
 	@echo "Running $@"
-	@${GOPATH}/bin/golangci-lint run 
+		golangci-lint run
 
 test: 
 	@echo "Running Tests"
