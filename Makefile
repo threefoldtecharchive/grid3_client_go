@@ -16,9 +16,5 @@ fmt:
 	@echo "Running $@"
 	@gofmt -d .
 
-lint:
-	@echo "Running $@"
-		golangci-lint run
-
 test: 
 	@echo "Running Tests"
