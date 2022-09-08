@@ -2,7 +2,6 @@ package integration
 
 import (
 	"context"
-	"reflect"
 
 	"testing"
 	"time"
@@ -17,33 +16,33 @@ import (
 
 func TestGatewayFQDNDeployment(t *testing.T) {
 	manager, _ := setup()
-	backend := "http://185.206.122.36"
+	backend := "http://162.205.240.240/"
 	expected := workloads.GatewayFQDNProxy{
 		Name:           "tf",
 		TLSPassthrough: false,
 		Backends:       []zos.Backend{zos.Backend(backend)},
-		FQDN:           "gname.gridtesting.xyz",
+		FQDN:           "gatewayn.gridtesting.xyz",
 	}
 
-	err := expected.Stage(manager, 14)
+	err := expected.Stage(manager, 49)
 	assert.NoError(t, err)
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
 
 	err = manager.Commit(ctx)
 	defer manager.CancelAll()
 	assert.NoError(t, err)
-	result, err := loader.LoadGatewayFqdnFromGrid(manager, 14, "tf")
+	result, err := loader.LoadGatewayFqdnFromGrid(manager, 49, "tf")
 	assert.NoError(t, err)
 
-	assert.Equal(t, reflect.DeepEqual(expected, result), true)
+	assert.Equal(t, expected, result)
 
 	err = manager.CancelAll()
 	assert.NoError(t, err)
 	expected = workloads.GatewayFQDNProxy{}
 
-	wl, err := loader.LoadGatewayFqdnFromGrid(manager, 14, "tf")
+	wl, err := loader.LoadGatewayFqdnFromGrid(manager, 49, "tf")
 	assert.Error(t, err)
-	assert.Equal(t, reflect.DeepEqual(expected, wl), true)
+	assert.Equal(t, expected, wl)
 
 }

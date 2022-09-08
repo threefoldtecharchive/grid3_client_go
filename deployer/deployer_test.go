@@ -20,8 +20,8 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
-const Words = "secret add bag cluster deposit beach illness letter crouch position rain arctic"
-const twinID = 214
+const Words = "logic bag student thing good immune hood clip alley pigeon color wedding"
+const twinID = 280
 
 var identity, _ = substrate.NewIdentityFromEd25519Phrase(Words)
 
@@ -90,7 +90,7 @@ func TestCreate(t *testing.T) {
 	ncPool := mock.NewMockNodeClientCollection(ctrl)
 	newDeployer := NewDeployer(
 		identity,
-		214,
+		280,
 		gridClient,
 		ncPool,
 		true,
@@ -169,7 +169,7 @@ func TestUpdate(t *testing.T) {
 	ncPool := mock.NewMockNodeClientCollection(ctrl)
 	newDeployer := NewDeployer(
 		identity,
-		214,
+		280,
 		gridClient,
 		ncPool,
 		true,
@@ -231,7 +231,7 @@ func TestCancel(t *testing.T) {
 	ncPool := mock.NewMockNodeClientCollection(ctrl)
 	newDeployer := NewDeployer(
 		identity,
-		214,
+		280,
 		gridClient,
 		ncPool,
 		true,
