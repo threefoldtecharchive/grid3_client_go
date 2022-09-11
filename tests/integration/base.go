@@ -36,7 +36,6 @@ var (
 )
 
 func setup() (deployer.DeploymentManager, workloads.APIClient) {
-	// mnemonics := "logic bag student thing good immune hood clip alley pigeon color wedding"
 	mnemonics := os.Getenv("MNEMONICS")
 	SshKeys()
 	identity, err := subi.NewIdentityFromSr25519Phrase(mnemonics)
@@ -47,7 +46,6 @@ func setup() (deployer.DeploymentManager, workloads.APIClient) {
 	if err != nil {
 		panic(err)
 	}
-	// network := "dev"
 	network := os.Getenv("NETWORK")
 	log.Printf("network: %s", network)
 	sub := subi.NewManager(SUBSTRATE_URL[network])

@@ -149,13 +149,13 @@ func createNameContracts(createdNameContracts map[string]uint64, d deploymentMan
 }
 
 func cancelNameContracts(createdNameContracts map[string]uint64, d deploymentManager, sub subi.SubstrateExt) error {
+	fmt.Printf("Cancel Name contracts %+v", createdNameContracts)
 	for _, id := range createdNameContracts {
 		err := sub.CancelContract(d.identity, id)
 		if err != nil {
 			return err
 		}
 	}
-	d.nameContracts = make(map[string]uint64)
 	return nil
 }
 
@@ -320,6 +320,9 @@ func (d *deploymentManager) Commit(ctx context.Context) error {
 			return errors.Wrapf(revErr, "couldn't revert changes")
 		}
 		return err
+	}
+	for name, id := range createdNameContracts {
+		d.nameContracts[name] = id
 	}
 	err = d.assignVMIPs()
 	if err != nil {

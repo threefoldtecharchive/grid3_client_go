@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
+	"os"
 
 	"testing"
 
@@ -20,12 +21,48 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
-const Words = "logic bag student thing good immune hood clip alley pigeon color wedding"
-const twinID = 280
+var (
+	SUBSTRATE_URL = map[string]string{
+		"dev":  "wss://tfchain.dev.grid.tf/ws",
+		"test": "wss://tfchain.test.grid.tf/ws",
+		"qa":   "wss://tfchain.qa.grid.tf/ws",
+		"main": "wss://tfchain.grid.tf/ws",
+	}
+	RMB_PROXY_URL = map[string]string{
+		"dev":  "https://gridproxy.dev.grid.tf/",
+		"test": "https://gridproxy.test.grid.tf/",
+		"qa":   "https://gridproxy.qa.grid.tf/",
+		"main": "https://gridproxy.grid.tf/",
+	}
+)
 
-var identity, _ = substrate.NewIdentityFromEd25519Phrase(Words)
+func setUP()(identity subi.Identity, twinID uint32){
+	mnemonics := os.Getenv("MNEMONICS")
+	identity, err := subi.NewIdentityFromSr25519Phrase(mnemonics)
+	if err != nil {
+		panic(err)
+	}
+	sk, err := identity.KeyPair()
+	if err != nil {
+		panic(err)
+	}
+	network := os.Getenv("NETWORK")
+	pub := sk.Public()
+	sub := subi.NewManager(SUBSTRATE_URL[network])
+	subext, err := sub.SubstrateExt()
+	if err != nil {
+		panic(err)
+	}
+	twin, err := subext.GetTwinByPubKey(pub)
+	if err != nil {
+		panic(err)
+	}
+	return identity,twin
+}
+
 
 func deployment1(identity substrate.Identity, TLSPassthrough bool, version uint32) gridtypes.Deployment {
+	_, twinID := setUP()
 	dl := NewDeployment(uint32(twinID))
 	dl.Version = version
 	gw := GatewayNameProxy{
@@ -48,6 +85,7 @@ func deployment1(identity substrate.Identity, TLSPassthrough bool, version uint3
 }
 
 func deployment2(identity substrate.Identity) gridtypes.Deployment {
+	_, twinID := setUP()
 	dl := NewDeployment(uint32(twinID))
 	gw := GatewayFQDNProxy{
 		Name:     "fqdn",
@@ -82,6 +120,7 @@ func (d *EmptyValidator) Validate(ctx context.Context, sub subi.SubstrateExt, ol
 	return nil
 }
 func TestCreate(t *testing.T) {
+	identity, twinID := setUP()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	gridClient := mock.NewMockClient(ctrl)
@@ -90,7 +129,7 @@ func TestCreate(t *testing.T) {
 	ncPool := mock.NewMockNodeClientCollection(ctrl)
 	newDeployer := NewDeployer(
 		identity,
-		280,
+		twinID,
 		gridClient,
 		ncPool,
 		true,
@@ -161,6 +200,7 @@ func TestCreate(t *testing.T) {
 }
 
 func TestUpdate(t *testing.T) {
+	identity, twinID := setUP()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	gridClient := mock.NewMockClient(ctrl)
@@ -169,7 +209,7 @@ func TestUpdate(t *testing.T) {
 	ncPool := mock.NewMockNodeClientCollection(ctrl)
 	newDeployer := NewDeployer(
 		identity,
-		280,
+		twinID,
 		gridClient,
 		ncPool,
 		true,
@@ -223,6 +263,7 @@ func TestUpdate(t *testing.T) {
 }
 
 func TestCancel(t *testing.T) {
+	identity, twinID := setUP()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	gridClient := mock.NewMockClient(ctrl)
@@ -231,7 +272,7 @@ func TestCancel(t *testing.T) {
 	ncPool := mock.NewMockNodeClientCollection(ctrl)
 	newDeployer := NewDeployer(
 		identity,
-		280,
+		twinID,
 		gridClient,
 		ncPool,
 		true,
@@ -260,6 +301,7 @@ func TestCancel(t *testing.T) {
 }
 
 func TestCocktail(t *testing.T) {
+	identity, twinID := setUP()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	gridClient := mock.NewMockClient(ctrl)
