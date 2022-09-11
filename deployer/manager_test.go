@@ -17,6 +17,7 @@ import (
 )
 
 func TestCancelAll(t *testing.T) {
+	identity, nodeID := setUP()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	sub := mock.NewMockSubstrateExt(ctrl)
@@ -30,7 +31,7 @@ func TestCancelAll(t *testing.T) {
 	}
 	manager := NewDeploymentManager(
 		identity,
-		214,
+		nodeID,
 		dMap,
 		gridClient,
 		ncPool,
@@ -47,7 +48,9 @@ func TestCancelAll(t *testing.T) {
 	err := manager.CancelAll()
 	assert.NoError(t, err)
 }
+
 func TestCommit(t *testing.T) {
+	identity, nodeID := setUP()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	sub := mock.NewMockSubstrateExt(ctrl)
@@ -58,7 +61,7 @@ func TestCommit(t *testing.T) {
 	dl1.ContractID = 100
 	manager := NewDeploymentManager(
 		identity,
-		214,
+		nodeID,
 		map[uint32]uint64{10: 100},
 		gridClient,
 		ncPool,
@@ -71,7 +74,9 @@ func TestCommit(t *testing.T) {
 	err := manager.Commit(context.Background())
 	assert.NoError(t, err)
 }
+
 func TestSetWorkload(t *testing.T) {
+	identity, nodeID := setUP()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	sub := mock.NewMockSubstrateExt(ctrl)
@@ -100,7 +105,7 @@ func TestSetWorkload(t *testing.T) {
 	}
 	manager := NewDeploymentManager(
 		identity,
-		214,
+		nodeID,
 		dMap,
 		gridClient,
 		ncPool,
@@ -123,6 +128,7 @@ func TestSetWorkload(t *testing.T) {
 	assert.NoError(t, err)
 }
 func TestCancelWorkloads(t *testing.T) {
+	identity, nodeID := setUP()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	sub := mock.NewMockSubstrateExt(ctrl)
@@ -140,7 +146,7 @@ func TestCancelWorkloads(t *testing.T) {
 	}
 	manager := NewDeploymentManager(
 		identity,
-		214,
+		nodeID,
 		map[uint32]uint64{10: 100},
 		gridClient,
 		ncPool,
@@ -167,6 +173,7 @@ func TestCancelWorkloads(t *testing.T) {
 	assert.NoError(t, err)
 }
 func TestGetWorkload(t *testing.T) {
+	identity, nodeID := setUP()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	sub := mock.NewMockSubstrateExt(ctrl)
@@ -186,7 +193,7 @@ func TestGetWorkload(t *testing.T) {
 	dl1.ContractID = 100
 	manager := NewDeploymentManager(
 		identity,
-		214,
+		nodeID,
 		map[uint32]uint64{10: 100},
 		gridClient,
 		ncPool,
@@ -214,6 +221,7 @@ func TestGetWorkload(t *testing.T) {
 }
 
 func TestGetDeployment(t *testing.T) {
+	identity, nodeID := setUP()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	sub := mock.NewMockSubstrateExt(ctrl)
@@ -229,7 +237,7 @@ func TestGetDeployment(t *testing.T) {
 	}
 	manager := NewDeploymentManager(
 		identity,
-		214,
+		nodeID,
 		dMap,
 		gridClient,
 		ncPool,
