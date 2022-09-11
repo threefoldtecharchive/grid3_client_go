@@ -75,8 +75,13 @@ func (d *deploymentManager) CancelAll() error { //TODO
 			return errors.Wrapf(err, "couldn't cancel contract with id %d", contractID)
 		}
 	}
+	err = cancelNameContracts(d.nameContracts, *d, sub)
+	if err != nil {
+		return errors.Wrapf(err, "couldn't cancel contract name")
+	}
 	d.deploymentIDs = make(map[uint32]uint64)
 	d.affectedDeployments = make(map[uint32]uint64)
+	d.nameContracts = make(map[string]uint64)
 	return nil
 }
 
@@ -150,6 +155,7 @@ func cancelNameContracts(createdNameContracts map[string]uint64, d deploymentMan
 			return err
 		}
 	}
+	d.nameContracts = make(map[string]uint64)
 	return nil
 }
 
