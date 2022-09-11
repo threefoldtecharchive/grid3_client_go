@@ -27,7 +27,7 @@ func TestGatewayNameDeployment(t *testing.T) {
 
 	err := expected.Stage(manager, 49)
 	assert.NoError(t, err)
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	err = manager.Commit(ctx)
 	assert.NoError(t, err)

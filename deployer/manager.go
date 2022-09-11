@@ -69,15 +69,15 @@ func (d *deploymentManager) CancelAll() error { //TODO
 	if err != nil {
 		return errors.Wrapf(err, "couldn't get substrate ")
 	}
+	err = cancelNameContracts(d.nameContracts, *d, sub)
+	if err != nil {
+		return errors.Wrapf(err, "couldn't cancel contract name")
+	}
 	for _, contractID := range d.deploymentIDs {
 		err = sub.CancelContract(d.identity, contractID)
 		if err != nil {
 			return errors.Wrapf(err, "couldn't cancel contract with id %d", contractID)
 		}
-	}
-	err = cancelNameContracts(d.nameContracts, *d, sub)
-	if err != nil {
-		return errors.Wrapf(err, "couldn't cancel contract name")
 	}
 	d.deploymentIDs = make(map[uint32]uint64)
 	d.affectedDeployments = make(map[uint32]uint64)
