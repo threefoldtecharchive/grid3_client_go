@@ -15,10 +15,10 @@ jobs:
       - name: fmt
         run: make fmt
       - name: vet 
-        run: make vet   
-      - name: 
-        run: make cyclo   
+        run: make vet      
       - name: lint
         run: |
           curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.26.0 golangci-lint run 
+      - name: 
+        run: make cyclo    
    
