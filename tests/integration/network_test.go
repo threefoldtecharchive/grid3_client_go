@@ -17,7 +17,7 @@ func TestDeployment(t *testing.T) {
 	manager, apiClient := setup()
 
 	network := workloads.TargetNetwork{
-		Name:        "skynet1",
+		Name:        "net1",
 		Description: "not skynet",
 		Nodes:       []uint32{33, 34},
 		IPRange: gridtypes.NewIPNet(net.IPNet{
@@ -37,7 +37,7 @@ func TestDeployment(t *testing.T) {
 	err = manager.Commit(context.Background())
 	assert.Equal(t, nil, err)
 
-	ln, err := loader.LoadNetworkFromGrid(manager, "skynet1")
+	ln, err := loader.LoadNetworkFromGrid(manager, "net1")
 	log.Printf("current network: %+v", ln)
 	log.Printf("current contracts: %+v", manager.GetContractIDs())
 
@@ -50,7 +50,7 @@ func TestDeployment(t *testing.T) {
 	err = manager.Commit(context.Background())
 	assert.Equal(t, nil, err)
 
-	ln, err = loader.LoadNetworkFromGrid(manager, "skynet1")
+	ln, err = loader.LoadNetworkFromGrid(manager, "net1")
 	log.Printf("current network: %+v", ln)
 	log.Printf("current contracts: %+v", manager.GetContractIDs())
 
@@ -61,14 +61,14 @@ func TestDeployment(t *testing.T) {
 	log.Printf("user access: %+v", access)
 
 	err = manager.Commit(context.Background())
-	assert.Equal(t, nil, err)
-
-	ln, err = loader.LoadNetworkFromGrid(manager, "skynet1")
+	assert.NoError(t, err)
+	defer manager.CancelAll()
+	ln, err = loader.LoadNetworkFromGrid(manager, "net1")
 	log.Printf("current network: %+v", ln)
 	log.Printf("current contracts: %+v", manager.GetContractIDs())
 
 	err = manager.CancelAll()
-	ln, err = loader.LoadNetworkFromGrid(manager, "skynet1")
+	ln, err = loader.LoadNetworkFromGrid(manager, "net1")
 	log.Printf("current network: %+v", ln)
 	log.Printf("current contracts: %+v", manager.GetContractIDs())
 }

@@ -69,6 +69,10 @@ func (d *deploymentManager) CancelAll() error { //TODO
 	if err != nil {
 		return errors.Wrapf(err, "couldn't get substrate ")
 	}
+	err = cancelNameContracts(d.nameContracts, *d, sub)
+	if err != nil {
+		return errors.Wrapf(err, "couldn't cancel contract name")
+	}
 	for _, contractID := range d.deploymentIDs {
 		err = sub.CancelContract(d.identity, contractID)
 		if err != nil {
@@ -77,6 +81,7 @@ func (d *deploymentManager) CancelAll() error { //TODO
 	}
 	d.deploymentIDs = make(map[uint32]uint64)
 	d.affectedDeployments = make(map[uint32]uint64)
+	d.nameContracts = make(map[string]uint64)
 	return nil
 }
 
@@ -314,6 +319,9 @@ func (d *deploymentManager) Commit(ctx context.Context) error {
 			return errors.Wrapf(revErr, "couldn't revert changes")
 		}
 		return err
+	}
+	for name, id := range createdNameContracts {
+		d.nameContracts[name] = id
 	}
 	err = d.assignVMIPs()
 	if err != nil {

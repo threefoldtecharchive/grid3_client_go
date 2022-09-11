@@ -17,29 +17,28 @@ import (
 
 func TestGatewayNameDeployment(t *testing.T) {
 	manager, _ := setup()
-	backend := "http://185.206.122.36"
+	backend := "http://162.205.240.240"
 	expected := workloads.GatewayNameProxy{
-		Name:           "testt",
+		Name:           "testx",
 		TLSPassthrough: false,
 		Backends:       []zos.Backend{zos.Backend(backend)},
-		FQDN:           "testt.gent01.dev.grid.tf",
+		FQDN:           "testx.Libra.Tfcloud.us",
 	}
 
-	err := expected.Stage(manager, 14)
+	err := expected.Stage(manager, 49)
 	assert.NoError(t, err)
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	err = manager.Commit(ctx)
 	assert.NoError(t, err)
-	result, err := loader.LoadGatewayNameFromGrid(manager, 14, "testt")
+	defer manager.CancelAll()
+	result, err := loader.LoadGatewayNameFromGrid(manager, 49, "testx")
 	assert.NoError(t, err)
-
-	assert.Equal(t, reflect.DeepEqual(expected, result), true)
-
+	assert.Equal(t, expected, result)
 	err = manager.CancelAll()
 	assert.NoError(t, err)
 	expected = workloads.GatewayNameProxy{}
-	wl, err := loader.LoadGatewayNameFromGrid(manager, 14, "testt")
+	wl, err := loader.LoadGatewayNameFromGrid(manager, 49, "testx")
 	assert.Error(t, err)
 	assert.Equal(t, reflect.DeepEqual(expected, wl), true)
 }
