@@ -5,10 +5,8 @@ all: verifiers test
 
 getdeps: 
 	@echo "Installing golint" && go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.42.0
-	@echo "Installing gocyclo" && go install github.com/fzipp/gocyclo/cmd/gocyclo@latest
 
-
-verifiers: getdeps vet fmt lint cyclo
+verifiers: getdeps vet fmt lint 
 
 vet:
 	@echo "Running $@"
@@ -21,6 +19,3 @@ fmt:
 test: 
 	@echo "Running Tests"
 
-cyclo:
-	@echo "Running $@"
-	@${GOPATH}/bin/gocyclo -over 100 .	
