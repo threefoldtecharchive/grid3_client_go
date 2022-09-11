@@ -17,4 +17,7 @@ jobs:
       run: go build -v ./...
 
     - name: Test
+      env: 
+        MNEMONICS: ${{ secrets.mnemonics }}
+        NETWORK: ${{ secrets.network }}
       run: go test -v ./...
