@@ -149,7 +149,6 @@ func createNameContracts(createdNameContracts map[string]uint64, d deploymentMan
 }
 
 func cancelNameContracts(createdNameContracts map[string]uint64, d deploymentManager, sub subi.SubstrateExt) error {
-	fmt.Printf("Cancel Name contracts %+v", createdNameContracts)
 	for _, id := range createdNameContracts {
 		err := sub.CancelContract(d.identity, id)
 		if err != nil {
