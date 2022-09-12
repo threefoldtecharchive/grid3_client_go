@@ -65,7 +65,7 @@ func TestKubernetes(t *testing.T) {
 
 		err = manager.Commit(ctx)
 		assert.NoError(t, err)
-		defer cancelDeployments(t, manager)
+		defer manager.CancelAll()
 
 		masterNode := map[uint32]string{master.Node: master.Name}
 		workerNodes := map[uint32][]string{}

@@ -77,7 +77,6 @@ func TestTwoVMsSameNetwork(t *testing.T) {
 
 		err = manager.Commit(ctx)
 		assert.NoError(t, err)
-		defer manager.CancelAll()
 
 		result1, err := loader.LoadVmFromGrid(manager, 14, "vm1")
 		assert.NoError(t, err)
@@ -158,7 +157,6 @@ func TestTwoVMsSameNetwork(t *testing.T) {
 
 		err = manager.Commit(ctx)
 		assert.NoError(t, err)
-		defer manager.CancelAll()
 
 		if err != nil {
 			t.Error(err)

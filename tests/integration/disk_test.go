@@ -23,6 +23,7 @@ func TestDiskDeployment(t *testing.T) {
 	defer cancel()
 	err = manager.Commit(ctx)
 	assert.NoError(t, err)
+	defer manager.CancelAll()
 	result, err := loader.LoadDiskFromGrid(manager, 13, "testName")
 	assert.Equal(t, disk, result)
 	assert.NoError(t, err)

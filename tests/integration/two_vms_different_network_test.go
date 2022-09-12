@@ -98,7 +98,6 @@ func TestTwoVmDifferentNet(t *testing.T) {
 		assert.NoError(t, err)
 		res2, err := loader.LoadVmFromGrid(manager, 14, "vm2")
 		assert.NoError(t, err)
-		defer manager.CancelAll()
 
 		yggIP1 := res1.YggIP
 		yggIP2 := res2.YggIP
@@ -170,13 +169,11 @@ func TestTwoVmDifferentNet(t *testing.T) {
 
 		err = manager.Commit(ctx)
 		assert.NoError(t, err)
-		defer manager.CancelAll()
 
 		res1, err := loader.LoadVmFromGrid(manager, 13, "vm1")
 		assert.NoError(t, err)
 		res2, err := loader.LoadVmFromGrid(manager, 13, "vm2")
 		assert.NoError(t, err)
-		defer manager.CancelAll()
 
 		yggIP1 := res1.YggIP
 		yggIP2 := res2.YggIP

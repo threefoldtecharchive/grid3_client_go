@@ -9,11 +9,9 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"testing"
 	"time"
 
 	"github.com/goombaio/namegenerator"
-	"github.com/stretchr/testify/assert"
 	"github.com/threefoldtech/grid3-go/deployer"
 	client "github.com/threefoldtech/grid3-go/node"
 	"github.com/threefoldtech/grid3-go/subi"
@@ -225,9 +223,4 @@ func SshKeys() {
 
 	os.Setenv("PUBLICKEY", string(public_key))
 	os.Setenv("PRIVATEKEY", string(private_key))
-}
-
-func cancelDeployments(t *testing.T, manager deployer.DeploymentManager) {
-	err := manager.CancelAll()
-	assert.NoError(t, err)
 }

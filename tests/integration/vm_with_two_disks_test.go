@@ -72,7 +72,6 @@ func TestVMWithTwoDisk(t *testing.T) {
 	assert.NoError(t, err)
 	err = manager.Commit(ctx)
 	assert.NoError(t, err)
-	defer manager.CancelAll()
 
 	result, err := loader.LoadVmFromGrid(manager, 14, "vm")
 	assert.NoError(t, err)
