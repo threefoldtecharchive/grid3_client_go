@@ -1,6 +1,3 @@
-//go:build all
-// +build all
-
 package integration
 
 import (
@@ -145,6 +142,7 @@ func TestTwoVmDifferentNet(t *testing.T) {
 	})
 
 	t.Run("check public ipv4", func(t *testing.T) {
+		t.SkipNow()
 		network1.Nodes = []uint32{13}
 		network2.Nodes = []uint32{13}
 
