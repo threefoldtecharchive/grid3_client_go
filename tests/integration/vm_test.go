@@ -88,6 +88,7 @@ func TestVMDeployment(t *testing.T) {
 
 	})
 	t.Run("check public ip is reachable", func(t *testing.T) {
+		t.SkipNow()
 		networkCp := network
 		networkCp.Nodes = []uint32{45}
 		vmCp := vm

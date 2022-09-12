@@ -47,11 +47,11 @@ func TestQSFSDeployment(t *testing.T) {
 	manager, _ := setup()
 	var err error
 	for i := 0; i < DATA_ZDB_NUM; i++ {
-		err = dataZDBs[i].Stage(manager, 15)
+		err = dataZDBs[i].Stage(manager, 14)
 		assert.NoError(t, err)
 	}
 	for i := 0; i < META_ZDB_NUM; i++ {
-		err = metaZDBs[i].Stage(manager, 15)
+		err = metaZDBs[i].Stage(manager, 14)
 		assert.NoError(t, err)
 	}
 
@@ -64,13 +64,13 @@ func TestQSFSDeployment(t *testing.T) {
 	resDataZDBs := []workloads.ZDB{}
 	resMetaZDBs := []workloads.ZDB{}
 	for i := 1; i <= DATA_ZDB_NUM; i++ {
-		res, err := loader.LoadZdbFromGrid(manager, 15, "qsfsDataZdb"+strconv.Itoa(i))
+		res, err := loader.LoadZdbFromGrid(manager, 14, "qsfsDataZdb"+strconv.Itoa(i))
 		assert.NotEmpty(t, res)
 		assert.NoError(t, err)
 		resDataZDBs = append(resDataZDBs, res)
 	}
 	for i := 1; i <= META_ZDB_NUM; i++ {
-		res, err := loader.LoadZdbFromGrid(manager, 15, "qsfsMetaZdb"+strconv.Itoa(i))
+		res, err := loader.LoadZdbFromGrid(manager, 14, "qsfsMetaZdb"+strconv.Itoa(i))
 		assert.NotEmpty(t, res)
 		assert.NoError(t, err)
 		resMetaZDBs = append(resMetaZDBs, res)
@@ -112,13 +112,13 @@ func TestQSFSDeployment(t *testing.T) {
 			Backends:            metaBackends,
 		},
 	}
-	err = qsfs.Stage(manager, 15)
+	err = qsfs.Stage(manager, 14)
 	assert.NoError(t, err)
 	err = manager.Commit(ctx)
 	assert.NoError(t, err)
 	defer manager.CancelAll()
 
-	resQSFS, err := loader.LoadQsfsFromGrid(manager, 15, "qsftTest")
+	resQSFS, err := loader.LoadQsfsFromGrid(manager, 14, "qsftTest")
 	assert.NoError(t, err)
 	assert.NotEmpty(t, resQSFS.MetricsEndpoint)
 	resQSFS.MetricsEndpoint = ""

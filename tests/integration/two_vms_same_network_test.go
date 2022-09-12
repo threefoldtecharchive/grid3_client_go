@@ -133,6 +133,7 @@ func TestTwoVMsSameNetwork(t *testing.T) {
 
 	})
 	t.Run("public IPv4", func(t *testing.T) {
+		t.SkipNow()
 		networkCp := network
 		networkCp.Nodes = []uint32{45}
 		vm1Cp := vm1
