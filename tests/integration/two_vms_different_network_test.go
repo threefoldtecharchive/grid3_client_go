@@ -142,7 +142,7 @@ func TestTwoVmDifferentNet(t *testing.T) {
 	})
 
 	t.Run("check public ipv4", func(t *testing.T) {
-		t.SkipNow()
+		t.Skip()
 		network1.Nodes = []uint32{13}
 		network2.Nodes = []uint32{13}
 
