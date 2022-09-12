@@ -36,6 +36,7 @@ func TestDeployment(t *testing.T) {
 
 	err = manager.Commit(context.Background())
 	assert.Equal(t, nil, err)
+	defer manager.CancelAll()
 
 	ln, err := loader.LoadNetworkFromGrid(manager, "net1")
 	log.Printf("current network: %+v", ln)
@@ -62,7 +63,6 @@ func TestDeployment(t *testing.T) {
 
 	err = manager.Commit(context.Background())
 	assert.NoError(t, err)
-	defer manager.CancelAll()
 	ln, err = loader.LoadNetworkFromGrid(manager, "net1")
 	log.Printf("current network: %+v", ln)
 	log.Printf("current contracts: %+v", manager.GetContractIDs())

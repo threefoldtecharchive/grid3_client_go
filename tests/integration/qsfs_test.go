@@ -116,7 +116,6 @@ func TestQSFSDeployment(t *testing.T) {
 	assert.NoError(t, err)
 	err = manager.Commit(ctx)
 	assert.NoError(t, err)
-	defer manager.CancelAll()
 
 	resQSFS, err := loader.LoadQsfsFromGrid(manager, 14, "qsftTest")
 	assert.NoError(t, err)
