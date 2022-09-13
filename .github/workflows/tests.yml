@@ -16,6 +16,11 @@ jobs:
     - name: Build
       run: go build -v ./...
 
+    - name: Setup Yggdrasil
+      run: sudo apt-get install yggdrasil
+      run: sudo systemctl enable yggdrasil
+      run: sudo systemctl start yggdrasil
+  
     - name: Test
       env: 
         MNEMONICS: ${{ secrets.mnemonics }}
