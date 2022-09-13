@@ -26,9 +26,6 @@ func TestDeployment(t *testing.T) {
 		}),
 		AddWGAccess: true,
 	}
-	// vm := workloads.VM{
-	// 	Name: "vm1",
-	// }
 
 	access, err := network.Stage(context.Background(), apiClient)
 	assert.Equal(t, nil, err)
