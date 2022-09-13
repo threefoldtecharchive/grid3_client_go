@@ -1,10 +1,14 @@
 package storage
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 
 	"github.com/pkg/errors"
+	client "github.com/threefoldtech/grid3-go/node"
+	"github.com/threefoldtech/grid3-go/subi"
+	"github.com/threefoldtech/zos/pkg/gridtypes"
 )
 
 type localStorage struct {
@@ -49,4 +53,45 @@ func (l *localStorage) Get() (State, error) {
 		return State{}, err
 	}
 	return state, nil
+}
+
+func (l *localStorage) ExportDeployments(
+	contractIDs map[uint32]uint64,
+	ncPool client.NodeClientCollection,
+	sub subi.ManagerInterface,
+	directory string) error {
+
+	s, err := sub.SubstrateExt()
+	if err != nil {
+		return err
+	}
+	defer s.Close()
+
+	deployments := map[uint32]gridtypes.Deployment{}
+	for nodeID, contractID := range contractIDs {
+		nodeClient, err := ncPool.GetNodeClient(s, nodeID)
+		if err != nil {
+			return errors.Wrapf(err, "couldn't get node client for node: %d", nodeID)
+		}
+		deployment, err := nodeClient.DeploymentGet(context.Background(), contractID)
+		if err != nil {
+			return errors.Wrapf(err, "couldn't get deployment: %d on node: %d", contractID, nodeID)
+		}
+		deployments[nodeID] = deployment
+	}
+
+	out, err := json.MarshalIndent(deployments, "", "    ")
+	if err != nil {
+		return err
+	}
+	err = os.MkdirAll(directory, 0755)
+	if err != nil {
+		return errors.Wrapf(err, "couldn't create directory: %s", directory)
+	}
+	f, err := os.Create(directory + "deployments.json")
+	if err != nil {
+		return errors.Wrap(err, "couldn't create deployments file")
+	}
+	_, err = f.Write(out)
+	return err
 }
