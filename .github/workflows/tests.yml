@@ -17,14 +17,12 @@ jobs:
       run: go build -v ./...
 
     - name: Setup Yggdrasil
-      run: sudo mkdir -p /usr/local/apt-keys
-          gpg --fetch-keys https://neilalexander.s3.dualstack.eu-west-2.amazonaws.com/deb/key.txt
-          gpg --export 569130E8CA20FBC4CB3FDE555898470A764B32C9 | sudo tee /usr/local/apt-keys/yggdrasil-keyring.gpg > /dev/null 
-          echo 'deb [signed-by=/usr/local/apt-keys/yggdrasil-keyring.gpg] http://neilalexander.s3.dualstack.eu-west-2.amazonaws.com/deb/ debian yggdrasil' | sudo tee /etc/apt/sources.list.d/yggdrasil.list
-          sudo apt-get update
+      run: sudo apt-get update
           sudo apt-get install yggdrasil
-          ls /etc | grep yggdrasil
           cd /etc/
+          sed -i '/^  Peers:.*/a tcp://62.210.85.80:39565' /etc/yggdrasil.conf
+          sed -i '/^  Peers:.*/a tls://95.216.5.243:18836' /etc/yggdrasil.conf
+          sed -i '/^  Peers:.*/a tls://192.99.145.61:58226' /etc/yggdrasil.conf
           sudo systemctl enable yggdrasil
           sudo systemctl start yggdrasil
   
