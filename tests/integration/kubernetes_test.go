@@ -54,7 +54,7 @@ func TestKubernetes(t *testing.T) {
 
 	t.Run("cluster with 3 nodes", func(t *testing.T) {
 
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Minute)
 		defer cancel()
 
 		err := cluster.Stage(ctx, manager)
@@ -101,7 +101,7 @@ func TestKubernetes(t *testing.T) {
 	})
 
 	t.Run("nodes with duplicate names", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Minute)
 		defer cancel()
 
 		cluster.Workers[0].Name = cluster.Master.Name
