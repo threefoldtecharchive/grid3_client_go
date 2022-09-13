@@ -3,7 +3,9 @@ package storage
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/pkg/errors"
 	client "github.com/threefoldtech/grid3-go/node"
@@ -16,12 +18,23 @@ type localStorage struct {
 }
 
 func NewLocalStorage(directory string) *localStorage {
+	if directory[len(directory)-1:] != "/" {
+		directory += "/"
+	}
 	return &localStorage{
 		directory: directory,
 	}
 }
 
 func (l *localStorage) Set(contractIDs map[uint32]uint64, userData UserData) error {
+	_, err := os.Stat(l.directory)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("directory: %s does not exist", l.directory)
+		} else {
+			return err
+		}
+	}
 	state := State{
 		ContractIDs: contractIDs,
 		UserData:    userData,
@@ -30,11 +43,7 @@ func (l *localStorage) Set(contractIDs map[uint32]uint64, userData UserData) err
 	if err != nil {
 		return err
 	}
-	err = os.MkdirAll(l.directory, 0755)
-	if err != nil {
-		return errors.Wrapf(err, "couldn't create directory: %s", l.directory)
-	}
-	f, err := os.Create(l.directory + "state.json")
+	f, err := os.Create(filepath.Join(l.directory + "state.json"))
 	if err != nil {
 		return errors.Wrap(err, "couldn't create state file")
 	}
@@ -61,6 +70,18 @@ func (l *localStorage) ExportDeployments(
 	sub subi.ManagerInterface,
 	directory string) error {
 
+	if directory[len(directory)-1:] != "/" {
+		directory += "/"
+	}
+	_, err := os.Stat(directory)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("directory: %s does not exist", directory)
+		} else {
+			return err
+		}
+	}
+
 	s, err := sub.SubstrateExt()
 	if err != nil {
 		return err
@@ -84,11 +105,7 @@ func (l *localStorage) ExportDeployments(
 	if err != nil {
 		return err
 	}
-	err = os.MkdirAll(directory, 0755)
-	if err != nil {
-		return errors.Wrapf(err, "couldn't create directory: %s", directory)
-	}
-	f, err := os.Create(directory + "deployments.json")
+	f, err := os.Create(filepath.Join(directory, "deployments.json"))
 	if err != nil {
 		return errors.Wrap(err, "couldn't create deployments file")
 	}
