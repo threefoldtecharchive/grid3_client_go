@@ -135,9 +135,6 @@ func TestKubernetes(t *testing.T) {
 			t.Errorf("yggdrasil IP for vm isn't reachable")
 		}
 
-		_, err = RemoteRun("root", masterIP, "apt install -y netcat")
-		assert.NoError(t, err)
-
 		_, err = RemoteRun("root", yggIP, "apt install -y netcat")
 		assert.NoError(t, err)
 
