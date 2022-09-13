@@ -55,7 +55,7 @@ func TestKubernetes(t *testing.T) {
 	}
 
 	network1 := workloads.TargetNetwork{
-		Name:        "Network1",
+		Name:        "netVM",
 		Description: "network for testing vm",
 		Nodes:       []uint32{14},
 		IPRange: gridtypes.NewIPNet(net.IPNet{
@@ -78,7 +78,7 @@ func TestKubernetes(t *testing.T) {
 			"TEST_VAR": "this value for test",
 		},
 		IP:          "10.1.0.2",
-		NetworkName: "Network1",
+		NetworkName: "netVM",
 		PublicIP6:   true,
 	}
 
