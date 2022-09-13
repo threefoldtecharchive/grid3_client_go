@@ -13,20 +13,20 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 )
 
-type localStorage struct {
+type fileStorage struct {
 	directory string
 }
 
-func NewLocalStorage(directory string) *localStorage {
+func NewFileStorage(directory string) *fileStorage {
 	if directory[len(directory)-1:] != "/" {
 		directory += "/"
 	}
-	return &localStorage{
+	return &fileStorage{
 		directory: directory,
 	}
 }
 
-func (l *localStorage) Set(contractIDs map[uint32]uint64, userData UserData) error {
+func (l *fileStorage) Set(contractIDs map[uint32]uint64, userData UserData) error {
 	_, err := os.Stat(l.directory)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -51,7 +51,7 @@ func (l *localStorage) Set(contractIDs map[uint32]uint64, userData UserData) err
 	return err
 }
 
-func (l *localStorage) Get() (State, error) {
+func (l *fileStorage) Get() (State, error) {
 	state := State{}
 	data, err := os.ReadFile(l.directory + "state.json")
 	if err != nil {
@@ -64,7 +64,7 @@ func (l *localStorage) Get() (State, error) {
 	return state, nil
 }
 
-func (l *localStorage) ExportDeployments(
+func (l *fileStorage) ExportDeployments(
 	contractIDs map[uint32]uint64,
 	ncPool client.NodeClientCollection,
 	sub subi.ManagerInterface,
