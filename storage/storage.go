@@ -1,10 +1,16 @@
 package storage
 
+import (
+	client "github.com/threefoldtech/grid3-go/node"
+	"github.com/threefoldtech/grid3-go/subi"
+)
+
 type StorageInterface interface {
 	// returns stored state
 	Get() (State, error)
 	// sets the state using contracts ids and user data
 	Set(map[uint32]uint64, UserData) error
+	ExportDeployments(map[uint32]uint64, client.NodeClientCollection, subi.ManagerInterface, string) error
 }
 
 type UserData struct {
