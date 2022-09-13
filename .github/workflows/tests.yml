@@ -18,8 +18,8 @@ jobs:
 
     - name: Setup Yggdrasil
       run: sudo apt-get install yggdrasil
-      run: sudo systemctl enable yggdrasil
-      run: sudo systemctl start yggdrasil
+          sudo systemctl enable yggdrasil
+          sudo systemctl start yggdrasil
   
     - name: Test
       env: 
