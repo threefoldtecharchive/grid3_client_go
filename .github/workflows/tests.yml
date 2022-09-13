@@ -23,7 +23,7 @@ jobs:
           echo 'deb [signed-by=/usr/local/apt-keys/yggdrasil-keyring.gpg] http://neilalexander.s3.dualstack.eu-west-2.amazonaws.com/deb/ debian yggdrasil' | sudo tee /etc/apt/sources.list.d/yggdrasil.list
           sudo apt-get update
           sudo apt-get install yggdrasil
-          ls /etc/yggdrasil.conf
+          ls /etc | grep yggdrasil
           cd /etc/
           sudo systemctl enable yggdrasil
           sudo systemctl start yggdrasil
