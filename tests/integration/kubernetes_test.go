@@ -2,8 +2,6 @@ package integration
 
 import (
 	"context"
-	"fmt"
-
 	"log"
 	"net"
 	"os"
@@ -54,58 +52,12 @@ func TestKubernetes(t *testing.T) {
 		AddWGAccess: false,
 	}
 
-	network1 := workloads.TargetNetwork{
-		Name:        "netVM",
-		Description: "network for testing vm",
-		Nodes:       []uint32{14},
-		IPRange: gridtypes.NewIPNet(net.IPNet{
-			IP:   net.IPv4(10, 1, 0, 0),
-			Mask: net.CIDRMask(16, 32),
-		}),
-		AddWGAccess: false,
-	}
-
-	vm1 := workloads.VM{
-		Name:       "vm1",
-		Flist:      "https://hub.grid.tf/tf-official-apps/threefoldtech-ubuntu-20.04.flist",
-		Cpu:        2,
-		Planetary:  true,
-		Memory:     1024,
-		RootfsSize: 20 * 1024,
-		Entrypoint: "/init.sh",
-		EnvVars: map[string]string{
-			"SSH_KEY":  sshPublicKey,
-			"TEST_VAR": "this value for test",
-		},
-		IP:          "10.1.0.2",
-		NetworkName: "netVM",
-		PublicIP6:   true,
-	}
-
 	t.Run("cluster with 3 nodes", func(t *testing.T) {
 
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 		defer cancel()
 
-		_, err := network1.Stage(ctx, apiClient)
-		assert.NoError(t, err)
-		err = vm1.Stage(manager, 14)
-		assert.NoError(t, err)
-		err = manager.Commit(ctx)
-		assert.NoError(t, err)
-		defer manager.CancelAll()
-
-		result, err := loader.LoadVmFromGrid(manager, 14, "vm1")
-		assert.NoError(t, err)
-
-		yggIP := result.YggIP
-		privateIP := result.IP
-		publicIP6 := strings.Split(result.ComputedIP6, "/")[0]
-
-		fmt.Println(privateIP)
-		fmt.Println(publicIP6)
-
-		err = cluster.Stage(ctx, manager)
+		err := cluster.Stage(ctx, manager)
 		assert.NoError(t, err)
 
 		_, err = network.Stage(ctx, apiClient)
@@ -113,7 +65,7 @@ func TestKubernetes(t *testing.T) {
 
 		err = manager.Commit(ctx)
 		assert.NoError(t, err)
-		defer cancelDeployments(t, manager)
+		defer manager.CancelAll()
 
 		masterNode := map[uint32]string{master.Node: master.Name}
 		workerNodes := map[uint32][]string{}
@@ -127,24 +79,10 @@ func TestKubernetes(t *testing.T) {
 		log.Printf("master: %+v", *(loadedCluster.Master))
 
 		masterIP := loadedCluster.Master.YggIP
-
-		if !Wait(masterIP, "22") {
-			t.Errorf("yggdrasil IP for kuburnetes isn't reachable")
+		status := Wait(masterIP, "22")
+		if status == false {
+			t.Errorf("public ip not reachable")
 		}
-		if !Wait(yggIP, "22") {
-			t.Errorf("yggdrasil IP for vm isn't reachable")
-		}
-
-		_, err = RemoteRun("root", yggIP, "apt install -y netcat")
-		assert.NoError(t, err)
-
-		// check privateIP for kubernetes from vm
-		_, err = RemoteRun("root", masterIP, "nc -z "+privateIP+" 22")
-		assert.NoError(t, err)
-
-		// check yggIP for from vm
-		_, err = RemoteRun("root", yggIP, "nc -z "+masterIP+" 22")
-		assert.NoError(t, err)
 
 		time.Sleep(30 * (time.Second))
 		res, err := RemoteRun("root", masterIP, "kubectl get node")
@@ -160,9 +98,6 @@ func TestKubernetes(t *testing.T) {
 		for i := 0; i < len(nodes); i++ {
 			assert.Contains(t, nodes[i], "Ready")
 		}
-
-		err = manager.CancelAll()
-		assert.NoError(t, err)
 	})
 
 	t.Run("nodes with duplicate names", func(t *testing.T) {
