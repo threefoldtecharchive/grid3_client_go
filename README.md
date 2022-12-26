@@ -5,15 +5,15 @@ grid3_go is a go client created to interact with threefold grid. It should manag
 - ## **Grid3_go flow:**
 
   1. the deployment manager will be initialized with identity/network information.
-  2. deployment manager will expose the `deploy` which the user will call it and give it old/new deployments
-  3. `deploy` method will do the following
+  2. deployment manager will expose the `Deploy` which the user will call it and give it old/new deployments
+  3. `Deploy` method will do the following
      - internally call `calculateChanges` method which
-       1. loads old deployments using their ids from teh grid
+       1. loads old deployments using their ids (node id) from the grid
        2. determine which things needs to be created, updated and deleted
-     - will take the sutable action for each operation to create, update and delete
+     - will take the suitable action for each operation to create, update and delete
      - waits on them and report the state
-  4. For applying the changes we have subi and node pkgs which creates contracts/deployments on the grid
-  5. if a user wishes to apply any changes, they should provide their new state, and their current deployment ids.
+  4. For applying the changes we have `subi` and `node` package which creates contracts/deployments on the grid
+  5. if a user wants to apply any changes, they should provide their new state, and their current deployment ids.
   6. the deployment manager should be responsible of reverting the applied changes if some error happens midway.
 
 - ### **How the deployment manager calculates changes:**
@@ -27,10 +27,10 @@ grid3_go is a go client created to interact with threefold grid. It should manag
 - ### **Creating a new Deployment:**
 
   1. deployments must first be signed and validated.
-  2. a deployment contract then must be created.
+  2. a deployment contract then should be created.
   3. Then, the deployment should be deployed on the node.
   4. If some error happens while trying to deploy on the node, the contract should be canceled to avoid leaking a contract.
-  5. after deployment creating, the function should only return after waiting on all workloads to be StateOK.
+  5. after deployment creation, the function should only return after waiting for 4 minutes on all workloads to be StateOK.
 
 - ### **Deleting a deployment:**
 
@@ -58,20 +58,20 @@ grid3_go is a go client created to interact with threefold grid. It should manag
   3. every contract deletion or creation, should directly be reflected in the `currentState`.
   4. if some error happens while applying some change, the deployment manager should revert to its old state using the `currentState` as the `oldDeploymentIDs` and the `oldState` as the `newDeployemnts`.
 
-    Example:
-
-       - oldDeploymentIDs :1, 2, 3 - newDeployments: 3, 4, 5
-       - desired state: 3 update, 4 create, 5 create
-       - deploymentManager.deploy(oldDeploymentIDs[1,2,3], newDeployments[3,4,5])
-       - error happens: 1 deleted, 2 not affected, 3 updated, 4 created, 5 not created
-       - currentState: 2, 3, 4
-       - deploymentManager.deploy(currentState[2,3,4], oldDeployments[1,2,3])
-
 - ### **Retrieving current state:**
 
   1. grid3_go users should mainly keep track of contract ids
   2. the deployment manager should use the provided contract ids to retrieve current state from nodes (using `client` package).
   
+
+    Example:
+
+     - oldDeploymentIDs :1, 2, 3 - newDeployments: 3, 4, 5
+     - desired state: 3 update, 4 create, 5 create
+     - deploymentManager.deploy(oldDeploymentIDs[1,2,3], newDeployments[3,4,5])
+     - error happens: 1 deleted, 2 not affected, 3 updated, 4 created, 5 not created
+     - currentState: 2, 3, 4
+     - deploymentManager.deploy(currentState[2,3,4], oldDeployments[1,2,3])
 ## **grid3_go has the following components:**
 
 - ### **GridClient:**
