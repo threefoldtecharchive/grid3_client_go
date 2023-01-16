@@ -18,7 +18,7 @@ grid3_go is a go client created to interact with threefold grid. It should manag
 
 - ### **How the deployment manager calculates changes:**
 
-- the deployment manager receives informantion about old and new deployments, then decides which operations need to be performed.
+- the deployment manager receives information about old and new deployments, then decides which operations need to be performed.
 
   1. Old deployments are the ids of the previous deployed stuff and new deployments are the new required state
   2. Incase this is the first time to deploy stuff the oldDeployments map should be empty
@@ -37,7 +37,7 @@ grid3_go is a go client created to interact with threefold grid. It should manag
 
 - ### **Deleting a deployment:**
 
-  1. If deleting a single deployment this should be canceld, keeping the contract if there are other deployments on it
+  1. If deleting a single deployment this should be canceled, keeping the contract if there are other deployments on it
   2. If all deployments on a contract are deleted the contract it self should be canceled as well
   3. Unneeded public ips should be removed
 
@@ -46,12 +46,12 @@ grid3_go is a go client created to interact with threefold grid. It should manag
   1. a deployment should be updated if and only if hashes differ or a workload name was changed.
   2. if a deployment should be updated, its version should be incremented.
   3. if a workload should be updated, its version should match the deployment version.
-  4. if a workload shouldn't be updated, its version statys the same.
+  4. if a workload shouldn't be updated, its version stays the same.
   5. the deployment contract should then, be updated.
   6. The deployment on the node should be updated.
   7. after deployment update, the function should only return after waiting on all workloads to be StateOK.
 
-- ### **Generating a versionless deployemnt:**
+- ### **Generating a versionless deployment:**
 
   1. Versionless deployment means to create a deployment object regardless the version, version will be added afterwards depends on if it is new or we need to update it, just deployment builder not affecting the chain at this stage
   2. A user should first generate the appropriate deployment builder using the `builder` package.
@@ -59,10 +59,10 @@ grid3_go is a go client created to interact with threefold grid. It should manag
 
 - ### **Reverting a deployment:**
 
-  1. before applying any change, the deployment manager should first retreive the current state from the nodes `oldState`.
-  2. at first, `currentState` of deployment ids is provided by the user (as `oldDeloymentIDs`).
+  1. before applying any change, the deployment manager should first retrieve the current state from the nodes `oldState`.
+  2. at first, `currentState` of deployment ids is provided by the user (as `oldDeploymentIDs`).
   3. every contract deletion or creation, should directly be reflected in the `currentState`.
-  4. if some error happens while applying some change, the deployment manager should revert to its old state using the `currentState` as the `oldDeploymentIDs` and the `oldState` as the `newDeployemnts`.
+  4. if some error happens while applying some change, the deployment manager should revert to its old state using the `currentState` as the `oldDeploymentIDs` and the `oldState` as the `newDeployments`.
 
 - ### **Retrieving current state:**
 
@@ -101,25 +101,25 @@ type GridClient interface{
 
   - Calculates needed changes between different provided states.
   - Uses the GridClient to apply needed changes.
-  - Retreives current state of specified deployments.
+  - Retrieves current state of specified deployments.
 
 ```go
 type DeploymentManager interface{
     CalculateChanges(current NodeDeploymentIDMap, new NodeDeploymentMap) ([]create, []update, []delete, error)
-    ApplyChanges(current NodeDeploymentIDMap, new NodeDeplyomentMap) (current NodeDeploymentIDMap,error)
+    ApplyChanges(current NodeDeploymentIDMap, new NodeDeploymentMap) (current NodeDeploymentIDMap,error)
     GetCurrentDeployments(current NodeDeploymentIDMap) (NodeDeploymentMap, error)
 }
 ```
 
 - ### **Loader:**
 
-  - Retreives workload current state from the grid, this is needed to load the old deployments objects by their ids passed in the `Deploy` method this is done internally and can be called by the user to load specific deployments
+  - Retrieves workload current state from the grid, this is needed to load the old deployments objects by their ids passed in the `Deploy` method this is done internally and can be called by the user to load specific deployments
   - Convert from grid types to grid3_go types. i.e convert the deployments loaded from the grid to the deployment object used in the code, this to avoid manual conversion in every method
 
 - ### **NodeClient:**
 
   - Uses gridproxy to get information about nodes, farms, and/or twins.
-  - Uses rmb client (from gridproxy) to interact with nodes.
+  - Uses rmb client (from grid proxy) to interact with nodes.
 
 - ### **Subi:**
 
@@ -135,10 +135,10 @@ type DeploymentManager interface{
 
 example
 
-```
+```go
 manager = Manager.New(identity, net, Mnemonics ....)
 // Deploy method takes (oldDeployments, newDeployments)
-//oldDdeployments as nodeID:deploymentID map
+//oldDeployments as nodeID:deploymentID map
 //newDeployments which is the desired state as {nodeID: deploymentObject}
 currentDeployments = manager.Deploy({}, {nodeId: deploymentObject})
 // incase we want to update those created deployments afterwards

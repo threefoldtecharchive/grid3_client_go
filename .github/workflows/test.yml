@@ -1,0 +1,40 @@
+name: Testing
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: "1.19"
+        id: go
+
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v3.3.0
+        with:
+          submodules: "true"
+
+      - name: Get dependencies
+        run: |
+          go mod download
+
+      - name: Install GoReleaser
+        uses: goreleaser/goreleaser-action@v4
+        with:
+          install-only: true
+
+      - name: Build check
+        run: goreleaser build --snapshot
+
+      - name: Build
+        run: |
+          go build -v .
+
+      - name: Test
+        env:
+          MNEMONICS: ${{ secrets.MNEMONICS }}
+          NETWORK: ${{ secrets.NETWORK }}
+        run: go test -v ./...
