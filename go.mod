@@ -8,8 +8,8 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.7.0
 	github.com/threefoldtech/go-rmb v0.2.0
-	github.com/threefoldtech/grid_proxy_server v1.5.6
-	github.com/threefoldtech/substrate-client v0.0.0-20220822132933-d0d75781793c
+	github.com/threefoldtech/grid_proxy_server v1.6.6
+	github.com/threefoldtech/substrate-client v0.0.0-20220927111941-026e0cf92661
 	github.com/threefoldtech/zos v0.5.6-0.20220823125932-7df5043ab018
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20200609130330-bd2cb7843e1b
 )
