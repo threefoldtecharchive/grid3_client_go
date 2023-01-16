@@ -17,21 +17,6 @@ require (
 require github.com/goombaio/namegenerator v0.0.0-20181006234301-989e774b106e
 
 require (
-	github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412 // indirect
-	github.com/blang/semver v3.5.1+incompatible // indirect
-	github.com/go-ole/go-ole v1.2.6 // indirect
-	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
-	github.com/shirou/gopsutil v3.21.11+incompatible // indirect
-	github.com/tklauser/go-sysconf v0.3.9 // indirect
-	github.com/tklauser/numcpus v0.3.0 // indirect
-	github.com/tyler-smith/go-bip39 v1.1.0 // indirect
-	github.com/vishvananda/netlink v1.1.1-0.20201029203352-d40f9887b852 // indirect
-	github.com/vishvananda/netns v0.0.0-20210104183010-2eb08e3e575f // indirect
-	github.com/whs/nacl-sealed-box v0.0.0-20180930164530-92b9ba845d8d // indirect
-	github.com/yusufpapurcu/wmi v1.2.2 // indirect
-)
-
-require (
 	github.com/ChainSafe/go-schnorrkel v1.0.0 // indirect
 	github.com/cenkalti/backoff/v3 v3.2.2 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect

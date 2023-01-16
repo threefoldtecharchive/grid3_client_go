@@ -24,7 +24,7 @@ func TestCancelAll(t *testing.T) {
 	subi := mock.NewMockManagerInterface(ctrl)
 	gridClient := mock.NewMockClient(ctrl)
 	ncPool := mock.NewMockNodeClientCollection(ctrl)
-	dl1 := deployment1(identity, false, 0)
+	dl1 := deployment1(identity, false, 0, backendURLWithoutTLSPassthrough)
 	dl1.ContractID = 100
 	dMap := map[uint32]uint64{
 		10: 100,
@@ -57,7 +57,7 @@ func TestCommit(t *testing.T) {
 	subi := mock.NewMockManagerInterface(ctrl)
 	gridClient := mock.NewMockClient(ctrl)
 	ncPool := mock.NewMockNodeClientCollection(ctrl)
-	dl1 := deployment1(identity, false, 0)
+	dl1 := deployment1(identity, false, 0, backendURLWithoutTLSPassthrough)
 	dl1.ContractID = 100
 	manager := NewDeploymentManager(
 		identity,
@@ -98,7 +98,7 @@ func TestSetWorkload(t *testing.T) {
 	}
 	wlMap := map[uint32][]gridtypes.Workload{}
 	wlMap[1] = append(wlMap[1], zdbWl)
-	dl1 := deployment1(identity, false, 0)
+	dl1 := deployment1(identity, false, 0, backendURLWithoutTLSPassthrough)
 	dl1.ContractID = 100
 	dMap := map[uint32]uint64{
 		10: 100,
@@ -137,7 +137,7 @@ func TestCancelWorkloads(t *testing.T) {
 	ncPool := mock.NewMockNodeClientCollection(ctrl)
 	gridClient := mock.NewMockClient(ctrl)
 
-	dl1 := deployment1(identity, false, 0)
+	dl1 := deployment1(identity, false, 0, backendURLWithoutTLSPassthrough)
 	dl1.ContractID = 100
 	wlMap := map[uint32]map[string]bool{
 		10: {
@@ -181,11 +181,11 @@ func TestGetWorkload(t *testing.T) {
 	ncPool := mock.NewMockNodeClientCollection(ctrl)
 	cl := mock.NewRMBMockClient(ctrl)
 	gridClient := mock.NewMockClient(ctrl)
-	dl1 := deployment1(identity, false, 0)
+	dl1 := deployment1(identity, false, 0, backendURLWithoutTLSPassthrough)
 	gw := GatewayNameProxy{
 		Name:           "name",
 		TLSPassthrough: false,
-		Backends:       []zos.Backend{"http://1.1.1.1"},
+		Backends:       []zos.Backend{zos.Backend(backendURLWithoutTLSPassthrough)},
 	}
 
 	_, err := gw.GenerateWorkloadFromGName(gw)
@@ -230,7 +230,7 @@ func TestGetDeployment(t *testing.T) {
 	cl := mock.NewRMBMockClient(ctrl)
 	gridClient := mock.NewMockClient(ctrl)
 
-	dl1 := deployment1(identity, false, 0)
+	dl1 := deployment1(identity, false, 0, backendURLWithoutTLSPassthrough)
 	dl1.ContractID = 100
 	dMap := map[uint32]uint64{
 		10: 100,

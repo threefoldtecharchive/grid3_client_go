@@ -36,7 +36,7 @@ var (
 	}
 )
 
-func setUP()(identity subi.Identity, twinID uint32){
+func setUP() (identity subi.Identity, twinID uint32) {
 	mnemonics := os.Getenv("MNEMONICS")
 	identity, err := subi.NewIdentityFromSr25519Phrase(mnemonics)
 	if err != nil {
@@ -57,18 +57,20 @@ func setUP()(identity subi.Identity, twinID uint32){
 	if err != nil {
 		panic(err)
 	}
-	return identity,twin
+	return identity, twin
 }
 
+var backendURLWithTLSPassthrough = "//1.1.1.1:10"
+var backendURLWithoutTLSPassthrough = "http://1.1.1.1:10"
 
-func deployment1(identity substrate.Identity, TLSPassthrough bool, version uint32) gridtypes.Deployment {
+func deployment1(identity substrate.Identity, TLSPassthrough bool, version uint32, backend string) gridtypes.Deployment {
 	_, twinID := setUP()
 	dl := NewDeployment(uint32(twinID))
 	dl.Version = version
 	gw := GatewayNameProxy{
 		Name:           "name",
 		TLSPassthrough: TLSPassthrough,
-		Backends:       []zos.Backend{"http://1.1.1.1"},
+		Backends:       []zos.Backend{zos.Backend(backend)},
 	}
 
 	workload, err := gw.GenerateWorkloadFromGName(gw)
@@ -134,7 +136,7 @@ func TestCreate(t *testing.T) {
 		ncPool,
 		true,
 	)
-	dl1, dl2 := deployment1(identity, true, 0), deployment2(identity)
+	dl1, dl2 := deployment1(identity, true, 0, backendURLWithTLSPassthrough), deployment2(identity)
 	newDls := map[uint32]gridtypes.Deployment{
 		10: dl1,
 		20: dl2,
@@ -214,7 +216,7 @@ func TestUpdate(t *testing.T) {
 		ncPool,
 		true,
 	)
-	dl1, dl2 := deployment1(identity, false, 0), deployment1(identity, true, 1)
+	dl1, dl2 := deployment1(identity, false, 0, backendURLWithoutTLSPassthrough), deployment1(identity, true, 1, backendURLWithTLSPassthrough)
 	newDls := map[uint32]gridtypes.Deployment{
 		10: dl2,
 	}
@@ -277,7 +279,7 @@ func TestCancel(t *testing.T) {
 		ncPool,
 		true,
 	)
-	dl1 := deployment1(identity, false, 0)
+	dl1 := deployment1(identity, false, 0, backendURLWithoutTLSPassthrough)
 	dl1.ContractID = 100
 	sub.EXPECT().
 		EnsureContractCanceled(
@@ -320,14 +322,14 @@ func TestCocktail(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	dl1 := deployment1(identity, false, 0)
-	dl2, dl3 := deployment1(identity, false, 0), deployment1(identity, true, 1)
-	dl5, dl6 := deployment1(identity, true, 0), deployment1(identity, true, 0)
+	dl1 := deployment1(identity, false, 0, backendURLWithoutTLSPassthrough)
+	dl2, dl3 := deployment1(identity, false, 0, backendURLWithoutTLSPassthrough), deployment1(identity, true, 1, backendURLWithTLSPassthrough)
+	dl5, dl6 := deployment1(identity, true, 0, backendURLWithTLSPassthrough), deployment1(identity, true, 0, backendURLWithTLSPassthrough)
 	dl2.Workloads = append(dl2.Workloads, workload)
 	dl3.Workloads = append(dl3.Workloads, workload)
 	assert.NoError(t, dl2.Sign(twinID, identity))
 	assert.NoError(t, dl3.Sign(twinID, identity))
-	dl4 := deployment1(identity, false, 0)
+	dl4 := deployment1(identity, false, 0, backendURLWithoutTLSPassthrough)
 	dl1.ContractID = 100
 	dl2.ContractID = 200
 	dl3.ContractID = 200
