@@ -6,8 +6,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	mock_deployer "github.com/threefoldtech/grid3-go/tests/mocks"
-	"github.com/threefoldtech/grid3-go/workloads"
+	"github.com/threefoldtech/grid3-go/mocks"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
@@ -15,9 +14,9 @@ import (
 func TestQSFSStage(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	manager := mock_deployer.NewMockDeploymentManager(ctrl)
+	manager := mocks.NewMockDeploymentManager(ctrl)
 
-	qsfs := workloads.QSFS{
+	qsfs := QSFS{
 		Name:                 "test",
 		Description:          "test des",
 		Cache:                2048,
@@ -29,16 +28,16 @@ func TestQSFSStage(t *testing.T) {
 		EncryptionAlgorithm:  "AES",
 		EncryptionKey:        "4d778ba3216e4da4231540c92a55f06157cabba802f9b68fb0f78375d2e825af",
 		CompressionAlgorithm: "snappy",
-		Metadata: workloads.Metadata{
+		Metadata: Metadata{
 			Type:                "zdb",
 			Prefix:              "test",
 			EncryptionAlgorithm: "AES",
 			EncryptionKey:       "4d778ba3216e4da4231540c92a55f06157cabba802f9b68fb0f78375d2e825af",
-			Backends: workloads.Backends{
+			Backends: Backends{
 				{Address: "1.1.1.1", Namespace: "test ns", Password: "password"},
 			},
 		},
-		Groups: workloads.Groups{{Backends: workloads.Backends{
+		Groups: Groups{{Backends: Backends{
 			{Address: "2.2.2.2", Namespace: "test ns2", Password: "password2"},
 		}}},
 	}

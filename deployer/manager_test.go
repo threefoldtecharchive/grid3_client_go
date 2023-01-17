@@ -10,8 +10,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/threefoldtech/grid3-go/mocks"
 	client "github.com/threefoldtech/grid3-go/node"
-	mock "github.com/threefoldtech/grid3-go/tests/mocks"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
@@ -20,10 +20,10 @@ func TestCancelAll(t *testing.T) {
 	identity, nodeID := setUP()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	sub := mock.NewMockSubstrateExt(ctrl)
-	subi := mock.NewMockManagerInterface(ctrl)
-	gridClient := mock.NewMockClient(ctrl)
-	ncPool := mock.NewMockNodeClientGetter(ctrl)
+	sub := mocks.NewMockSubstrateExt(ctrl)
+	subi := mocks.NewMockManagerInterface(ctrl)
+	gridClient := mocks.NewMockClient(ctrl)
+	ncPool := mocks.NewMockNodeClientGetter(ctrl)
 	dl1 := deployment1(identity, false, 0, backendURLWithoutTLSPassthrough)
 	dl1.ContractID = 100
 	dMap := map[uint32]uint64{
@@ -53,10 +53,10 @@ func TestCommit(t *testing.T) {
 	identity, nodeID := setUP()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	sub := mock.NewMockSubstrateExt(ctrl)
-	subi := mock.NewMockManagerInterface(ctrl)
-	gridClient := mock.NewMockClient(ctrl)
-	ncPool := mock.NewMockNodeClientGetter(ctrl)
+	sub := mocks.NewMockSubstrateExt(ctrl)
+	subi := mocks.NewMockManagerInterface(ctrl)
+	gridClient := mocks.NewMockClient(ctrl)
+	ncPool := mocks.NewMockNodeClientGetter(ctrl)
 	dl1 := deployment1(identity, false, 0, backendURLWithoutTLSPassthrough)
 	dl1.ContractID = 100
 	manager := NewDeploymentManager(
@@ -79,11 +79,11 @@ func TestSetWorkload(t *testing.T) {
 	identity, nodeID := setUP()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	sub := mock.NewMockSubstrateExt(ctrl)
-	subi := mock.NewMockManagerInterface(ctrl)
-	ncPool := mock.NewMockNodeClientGetter(ctrl)
-	cl := mock.NewRMBMockClient(ctrl)
-	gridClient := mock.NewMockClient(ctrl)
+	sub := mocks.NewMockSubstrateExt(ctrl)
+	subi := mocks.NewMockManagerInterface(ctrl)
+	ncPool := mocks.NewMockNodeClientGetter(ctrl)
+	cl := mocks.NewRMBMockClient(ctrl)
+	gridClient := mocks.NewMockClient(ctrl)
 	zdbWl := gridtypes.Workload{
 		Name:        gridtypes.Name("test"),
 		Type:        zos.ZDBType,
@@ -131,11 +131,11 @@ func TestCancelWorkloads(t *testing.T) {
 	identity, nodeID := setUP()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	sub := mock.NewMockSubstrateExt(ctrl)
-	cl := mock.NewRMBMockClient(ctrl)
-	subi := mock.NewMockManagerInterface(ctrl)
-	ncPool := mock.NewMockNodeClientGetter(ctrl)
-	gridClient := mock.NewMockClient(ctrl)
+	sub := mocks.NewMockSubstrateExt(ctrl)
+	cl := mocks.NewRMBMockClient(ctrl)
+	subi := mocks.NewMockManagerInterface(ctrl)
+	ncPool := mocks.NewMockNodeClientGetter(ctrl)
+	gridClient := mocks.NewMockClient(ctrl)
 
 	dl1 := deployment1(identity, false, 0, backendURLWithoutTLSPassthrough)
 	dl1.ContractID = 100
@@ -176,11 +176,11 @@ func TestGetWorkload(t *testing.T) {
 	identity, nodeID := setUP()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	sub := mock.NewMockSubstrateExt(ctrl)
-	subi := mock.NewMockManagerInterface(ctrl)
-	ncPool := mock.NewMockNodeClientGetter(ctrl)
-	cl := mock.NewRMBMockClient(ctrl)
-	gridClient := mock.NewMockClient(ctrl)
+	sub := mocks.NewMockSubstrateExt(ctrl)
+	subi := mocks.NewMockManagerInterface(ctrl)
+	ncPool := mocks.NewMockNodeClientGetter(ctrl)
+	cl := mocks.NewRMBMockClient(ctrl)
+	gridClient := mocks.NewMockClient(ctrl)
 	dl1 := deployment1(identity, false, 0, backendURLWithoutTLSPassthrough)
 	gw := GatewayNameProxy{
 		Name:           "name",
@@ -224,11 +224,11 @@ func TestGetDeployment(t *testing.T) {
 	identity, nodeID := setUP()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	sub := mock.NewMockSubstrateExt(ctrl)
-	subi := mock.NewMockManagerInterface(ctrl)
-	ncPool := mock.NewMockNodeClientGetter(ctrl)
-	cl := mock.NewRMBMockClient(ctrl)
-	gridClient := mock.NewMockClient(ctrl)
+	sub := mocks.NewMockSubstrateExt(ctrl)
+	subi := mocks.NewMockManagerInterface(ctrl)
+	ncPool := mocks.NewMockNodeClientGetter(ctrl)
+	cl := mocks.NewRMBMockClient(ctrl)
+	gridClient := mocks.NewMockClient(ctrl)
 
 	dl1 := deployment1(identity, false, 0, backendURLWithoutTLSPassthrough)
 	dl1.ContractID = 100

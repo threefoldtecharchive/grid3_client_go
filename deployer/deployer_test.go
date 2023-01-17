@@ -11,9 +11,9 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/threefoldtech/grid3-go/mocks"
 	client "github.com/threefoldtech/grid3-go/node"
 	"github.com/threefoldtech/grid3-go/subi"
-	mock "github.com/threefoldtech/grid3-go/tests/mocks"
 
 	"github.com/threefoldtech/substrate-client"
 
@@ -125,10 +125,10 @@ func TestCreate(t *testing.T) {
 	identity, twinID := setUP()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	gridClient := mock.NewMockClient(ctrl)
-	cl := mock.NewRMBMockClient(ctrl)
-	sub := mock.NewMockSubstrateExt(ctrl)
-	ncPool := mock.NewMockNodeClientGetter(ctrl)
+	gridClient := mocks.NewMockClient(ctrl)
+	cl := mocks.NewRMBMockClient(ctrl)
+	sub := mocks.NewMockSubstrateExt(ctrl)
+	ncPool := mocks.NewMockNodeClientGetter(ctrl)
 	newDeployer := NewDeployer(
 		identity,
 		twinID,
@@ -205,10 +205,10 @@ func TestUpdate(t *testing.T) {
 	identity, twinID := setUP()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	gridClient := mock.NewMockClient(ctrl)
-	cl := mock.NewRMBMockClient(ctrl)
-	sub := mock.NewMockSubstrateExt(ctrl)
-	ncPool := mock.NewMockNodeClientGetter(ctrl)
+	gridClient := mocks.NewMockClient(ctrl)
+	cl := mocks.NewRMBMockClient(ctrl)
+	sub := mocks.NewMockSubstrateExt(ctrl)
+	ncPool := mocks.NewMockNodeClientGetter(ctrl)
 	newDeployer := NewDeployer(
 		identity,
 		twinID,
@@ -268,10 +268,10 @@ func TestCancel(t *testing.T) {
 	identity, twinID := setUP()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	gridClient := mock.NewMockClient(ctrl)
-	cl := mock.NewRMBMockClient(ctrl)
-	sub := mock.NewMockSubstrateExt(ctrl)
-	ncPool := mock.NewMockNodeClientGetter(ctrl)
+	gridClient := mocks.NewMockClient(ctrl)
+	cl := mocks.NewRMBMockClient(ctrl)
+	sub := mocks.NewMockSubstrateExt(ctrl)
+	ncPool := mocks.NewMockNodeClientGetter(ctrl)
 	newDeployer := NewDeployer(
 		identity,
 		twinID,
@@ -306,10 +306,10 @@ func TestCocktail(t *testing.T) {
 	identity, twinID := setUP()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	gridClient := mock.NewMockClient(ctrl)
-	cl := mock.NewRMBMockClient(ctrl)
-	sub := mock.NewMockSubstrateExt(ctrl)
-	ncPool := mock.NewMockNodeClientGetter(ctrl)
+	gridClient := mocks.NewMockClient(ctrl)
+	cl := mocks.NewRMBMockClient(ctrl)
+	sub := mocks.NewMockSubstrateExt(ctrl)
+	ncPool := mocks.NewMockNodeClientGetter(ctrl)
 	newDeployer := NewDeployer(
 		identity,
 		11,
