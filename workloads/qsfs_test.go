@@ -214,5 +214,5 @@ func TestQSFSWorkload(t *testing.T) {
 
 		err := manager.SetWorkloads(workloadsMap)
 		assert.NoError(t, err)
-	}
+	})
 }

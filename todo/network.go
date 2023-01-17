@@ -51,7 +51,7 @@ type NetworkDeployer struct {
 }
 
 func nextFreeOctet(used []byte, start *byte) error {
-	for isInByte(used, *start) && *start <= 254 {
+	for Contains(used, *start) && *start <= 254 {
 		*start += 1
 	}
 	if *start == 255 {
@@ -65,7 +65,7 @@ func (k *NetworkDeployer) assignNodesIPs(nodes []uint32) error {
 	l := len(k.IPRange.IP)
 	usedIPs := make([]byte, 0) // the third octet
 	for node, ip := range k.NodesIPRange {
-		if isInUint32(nodes, node) {
+		if Contains(nodes, node) {
 			usedIPs = append(usedIPs, ip.IP[l-2])
 			ips[node] = ip
 		}
@@ -359,6 +359,7 @@ func NewNetworkDeployer(manager deployer.DeploymentManager, target TargetNetwork
 	return k, nil
 }
 
+/*
 func (network *TargetNetwork) Stage(
 	ctx context.Context,
 	apiClient APIClient) (UserAccess, error) {
@@ -562,3 +563,4 @@ func (network *TargetNetwork) Stage(
 
 	return userAccess, nil
 }
+*/

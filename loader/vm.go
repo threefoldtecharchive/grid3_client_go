@@ -59,7 +59,7 @@ func LoadVmFromGrid(manager deployer.DeploymentManager, nodeID uint32, name stri
 		Corex:         data.Corex,
 		YggIP:         result.YggIP,
 		IP:            data.Network.Interfaces[0].IP.String(),
-		Cpu:           int(data.ComputeCapacity.CPU),
+		CPU:           int(data.ComputeCapacity.CPU),
 		Memory:        int(data.ComputeCapacity.Memory / gridtypes.Megabyte),
 		RootfsSize:    int(data.Size / gridtypes.Megabyte),
 		Entrypoint:    data.Entrypoint,
