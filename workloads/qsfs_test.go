@@ -1,3 +1,4 @@
+// Package workloads includes workloads types (vm, zdb, qsfs, public IP, gateway name, gateway fqdn, disk)
 package workloads
 
 import (
@@ -11,10 +12,104 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
-func TestQSFSStage(t *testing.T) {
+func TestZdbBackendsAndGroups(t *testing.T) {
+	backend := Backend{
+		Address: "1.1.1.1", Namespace: "test ns", Password: "password",
+	}
+
+	backends := []Backend{backend}
+
+	backendMap := map[string]interface{}{
+		"address": "1.1.1.1", "namespace": "test ns", "password": "password",
+	}
+
+	group := Group{
+		Backends: backends,
+	}
+
+	groupMap := map[string]interface{}{
+		"backends": []interface{}{
+			backendMap,
+		},
+	}
+
+	t.Run("test_zos_group", func(t *testing.T) {
+		zdbGroup := group.zosGroup()
+		assert.Equal(t, len(zdbGroup.Backends), 1)
+		assert.Equal(t, zdbGroup.Backends[0], zos.ZdbBackend(backend))
+
+		assert.Equal(t, groupMap, group.Dictify())
+	})
+
+	t.Run("test_zos_groups", func(t *testing.T) {
+		groups := Groups{group}
+		zdbGroups := groups.zosGroups()
+
+		assert.Equal(t, len(zdbGroups), 1)
+		assert.Equal(t, zdbGroups[0].Backends[0], zos.ZdbBackend(backend))
+
+		assert.Equal(t, groups, GroupsFromZos(zdbGroups))
+
+		assert.Equal(t, []interface{}{groupMap}, groups.Listify())
+	})
+
+	t.Run("test_zos_backend", func(t *testing.T) {
+		zosBackend := backend.zosBackend()
+		assert.Equal(t, zosBackend, zos.ZdbBackend(backend))
+
+		assert.Equal(t, backendMap, backend.Dictify())
+	})
+
+	t.Run("test_zos_backends", func(t *testing.T) {
+		backends := Backends{backend}
+		zosBackends := backends.zosBackends()
+
+		assert.Equal(t, len(zosBackends), 1)
+		assert.Equal(t, zosBackends[0], zos.ZdbBackend(backend))
+
+		assert.Equal(t, backends, BackendsFromZos(zosBackends))
+
+		assert.Equal(t, []interface{}{backendMap}, backends.Listify())
+
+		assert.Equal(t, backends, getBackends([]interface{}{backendMap}))
+	})
+}
+
+func TestMetaData(t *testing.T) {
+	backend := Backend{
+		Address: "1.1.1.1", Namespace: "test ns", Password: "password",
+	}
+
+	backendMap := map[string]interface{}{
+		"address": "1.1.1.1", "namespace": "test ns", "password": "password",
+	}
+
+	backends := []Backend{backend}
+
+	metadata := Metadata{
+		Type:                "",
+		Prefix:              "",
+		EncryptionAlgorithm: "",
+		EncryptionKey:       "",
+		Backends:            backends,
+	}
+
+	metadataMap := map[string]interface{}{
+		"type":                 "",
+		"prefix":               "",
+		"encryption_algorithm": "",
+		"encryption_key":       "",
+		"backends":             []interface{}{backendMap},
+	}
+
+	assert.Equal(t, metadataMap, metadata.Dictify())
+}
+
+func TestQSFSWorkload(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	manager := mocks.NewMockDeploymentManager(ctrl)
+
+	var qsfsMap map[string]interface{}
 
 	qsfs := QSFS{
 		Name:                 "test",
@@ -42,7 +137,8 @@ func TestQSFSStage(t *testing.T) {
 		}}},
 	}
 	k, _ := hex.DecodeString("4d778ba3216e4da4231540c92a55f06157cabba802f9b68fb0f78375d2e825af")
-	qsfsWl := gridtypes.Workload{
+
+	qsfsWorkload := gridtypes.Workload{
 		Version:     0,
 		Name:        gridtypes.Name("test"),
 		Type:        zos.QuantumSafeFSType,
@@ -81,9 +177,42 @@ func TestQSFSStage(t *testing.T) {
 			},
 		}),
 	}
-	wlMap := map[uint32][]gridtypes.Workload{}
-	wlMap[1] = append(wlMap[1], qsfsWl)
-	manager.EXPECT().SetWorkloads(gomock.Eq(wlMap)).Return(nil)
-	err := qsfs.Stage(manager, 1)
-	assert.NoError(t, err)
+
+	t.Run("test_schema_from_qsfs", func(t *testing.T) {
+		qsfsMap = qsfs.Dictify()
+	})
+
+	t.Run("test_new_qsfs_from_schema", func(t *testing.T) {
+		qsfsFromSchema := NewQSFSFromSchema(qsfsMap)
+		assert.Equal(t, qsfsFromSchema, qsfs)
+	})
+
+	t.Run("test_new_qsfs_from_workload", func(t *testing.T) {
+		qsfsFromWorkload, err := NewQSFSFromWorkload(&qsfsWorkload)
+		assert.NoError(t, err)
+		assert.Equal(t, qsfsFromWorkload, qsfs)
+	})
+
+	t.Run("test_qsfs_zos_workload", func(t *testing.T) {
+		workloadFromQSFS, err := qsfs.ZosWorkload()
+		assert.NoError(t, err)
+		assert.Equal(t, workloadFromQSFS, qsfsWorkload)
+	})
+
+	t.Run("test_update_qsfs_from_workload", func(t *testing.T) {
+		err := qsfs.UpdateFromWorkload(&qsfsWorkload)
+		assert.NoError(t, err)
+	})
+
+	t.Run("test_set_workloads", func(t *testing.T) {
+		nodeID := uint32(1)
+		workloadsMap := map[uint32][]gridtypes.Workload{}
+		workloadsMap[nodeID] = append(workloadsMap[nodeID], qsfsWorkload)
+
+		manager := mocks.NewMockDeploymentManager(ctrl)
+		manager.EXPECT().SetWorkloads(gomock.Eq(workloadsMap)).Return(nil)
+
+		err := manager.SetWorkloads(workloadsMap)
+		assert.NoError(t, err)
+	})
 }

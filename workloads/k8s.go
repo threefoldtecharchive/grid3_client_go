@@ -1,32 +1,37 @@
+// Package workloads includes workloads types (vm, zdb, qsfs, public IP, gateway name, gateway fqdn, disk)
 package workloads
 
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
-	"log"
 	"net"
-	"net/http"
-	"strings"
+	"reflect"
+	"regexp"
 
 	"github.com/pkg/errors"
-	"github.com/threefoldtech/grid3-go/deployer"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
+// ErrDuplicateName error for duplicate names
 var ErrDuplicateName = errors.New("node names are not unique")
 
+// K8sNodeData kubernetes data
 type K8sNodeData struct {
-	Name      string
-	Node      uint32
-	DiskSize  int
-	PublicIP  bool
-	PublicIP6 bool
-	Planetary bool
-	IP        string
-	Cpu       int
-	Memory    int
+	Name          string
+	Node          uint32
+	DiskSize      int
+	PublicIP      bool
+	PublicIP6     bool
+	Planetary     bool
+	Flist         string
+	FlistChecksum string
+	ComputedIP    string
+	ComputedIP6   string
+	YggIP         string
+	IP            string
+	CPU           int
+	Memory        int
 }
 
 type K8sCluster struct {
@@ -37,59 +42,87 @@ type K8sCluster struct {
 	NetworkName string
 }
 
-func (k *K8sCluster) Stage(
-	ctx context.Context,
-	manager deployer.DeploymentManager,
-) error {
-
-	err := k.validateNames()
-	if err != nil {
-		return err
+func NewK8sNodeData(m map[string]interface{}) K8sNodeData {
+	return K8sNodeData{
+		Name:          m["name"].(string),
+		Node:          uint32(m["node"].(int)),
+		DiskSize:      m["disk_size"].(int),
+		PublicIP:      m["publicip"].(bool),
+		PublicIP6:     m["publicip6"].(bool),
+		Planetary:     m["planetary"].(bool),
+		Flist:         m["flist"].(string),
+		FlistChecksum: m["flist_checksum"].(string),
+		ComputedIP:    m["computedip"].(string),
+		ComputedIP6:   m["computedip6"].(string),
+		YggIP:         m["ygg_ip"].(string),
+		IP:            m["ip"].(string),
+		CPU:           m["cpu"].(int),
+		Memory:        m["memory"].(int),
 	}
-
-	workloads := map[uint32][]gridtypes.Workload{}
-
-	workloads[k.Master.Node] = append(workloads[k.Master.Node], k.Master.GenerateK8sWorkload(manager, k, false)...)
-	for _, worker := range k.Workers {
-		workloads[worker.Node] = append(workloads[worker.Node], worker.GenerateK8sWorkload(manager, k, true)...)
-	}
-
-	err = manager.SetWorkloads(workloads)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
-func (k *K8sCluster) validateNames() error {
-	names := map[string]bool{}
-	names[k.Master.Name] = true
-	for _, worker := range k.Workers {
-		if _, ok := names[worker.Name]; ok {
-			return errors.Wrapf(ErrDuplicateName, "name %s is duplicated", worker.Name)
+func NewK8sNodeDataFromWorkload(w gridtypes.Workload, nodeID uint32, diskSize int, computedIP string, computedIP6 string) (K8sNodeData, error) {
+	var k K8sNodeData
+	data, err := w.WorkloadData()
+	if err != nil {
+		return k, err
+	}
+	d := data.(*zos.ZMachine)
+	var result zos.ZMachineResult
+
+	if !reflect.DeepEqual(w.Result, gridtypes.Result{}) {
+		err = w.Result.Unmarshal(&result)
+		if err != nil {
+			return k, err
 		}
-		names[worker.Name] = true
 	}
-	return nil
-}
 
-func flistChecksumURL(url string) string {
-	return fmt.Sprintf("%s.md5", url)
-}
-
-func getFlistChecksum(url string) (string, error) {
-	response, err := http.Get(flistChecksumURL(url))
+	flistCheckSum, err := GetFlistChecksum(d.FList)
 	if err != nil {
-		return "", err
+		return k, err
 	}
-	hash, err := ioutil.ReadAll(response.Body)
-	return strings.TrimSpace(string(hash)), err
+
+	k = K8sNodeData{
+		Name:          string(w.Name),
+		Node:          nodeID,
+		DiskSize:      diskSize,
+		PublicIP:      computedIP != "",
+		PublicIP6:     computedIP6 != "",
+		Planetary:     result.YggIP != "",
+		Flist:         d.FList,
+		FlistChecksum: flistCheckSum,
+		ComputedIP:    computedIP,
+		ComputedIP6:   computedIP6,
+		YggIP:         result.YggIP,
+		IP:            d.Network.Interfaces[0].IP.String(),
+		CPU:           int(d.ComputeCapacity.CPU),
+		Memory:        int(d.ComputeCapacity.Memory / gridtypes.Megabyte),
+	}
+	return k, nil
 }
 
-func (k *K8sNodeData) GenerateK8sWorkload(manager deployer.DeploymentManager, deployer *K8sCluster, worker bool) []gridtypes.Workload {
+func (k *K8sNodeData) Dictify() map[string]interface{} {
+	res := make(map[string]interface{})
+	res["name"] = k.Name
+	res["node"] = int(k.Node)
+	res["disk_size"] = k.DiskSize
+	res["publicip"] = k.PublicIP
+	res["publicip6"] = k.PublicIP6
+	res["planetary"] = k.Planetary
+	res["flist"] = k.Flist
+	res["flist_checksum"] = k.FlistChecksum
+	res["computedip"] = k.ComputedIP
+	res["computedip6"] = k.ComputedIP6
+	res["ygg_ip"] = k.YggIP
+	res["ip"] = k.IP
+	res["cpu"] = k.CPU
+	res["memory"] = k.Memory
+	return res
+}
+
+func (k *K8sNodeData) GenerateK8sWorkload(cluster *K8sCluster, masterIP string) []gridtypes.Workload {
 	diskName := fmt.Sprintf("%sdisk", k.Name)
-	workloads := make([]gridtypes.Workload, 0)
+	K8sWorkloads := make([]gridtypes.Workload, 0)
 	diskWorkload := gridtypes.Workload{
 		Name:        gridtypes.Name(diskName),
 		Version:     0,
@@ -99,35 +132,33 @@ func (k *K8sNodeData) GenerateK8sWorkload(manager deployer.DeploymentManager, de
 			Size: gridtypes.Unit(k.DiskSize) * gridtypes.Gigabyte,
 		}),
 	}
-	workloads = append(workloads, diskWorkload)
+	K8sWorkloads = append(K8sWorkloads, diskWorkload)
 	publicIPName := ""
 	if k.PublicIP || k.PublicIP6 {
 		publicIPName = fmt.Sprintf("%sip", k.Name)
-		workloads = append(workloads, constructPublicIPWorkload(publicIPName, k.PublicIP, k.PublicIP6))
+		K8sWorkloads = append(K8sWorkloads, ConstructPublicIPWorkload(publicIPName, k.PublicIP, k.PublicIP6))
 	}
 	envVars := map[string]string{
-		"SSH_KEY":           deployer.SSHKey,
-		"K3S_TOKEN":         deployer.Token,
+		"SSH_KEY":           cluster.SSHKey,
+		"K3S_TOKEN":         cluster.Token,
 		"K3S_DATA_DIR":      "/mydisk",
 		"K3S_FLANNEL_IFACE": "eth0",
 		"K3S_NODE_NAME":     k.Name,
 		"K3S_URL":           "",
 	}
-	if worker {
-		// K3S_URL marks where to find the master node
-		envVars["K3S_URL"] = fmt.Sprintf("%d:%s", deployer.Master.Node, deployer.Master.Name)
+	if masterIP != "" {
+		envVars["K3S_URL"] = fmt.Sprintf("https://%s:6443", masterIP)
 	}
-	log.Printf("env k3s: %+v", envVars)
 	workload := gridtypes.Workload{
 		Version: 0,
 		Name:    gridtypes.Name(k.Name),
 		Type:    zos.ZMachineType,
 		Data: gridtypes.MustMarshal(zos.ZMachine{
-			FList: "https://hub.grid.tf/tf-official-apps/threefoldtech-k3s-latest.flist",
+			FList: k.Flist,
 			Network: zos.MachineNetwork{
 				Interfaces: []zos.MachineInterface{
 					{
-						Network: gridtypes.Name(deployer.NetworkName),
+						Network: gridtypes.Name(cluster.NetworkName),
 						IP:      net.ParseIP(k.IP),
 					},
 				},
@@ -135,7 +166,7 @@ func (k *K8sNodeData) GenerateK8sWorkload(manager deployer.DeploymentManager, de
 				Planetary: k.Planetary,
 			},
 			ComputeCapacity: zos.MachineCapacity{
-				CPU:    uint8(k.Cpu),
+				CPU:    uint8(k.CPU),
 				Memory: gridtypes.Unit(uint(k.Memory)) * gridtypes.Megabyte,
 			},
 			Entrypoint: "/sbin/zinit init",
@@ -145,6 +176,33 @@ func (k *K8sNodeData) GenerateK8sWorkload(manager deployer.DeploymentManager, de
 			Env: envVars,
 		}),
 	}
-	workloads = append(workloads, workload)
-	return workloads
+	K8sWorkloads = append(K8sWorkloads, workload)
+
+	return K8sWorkloads
+}
+
+func (k *K8sCluster) ValidateToken(ctx context.Context) error {
+	if k.Token == "" {
+		return errors.New("empty token is now allowed")
+	}
+
+	is_alphanumeric := regexp.MustCompile(`^[a-zA-Z0-9]*$`).MatchString(k.Token)
+	if !is_alphanumeric {
+		return errors.New("token should be alphanumeric")
+	}
+
+	return nil
+}
+
+func (k *K8sCluster) ValidateNames(ctx context.Context) error {
+
+	names := make(map[string]bool)
+	names[k.Master.Name] = true
+	for _, w := range k.Workers {
+		if _, ok := names[w.Name]; ok {
+			return fmt.Errorf("k8s workers and master must have unique names: %s occurred more than once", w.Name)
+		}
+		names[w.Name] = true
+	}
+	return nil
 }

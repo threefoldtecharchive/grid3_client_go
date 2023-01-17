@@ -1,11 +1,15 @@
+// Package workloads includes workloads types (vm, zdb, qsfs, public IP, gateway name, gateway fqdn, disk)
 package workloads
 
 import (
-	"github.com/threefoldtech/grid3-go/deployer"
+	"encoding/json"
+
+	"github.com/pkg/errors"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
+// GatewayNameProxy struct for gateway name proxy
 type GatewayNameProxy struct {
 	// Name the fully qualified domain name to use (cannot be present with Name)
 	Name string
@@ -20,29 +24,41 @@ type GatewayNameProxy struct {
 	FQDN string
 }
 
-func (g *GatewayNameProxy) GenerateWorkloadFromGName(gatewayName GatewayNameProxy) (gridtypes.Workload, error) {
-	return gridtypes.Workload{
-		Version: 0,
-		Type:    zos.GatewayNameProxyType,
-		Name:    gridtypes.Name(gatewayName.Name),
-		// REVISE: whether description should be set here
-		Data: gridtypes.MustMarshal(zos.GatewayNameProxy{
-			Name:           gatewayName.Name,
-			TLSPassthrough: gatewayName.TLSPassthrough,
-			Backends:       gatewayName.Backends,
-		}),
+// GatewayNameProxyFromZosWorkload generates a gateway name proxy from a zos workload
+func GatewayNameProxyFromZosWorkload(wl gridtypes.Workload) (GatewayNameProxy, error) {
+	var result zos.GatewayProxyResult
+
+	if len(wl.Result.Data) > 0 {
+		if err := json.Unmarshal(wl.Result.Data, &result); err != nil {
+			return GatewayNameProxy{}, errors.Wrap(err, "error unmarshalling json")
+		}
+	}
+
+	dataI, err := wl.WorkloadData()
+	if err != nil {
+		return GatewayNameProxy{}, errors.Wrap(err, "failed to get workload data")
+	}
+	data := dataI.(*zos.GatewayNameProxy)
+
+	return GatewayNameProxy{
+		Name:           data.Name,
+		TLSPassthrough: data.TLSPassthrough,
+		Backends:       data.Backends,
+		FQDN:           result.FQDN,
 	}, nil
 }
 
-func (g *GatewayNameProxy) Stage(manager deployer.DeploymentManager, NodeId uint32) error {
-	workloadsMap := map[uint32][]gridtypes.Workload{}
-	workloads := make([]gridtypes.Workload, 0)
-	workload, err := g.GenerateWorkloadFromGName(*g)
-	if err != nil {
-		return err
+// ZosWorkload generates a zos workload from GatewayNameProxy
+func (g *GatewayNameProxy) ZosWorkload() gridtypes.Workload {
+	return gridtypes.Workload{
+		Version: 0,
+		Type:    zos.GatewayNameProxyType,
+		Name:    gridtypes.Name(g.Name),
+		// REVISE: whether description should be set here
+		Data: gridtypes.MustMarshal(zos.GatewayNameProxy{
+			Name:           g.Name,
+			TLSPassthrough: g.TLSPassthrough,
+			Backends:       g.Backends,
+		}),
 	}
-	workloads = append(workloads, workload)
-	workloadsMap[NodeId] = workloads
-	err = manager.SetWorkloads(workloadsMap)
-	return err
 }

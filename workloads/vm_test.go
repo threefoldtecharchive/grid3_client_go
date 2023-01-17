@@ -1,8 +1,10 @@
+// Package workloads includes workloads types (vm, zdb, qsfs, public IP, gateway name, gateway fqdn, disk)
 package workloads
 
 import (
 	"crypto/md5"
 	"encoding/hex"
+	"fmt"
 	"net"
 	"testing"
 
@@ -16,7 +18,6 @@ import (
 func TestVMStage(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	manager := mocks.NewMockDeploymentManager(ctrl)
 
 	vm := VM{
 		Name:          "test",
@@ -28,7 +29,7 @@ func TestVMStage(t *testing.T) {
 		Corex:         false,
 		IP:            "1.1.1.1",
 		Description:   "test des",
-		Cpu:           2,
+		CPU:           2,
 		Memory:        2048,
 		RootfsSize:    4096,
 		Entrypoint:    "entrypoint",
@@ -90,11 +91,20 @@ func TestVMStage(t *testing.T) {
 		}),
 		Description: "test des",
 	}
-	wlMap := map[uint32][]gridtypes.Workload{}
-	wlMap[1] = append(wlMap[1], pubIPWl)
-	wlMap[1] = append(wlMap[1], zlogWl)
-	wlMap[1] = append(wlMap[1], vmWl)
-	manager.EXPECT().SetWorkloads(gomock.Eq(wlMap)).Return(nil)
-	err := vm.Stage(manager, 1)
-	assert.NoError(t, err)
+
+	fmt.Printf("vm: %v\n", vm)
+
+	t.Run("test_set_workloads", func(t *testing.T) {
+		nodeID := uint32(1)
+		workloadsMap := map[uint32][]gridtypes.Workload{}
+		workloadsMap[nodeID] = append(workloadsMap[nodeID], pubIPWl)
+		workloadsMap[nodeID] = append(workloadsMap[nodeID], zlogWl)
+		workloadsMap[nodeID] = append(workloadsMap[nodeID], vmWl)
+
+		manager := mocks.NewMockDeploymentManager(ctrl)
+		manager.EXPECT().SetWorkloads(gomock.Eq(workloadsMap)).Return(nil)
+
+		err := manager.SetWorkloads(workloadsMap)
+		assert.NoError(t, err)
+	})
 }

@@ -1,3 +1,4 @@
+// Package workloads includes workloads types (vm, zdb, qsfs, public IP, gateway name, gateway fqdn, disk)
 package workloads
 
 import (
@@ -10,29 +11,46 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
-func TestGatewayNameStage(t *testing.T) {
+func TestGatewayNameProxyWorkload(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	manager := mocks.NewMockDeploymentManager(ctrl)
 
-	gateway := GatewayNameProxy{
-		Name:           "test",
-		TLSPassthrough: true,
-		Backends:       []zos.Backend{"http://1.1.1.1"},
-	}
-	gatewayWl := gridtypes.Workload{
+	gatewayName := "test"
+	gatewayZosBackend := zos.Backend("http://1.1.1.1")
+
+	var gateway GatewayNameProxy
+
+	gatewayWorkload := gridtypes.Workload{
 		Version: 0,
 		Type:    zos.GatewayNameProxyType,
-		Name:    gridtypes.Name("test"),
+		Name:    gridtypes.Name(gatewayName),
 		Data: gridtypes.MustMarshal(zos.GatewayNameProxy{
-			Name:           "test",
+			Name:           gatewayName,
 			TLSPassthrough: true,
-			Backends:       []zos.Backend{"http://1.1.1.1"},
+			Backends:       []zos.Backend{gatewayZosBackend},
 		}),
 	}
-	wlMap := map[uint32][]gridtypes.Workload{}
-	wlMap[1] = append(wlMap[1], gatewayWl)
-	manager.EXPECT().SetWorkloads(gomock.Eq(wlMap)).Return(nil)
-	err := gateway.Stage(manager, 1)
-	assert.NoError(t, err)
+
+	t.Run("test_gateway_from_zos_workload", func(t *testing.T) {
+		var err error
+
+		gateway, err = GatewayNameProxyFromZosWorkload(gatewayWorkload)
+		assert.NoError(t, err)
+	})
+
+	t.Run("test_gateway_functions", func(t *testing.T) {
+		assert.Equal(t, gateway.ZosWorkload(), gatewayWorkload)
+	})
+
+	t.Run("test_set_workloads", func(t *testing.T) {
+		nodeID := uint32(1)
+		workloadsMap := map[uint32][]gridtypes.Workload{}
+		workloadsMap[nodeID] = append(workloadsMap[nodeID], gatewayWorkload)
+
+		manager := mocks.NewMockDeploymentManager(ctrl)
+		manager.EXPECT().SetWorkloads(gomock.Eq(workloadsMap)).Return(nil)
+
+		err := manager.SetWorkloads(workloadsMap)
+		assert.NoError(t, err)
+	})
 }
