@@ -1,6 +1,6 @@
 # grid3_client_go
 
-A client to manage grid3 in golang
+grid3_go is a go client created to interact with threefold grid. It should manage CRUD operations for deployments on the grid.
 
 ## Requirements
 

@@ -5,21 +5,25 @@ import (
 
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/pkg/errors"
-	client "github.com/threefoldtech/substrate-client"
+	"github.com/threefoldtech/substrate-client"
 )
 
+// Identity is user identity
+type Identity substrate.Identity
+
+// ManagerInterface for substrate manager
 type ManagerInterface interface {
-	client.Manager
+	substrate.Manager
 	SubstrateExt() (SubstrateExt, error)
 }
 
 type Manager struct {
-	client.Manager
+	substrate.Manager
 	// versioned subdev.Manager
 }
 
-func NewManager(url ...string) ManagerInterface {
-	return &Manager{client.NewManager(url...)}
+func NewManager(url ...string) Manager {
+	return Manager{substrate.NewManager(url...)}
 }
 
 func (m *Manager) SubstrateExt() (SubstrateExt, error) {
@@ -27,6 +31,7 @@ func (m *Manager) SubstrateExt() (SubstrateExt, error) {
 	return &SubstrateImpl{sub}, err
 }
 
+// Substrate interface for substrate client
 type Substrate interface {
 	CancelContract(identity Identity, contractID uint64) error
 	CreateNodeContract(identity Identity, node uint32, body string, hash string, publicIPs uint32, solutionProviderID *uint64) (uint64, error)
@@ -34,6 +39,8 @@ type Substrate interface {
 	Close()
 	GetTwinByPubKey(pk []byte) (uint32, error)
 }
+
+// SubstrateExt interface for substrate executable functions
 type SubstrateExt interface {
 	Substrate
 	EnsureContractCanceled(identity Identity, contractID uint64) error
@@ -50,74 +57,106 @@ type SubstrateExt interface {
 	CreateNameContract(identity Identity, name string) (uint64, error)
 	GetAccount(identity Identity) (types.AccountInfo, error)
 	GetTwinIP(twinID uint32) (string, error)
+	GetTwinPK(twinID uint32) ([]byte, error)
 	GetContractIDByNameRegistration(name string) (uint64, error)
 }
+
+// SubstrateImpl struct to use dev substrate
 type SubstrateImpl struct {
-	*client.Substrate
+	*substrate.Substrate
 }
 
-func (s *SubstrateImpl) GetContractIDByNameRegistration(name string) (uint64, error) {
-	res, err := s.Substrate.GetContractIDByNameRegistration(name)
-	return res, terr(err)
-}
-func (s *SubstrateImpl) GetTwinIP(id uint32) (string, error) {
-	twin, err := s.Substrate.GetTwin(id)
-	if err != nil {
-		return "", terr(err)
-	}
-	return twin.IP, nil
-}
+// GetAccount returns the user's account
 func (s *SubstrateImpl) GetAccount(identity Identity) (types.AccountInfo, error) {
 	res, err := s.Substrate.GetAccount(identity)
-	return res, terr(err)
+	return res, normalizeNotFoundErrors(err)
 }
-func (s *SubstrateImpl) CreateNameContract(identity Identity, name string) (uint64, error) {
-	return s.Substrate.CreateNameContract(identity, name)
-}
-func (s *SubstrateImpl) GetNodeTwin(id uint32) (uint32, error) {
-	node, err := s.Substrate.GetNode(id)
+
+// GetNodeTwin returns the twin ID for a node ID
+func (s *SubstrateImpl) GetNodeTwin(nodeID uint32) (uint32, error) {
+	node, err := s.Substrate.GetNode(nodeID)
 	if err != nil {
-		return 0, terr(err)
+		return 0, normalizeNotFoundErrors(err)
 	}
 	return uint32(node.TwinID), nil
 }
-func (s *SubstrateImpl) UpdateNodeContract(identity Identity, contract uint64, body string, hash string) (uint64, error) {
-	res, err := s.Substrate.UpdateNodeContract(identity, contract, body, hash)
-	return res, terr(err)
+
+// GetTwinIP returns twin IP given its ID
+func (s *SubstrateImpl) GetTwinIP(id uint32) (string, error) {
+	twin, err := s.Substrate.GetTwin(id)
+	if err != nil {
+		return "", normalizeNotFoundErrors(err)
+	}
+	return twin.IP, nil
 }
+
+// GetTwinPK returns twin's public key
+func (s *SubstrateImpl) GetTwinPK(id uint32) ([]byte, error) {
+	twin, err := s.Substrate.GetTwin(id)
+	if err != nil {
+		return nil, normalizeNotFoundErrors(err)
+	}
+	return twin.Account.PublicKey(), nil
+}
+
+// CreateNameContract creates a new name contract
+func (s *SubstrateImpl) CreateNameContract(identity Identity, name string) (uint64, error) {
+	return s.Substrate.CreateNameContract(identity, name)
+}
+
+// GetContractIDByNameRegistration returns contract ID using its name
+func (s *SubstrateImpl) GetContractIDByNameRegistration(name string) (uint64, error) {
+	res, err := s.Substrate.GetContractIDByNameRegistration(name)
+	return res, normalizeNotFoundErrors(err)
+}
+
+// CreateNameContract creates a new name contract
 func (s *SubstrateImpl) CreateNodeContract(identity Identity, node uint32, body string, hash string, publicIPs uint32, solutionProviderID *uint64) (uint64, error) {
 	res, err := s.Substrate.CreateNodeContract(identity, node, body, hash, publicIPs, solutionProviderID)
-	return res, terr(err)
+	return res, normalizeNotFoundErrors(err)
 }
+
+// UpdateNodeContract updates a new name contract
+func (s *SubstrateImpl) UpdateNodeContract(identity Identity, contract uint64, body string, hash string) (uint64, error) {
+	res, err := s.Substrate.UpdateNodeContract(identity, contract, body, hash)
+	return res, normalizeNotFoundErrors(err)
+}
+
+// GetContract returns a contract given its ID
 func (s *SubstrateImpl) GetContract(contractID uint64) (Contract, error) {
 	contract, err := s.Substrate.GetContract(contractID)
-	return &ContractImpl{contract}, terr(err)
+	return &ContractImpl{contract}, normalizeNotFoundErrors(err)
 }
+
+// CancelContract cancels a contract
 func (s *SubstrateImpl) CancelContract(identity Identity, contractID uint64) error {
 	if contractID == 0 {
 		return nil
 	}
 	if err := s.Substrate.CancelContract(identity, contractID); err != nil && err.Error() != "ContractNotExists" {
-		return terr(err)
+		return normalizeNotFoundErrors(err)
 	}
 	return nil
 }
+
+// EnsureContractCanceled ensures a canceled contract
 func (s *SubstrateImpl) EnsureContractCanceled(identity Identity, contractID uint64) error {
 	if contractID == 0 {
 		return nil
 	}
 	if err := s.Substrate.CancelContract(identity, contractID); err != nil && err.Error() != "ContractNotExists" {
-		return terr(err)
+		return normalizeNotFoundErrors(err)
 	}
 	return nil
 }
 
+// DeleteInvalidContracts deletes invalid contracts
 func (s *SubstrateImpl) DeleteInvalidContracts(contracts map[uint32]uint64) error {
 	for node, contractID := range contracts {
 		valid, err := s.IsValidContract(contractID)
 		// TODO: handle pause
 		if err != nil {
-			return terr(err)
+			return normalizeNotFoundErrors(err)
 		}
 		if !valid {
 			delete(contracts, node)
@@ -126,14 +165,15 @@ func (s *SubstrateImpl) DeleteInvalidContracts(contracts map[uint32]uint64) erro
 	return nil
 }
 
+// IsValidContract checks if a contract is invalid
 func (s *SubstrateImpl) IsValidContract(contractID uint64) (bool, error) {
 	if contractID == 0 {
 		return false, nil
 	}
 	contract, err := s.Substrate.GetContract(contractID)
-	err = terr(err)
+	err = normalizeNotFoundErrors(err)
 	// TODO: handle pause
-	if errors.Is(err, ErrNotFound) || (contract != nil && !contract.State.IsCreated) {
+	if errors.Is(err, substrate.ErrNotFound) || (contract != nil && !contract.State.IsCreated) {
 		return false, nil
 	} else if err != nil {
 		return true, errors.Wrapf(err, "couldn't get contract %d info", contractID)
@@ -141,6 +181,7 @@ func (s *SubstrateImpl) IsValidContract(contractID uint64) (bool, error) {
 	return true, nil
 }
 
+// InvalidateNameContract invalidate a name contract
 func (s *SubstrateImpl) InvalidateNameContract(
 	ctx context.Context,
 	identity Identity,
@@ -151,8 +192,8 @@ func (s *SubstrateImpl) InvalidateNameContract(
 		return 0, nil
 	}
 	contract, err := s.Substrate.GetContract(contractID)
-	err = terr(err)
-	if errors.Is(err, ErrNotFound) {
+	err = normalizeNotFoundErrors(err)
+	if errors.Is(err, substrate.ErrNotFound) {
 		return 0, nil
 	}
 	if err != nil {
@@ -165,10 +206,26 @@ func (s *SubstrateImpl) InvalidateNameContract(
 	if contract.ContractType.NameContract.Name != name {
 		err := s.Substrate.CancelContract(identity, contractID)
 		if err != nil {
-			return 0, errors.Wrap(terr(err), "failed to cleanup unmatching name contract")
+			return 0, errors.Wrap(normalizeNotFoundErrors(err), "failed to cleanup unmatched name contract")
 		}
 		return 0, nil
 	}
 
 	return contractID, nil
+}
+
+// Close closes substrate
+func (s *SubstrateImpl) Close() {
+	s.Substrate.Close()
+}
+
+func normalizeNotFoundErrors(err error) error {
+	if errors.Is(err, substrate.ErrNotFound) {
+		return substrate.ErrNotFound
+	}
+
+	if errors.Is(err, substrate.ErrAccountNotFound) {
+		return substrate.ErrAccountNotFound
+	}
+	return err
 }

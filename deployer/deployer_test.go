@@ -38,7 +38,7 @@ var (
 
 func setUP() (identity subi.Identity, twinID uint32) {
 	mnemonics := os.Getenv("MNEMONICS")
-	identity, err := subi.NewIdentityFromSr25519Phrase(mnemonics)
+	identity, err := substrate.NewIdentityFromSr25519Phrase(mnemonics)
 	if err != nil {
 		panic(err)
 	}
@@ -128,7 +128,7 @@ func TestCreate(t *testing.T) {
 	gridClient := mock.NewMockClient(ctrl)
 	cl := mock.NewRMBMockClient(ctrl)
 	sub := mock.NewMockSubstrateExt(ctrl)
-	ncPool := mock.NewMockNodeClientCollection(ctrl)
+	ncPool := mock.NewMockNodeClientGetter(ctrl)
 	newDeployer := NewDeployer(
 		identity,
 		twinID,
@@ -208,7 +208,7 @@ func TestUpdate(t *testing.T) {
 	gridClient := mock.NewMockClient(ctrl)
 	cl := mock.NewRMBMockClient(ctrl)
 	sub := mock.NewMockSubstrateExt(ctrl)
-	ncPool := mock.NewMockNodeClientCollection(ctrl)
+	ncPool := mock.NewMockNodeClientGetter(ctrl)
 	newDeployer := NewDeployer(
 		identity,
 		twinID,
@@ -271,7 +271,7 @@ func TestCancel(t *testing.T) {
 	gridClient := mock.NewMockClient(ctrl)
 	cl := mock.NewRMBMockClient(ctrl)
 	sub := mock.NewMockSubstrateExt(ctrl)
-	ncPool := mock.NewMockNodeClientCollection(ctrl)
+	ncPool := mock.NewMockNodeClientGetter(ctrl)
 	newDeployer := NewDeployer(
 		identity,
 		twinID,
@@ -309,7 +309,7 @@ func TestCocktail(t *testing.T) {
 	gridClient := mock.NewMockClient(ctrl)
 	cl := mock.NewRMBMockClient(ctrl)
 	sub := mock.NewMockSubstrateExt(ctrl)
-	ncPool := mock.NewMockNodeClientCollection(ctrl)
+	ncPool := mock.NewMockNodeClientGetter(ctrl)
 	newDeployer := NewDeployer(
 		identity,
 		11,
