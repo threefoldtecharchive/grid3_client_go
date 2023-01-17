@@ -5,8 +5,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	mock_deployer "github.com/threefoldtech/grid3-go/tests/mocks"
-	"github.com/threefoldtech/grid3-go/workloads"
+	"github.com/threefoldtech/grid3-go/mocks"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
@@ -14,9 +13,9 @@ import (
 func TestZDBStage(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	manager := mock_deployer.NewMockDeploymentManager(ctrl)
+	manager := mocks.NewMockDeploymentManager(ctrl)
 
-	zdb := workloads.ZDB{
+	zdb := ZDB{
 		Name:        "test",
 		Password:    "password",
 		Public:      true,

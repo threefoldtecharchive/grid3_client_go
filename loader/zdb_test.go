@@ -6,8 +6,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	"github.com/threefoldtech/grid3-go/loader"
-	mock_deployer "github.com/threefoldtech/grid3-go/tests/mocks"
+	"github.com/threefoldtech/grid3-go/mocks"
 	"github.com/threefoldtech/grid3-go/workloads"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
@@ -56,9 +55,9 @@ func TestLoadZdbFromGrid(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		manager := mock_deployer.NewMockDeploymentManager(ctrl)
+		manager := mocks.NewMockDeploymentManager(ctrl)
 		manager.EXPECT().GetWorkload(uint32(1), "test").Return(zdbWl, nil)
-		got, err := loader.LoadZdbFromGrid(manager, 1, "test")
+		got, err := LoadZdbFromGrid(manager, 1, "test")
 		assert.NoError(t, err)
 		assert.Equal(t, zdb, got)
 	})
@@ -67,9 +66,9 @@ func TestLoadZdbFromGrid(t *testing.T) {
 		zdbWlCp.Type = "invalid"
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
-		manager := mock_deployer.NewMockDeploymentManager(ctrl)
+		manager := mocks.NewMockDeploymentManager(ctrl)
 		manager.EXPECT().GetWorkload(uint32(1), "test").Return(zdbWlCp, nil)
-		_, err := loader.LoadZdbFromGrid(manager, 1, "test")
+		_, err := LoadZdbFromGrid(manager, 1, "test")
 		assert.Error(t, err)
 	})
 	t.Run("wrong workload data", func(t *testing.T) {
@@ -81,10 +80,10 @@ func TestLoadZdbFromGrid(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		manager := mock_deployer.NewMockDeploymentManager(ctrl)
+		manager := mocks.NewMockDeploymentManager(ctrl)
 		manager.EXPECT().GetWorkload(uint32(1), "test").Return(zdbWlCp, nil)
 
-		_, err := loader.LoadZdbFromGrid(manager, 1, "test")
+		_, err := LoadZdbFromGrid(manager, 1, "test")
 		assert.Error(t, err)
 	})
 	t.Run("invalid result data", func(t *testing.T) {
@@ -93,10 +92,10 @@ func TestLoadZdbFromGrid(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		manager := mock_deployer.NewMockDeploymentManager(ctrl)
+		manager := mocks.NewMockDeploymentManager(ctrl)
 		manager.EXPECT().GetWorkload(uint32(1), "test").Return(zdbWlCp, nil)
 
-		_, err := loader.LoadZdbFromGrid(manager, 1, "test")
+		_, err := LoadZdbFromGrid(manager, 1, "test")
 		assert.Error(t, err)
 	})
 }

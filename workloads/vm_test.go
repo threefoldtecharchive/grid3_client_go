@@ -8,8 +8,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	mock_deployer "github.com/threefoldtech/grid3-go/tests/mocks"
-	"github.com/threefoldtech/grid3-go/workloads"
+	"github.com/threefoldtech/grid3-go/mocks"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
@@ -17,9 +16,9 @@ import (
 func TestVMStage(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	manager := mock_deployer.NewMockDeploymentManager(ctrl)
+	manager := mocks.NewMockDeploymentManager(ctrl)
 
-	vm := workloads.VM{
+	vm := VM{
 		Name:          "test",
 		Flist:         "flist test",
 		FlistChecksum: "flist cs test",
@@ -33,10 +32,10 @@ func TestVMStage(t *testing.T) {
 		Memory:        2048,
 		RootfsSize:    4096,
 		Entrypoint:    "entrypoint",
-		Mounts: []workloads.Mount{
+		Mounts: []Mount{
 			{DiskName: "disk", MountPoint: "mount"},
 		},
-		Zlogs: []workloads.Zlog{
+		Zlogs: []Zlog{
 			{Output: "output"},
 		},
 		EnvVars:     map[string]string{"var1": "val1"},
