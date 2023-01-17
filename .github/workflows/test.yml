@@ -3,7 +3,7 @@ name: Testing
 on: [push]
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     steps:
       - name: Set up Go
@@ -20,18 +20,6 @@ jobs:
       - name: Get dependencies
         run: |
           go mod download
-
-      - name: Install GoReleaser
-        uses: goreleaser/goreleaser-action@v4
-        with:
-          install-only: true
-
-      - name: Build check
-        run: goreleaser build --snapshot
-
-      - name: Build
-        run: |
-          go build -v .
 
       - name: Test
         env:

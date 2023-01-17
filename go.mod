@@ -14,7 +14,12 @@ require (
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20200609130330-bd2cb7843e1b
 )
 
-require github.com/goombaio/namegenerator v0.0.0-20181006234301-989e774b106e
+require (
+	github.com/goombaio/namegenerator v0.0.0-20181006234301-989e774b106e
+	github.com/hashicorp/go-multierror v1.0.0
+)
+
+require github.com/hashicorp/errwrap v1.0.0 // indirect
 
 require (
 	github.com/ChainSafe/go-schnorrkel v1.0.0 // indirect
@@ -38,7 +43,7 @@ require (
 	github.com/gtank/ristretto255 v0.1.2 // indirect
 	github.com/jbenet/go-base58 v0.0.0-20150317085156-6237cf65f3a6 // indirect
 	github.com/mimoo/StrobeGo v0.0.0-20210601165009-122bf33a46e0 // indirect
-	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
+	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pierrec/xxHash v0.1.5 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rs/cors v1.8.2 // indirect

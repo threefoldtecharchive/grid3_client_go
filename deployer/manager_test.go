@@ -23,7 +23,7 @@ func TestCancelAll(t *testing.T) {
 	sub := mock.NewMockSubstrateExt(ctrl)
 	subi := mock.NewMockManagerInterface(ctrl)
 	gridClient := mock.NewMockClient(ctrl)
-	ncPool := mock.NewMockNodeClientCollection(ctrl)
+	ncPool := mock.NewMockNodeClientGetter(ctrl)
 	dl1 := deployment1(identity, false, 0, backendURLWithoutTLSPassthrough)
 	dl1.ContractID = 100
 	dMap := map[uint32]uint64{
@@ -56,7 +56,7 @@ func TestCommit(t *testing.T) {
 	sub := mock.NewMockSubstrateExt(ctrl)
 	subi := mock.NewMockManagerInterface(ctrl)
 	gridClient := mock.NewMockClient(ctrl)
-	ncPool := mock.NewMockNodeClientCollection(ctrl)
+	ncPool := mock.NewMockNodeClientGetter(ctrl)
 	dl1 := deployment1(identity, false, 0, backendURLWithoutTLSPassthrough)
 	dl1.ContractID = 100
 	manager := NewDeploymentManager(
@@ -81,7 +81,7 @@ func TestSetWorkload(t *testing.T) {
 	defer ctrl.Finish()
 	sub := mock.NewMockSubstrateExt(ctrl)
 	subi := mock.NewMockManagerInterface(ctrl)
-	ncPool := mock.NewMockNodeClientCollection(ctrl)
+	ncPool := mock.NewMockNodeClientGetter(ctrl)
 	cl := mock.NewRMBMockClient(ctrl)
 	gridClient := mock.NewMockClient(ctrl)
 	zdbWl := gridtypes.Workload{
@@ -134,7 +134,7 @@ func TestCancelWorkloads(t *testing.T) {
 	sub := mock.NewMockSubstrateExt(ctrl)
 	cl := mock.NewRMBMockClient(ctrl)
 	subi := mock.NewMockManagerInterface(ctrl)
-	ncPool := mock.NewMockNodeClientCollection(ctrl)
+	ncPool := mock.NewMockNodeClientGetter(ctrl)
 	gridClient := mock.NewMockClient(ctrl)
 
 	dl1 := deployment1(identity, false, 0, backendURLWithoutTLSPassthrough)
@@ -178,7 +178,7 @@ func TestGetWorkload(t *testing.T) {
 	defer ctrl.Finish()
 	sub := mock.NewMockSubstrateExt(ctrl)
 	subi := mock.NewMockManagerInterface(ctrl)
-	ncPool := mock.NewMockNodeClientCollection(ctrl)
+	ncPool := mock.NewMockNodeClientGetter(ctrl)
 	cl := mock.NewRMBMockClient(ctrl)
 	gridClient := mock.NewMockClient(ctrl)
 	dl1 := deployment1(identity, false, 0, backendURLWithoutTLSPassthrough)
@@ -226,7 +226,7 @@ func TestGetDeployment(t *testing.T) {
 	defer ctrl.Finish()
 	sub := mock.NewMockSubstrateExt(ctrl)
 	subi := mock.NewMockManagerInterface(ctrl)
-	ncPool := mock.NewMockNodeClientCollection(ctrl)
+	ncPool := mock.NewMockNodeClientGetter(ctrl)
 	cl := mock.NewRMBMockClient(ctrl)
 	gridClient := mock.NewMockClient(ctrl)
 

@@ -26,7 +26,7 @@ type DeployerImpl struct {
 	identity        substrate.Identity
 	twinID          uint32
 	validator       Validator
-	ncPool          client.NodeClientCollection
+	ncPool          client.NodeClientGetter
 	revertOnFailure bool
 }
 
@@ -34,7 +34,7 @@ func NewDeployer(
 	identity substrate.Identity,
 	twinID uint32,
 	gridClient proxy.Client,
-	ncPool client.NodeClientCollection,
+	ncPool client.NodeClientGetter,
 	revertOnFailure bool,
 ) Deployer {
 	return &DeployerImpl{

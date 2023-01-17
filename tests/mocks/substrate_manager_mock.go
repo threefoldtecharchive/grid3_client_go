@@ -344,6 +344,21 @@ func (mr *MockSubstrateExtMockRecorder) GetNodeTwin(id interface{}) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNodeTwin", reflect.TypeOf((*MockSubstrateExt)(nil).GetNodeTwin), id)
 }
 
+// GetTwinPK mocks base method.
+func (m *MockSubstrateExt) GetTwinPK(twinID uint32) ([]byte, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTwinPK", twinID)
+	ret0, _ := ret[0].([]byte)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetTwinPK indicates an expected call of GetTwinPK.
+func (mr *MockSubstrateExtMockRecorder) GetTwinPK(twinID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTwinPK", reflect.TypeOf((*MockSubstrateExt)(nil).GetTwinPK), twinID)
+}
+
 // GetTwinByPubKey mocks base method.
 func (m *MockSubstrateExt) GetTwinByPubKey(pk []byte) (uint32, error) {
 	m.ctrl.T.Helper()

@@ -10,6 +10,7 @@ import (
 	"github.com/threefoldtech/grid3-go/deployer"
 	client "github.com/threefoldtech/grid3-go/node"
 	"github.com/threefoldtech/grid3-go/subi"
+	"github.com/threefoldtech/substrate-client"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
@@ -136,12 +137,12 @@ func (k *NetworkDeployer) Validate(ctx context.Context, sub subi.SubstrateExt, i
 		return fmt.Errorf("subnet in iprange %s should be 16", k.IPRange.String())
 	}
 
-	return isNodesUp(ctx, sub, k.Nodes, ncPool)
+	return client.AreNodesUp(ctx, sub, k.Nodes, ncPool)
 }
 
 func validateAccountMoneyForExtrinsics(sub subi.SubstrateExt, identity subi.Identity) error {
 	acc, err := sub.GetAccount(identity)
-	if err != nil && !errors.Is(err, subi.ErrAccountNotFound) {
+	if err != nil && !errors.Is(err, substrate.ErrAccountNotFound) {
 		return errors.Wrap(err, "failed to get account with the given mnemonics")
 	}
 	log.Printf("money %d\n", acc.Data.Free)
@@ -155,7 +156,7 @@ func (k *NetworkDeployer) invalidateBrokenAttributes(sub subi.SubstrateExt, ncPo
 
 	for node, contractID := range k.NodeDeploymentID {
 		contract, err := sub.GetContract(contractID)
-		if (err == nil && !contract.IsCreated()) || errors.Is(err, subi.ErrNotFound) {
+		if (err == nil && !contract.IsCreated()) || errors.Is(err, substrate.ErrNotFound) {
 			delete(k.NodeDeploymentID, node)
 			delete(k.NodesIPRange, node)
 			delete(k.Keys, node)
@@ -179,7 +180,7 @@ func (k *NetworkDeployer) invalidateBrokenAttributes(sub subi.SubstrateExt, ncPo
 			// whatever the error, delete it and it will get reassigned later
 			k.PublicNodeID = 0
 		}
-		if err := isNodeUp(context.Background(), cl); err != nil {
+		if err := cl.IsNodeUp(context.Background()); err != nil {
 			k.PublicNodeID = 0
 		}
 	}

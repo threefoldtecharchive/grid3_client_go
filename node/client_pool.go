@@ -1,37 +1,46 @@
 package client
 
 import (
+	"sync"
+
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/grid3-go/subi"
 	"github.com/threefoldtech/zos/pkg/rmb"
 )
 
-type NodeClientCollection interface {
+// NodeClientGetter is an interface for node client
+type NodeClientGetter interface {
 	GetNodeClient(sub subi.SubstrateExt, nodeID uint32) (*NodeClient, error)
 }
+
+// NodeClientPool is a pool for node clients and rmb
 type NodeClientPool struct {
-	nodeClients map[uint32]*NodeClient
+	nodeClients sync.Map
 	rmb         rmb.Client
 }
 
+// NewNodeClientPool generates a new client pool
 func NewNodeClientPool(rmb rmb.Client) *NodeClientPool {
 	return &NodeClientPool{
-		nodeClients: make(map[uint32]*NodeClient),
+		nodeClients: sync.Map{},
 		rmb:         rmb,
 	}
 }
 
-func (k *NodeClientPool) GetNodeClient(sub subi.SubstrateExt, nodeID uint32) (*NodeClient, error) {
-	cl, ok := k.nodeClients[nodeID]
+// GetNodeClient gets the node client according to node ID
+func (p *NodeClientPool) GetNodeClient(sub subi.SubstrateExt, nodeID uint32) (*NodeClient, error) {
+	cl, ok := p.nodeClients.Load(nodeID)
 	if ok {
-		return cl, nil
-	}
-	twinID, err := sub.GetNodeTwin(nodeID)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get node")
+		return cl.(*NodeClient), nil
 	}
 
-	cl = NewNodeClient(uint32(twinID), k.rmb)
-	k.nodeClients[nodeID] = cl
-	return cl, nil
+	twinID, err := sub.GetNodeTwin(nodeID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get node %d", nodeID)
+	}
+
+	cl = NewNodeClient(uint32(twinID), p.rmb)
+	p.nodeClients.Store(nodeID, cl)
+
+	return cl.(*NodeClient), nil
 }

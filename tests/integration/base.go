@@ -17,6 +17,7 @@ import (
 	"github.com/threefoldtech/grid3-go/subi"
 	"github.com/threefoldtech/grid3-go/workloads"
 	proxy "github.com/threefoldtech/grid_proxy_server/pkg/client"
+	"github.com/threefoldtech/substrate-client"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -38,7 +39,7 @@ var (
 func setup() (deployer.DeploymentManager, workloads.APIClient) {
 	mnemonics := os.Getenv("MNEMONICS")
 	SshKeys()
-	identity, err := subi.NewIdentityFromSr25519Phrase(mnemonics)
+	identity, err := substrate.NewIdentityFromSr25519Phrase(mnemonics)
 	if err != nil {
 		panic(err)
 	}
@@ -59,13 +60,13 @@ func setup() (deployer.DeploymentManager, workloads.APIClient) {
 	if err != nil {
 		panic(err)
 	}
-	cl, err := client.NewProxyBus(RMB_PROXY_URL[network], twin, sub, identity, true)
+	cl, err := client.NewProxyBus(RMB_PROXY_URL[network], twin, subext, identity, true)
 	if err != nil {
 		panic(err)
 	}
 	gridClient := proxy.NewRetryingClient(proxy.NewClient(RMB_PROXY_URL[network]))
 	ncPool := client.NewNodeClientPool(cl)
-	manager := deployer.NewDeploymentManager(identity, twin, map[uint32]uint64{}, gridClient, ncPool, sub)
+	manager := deployer.NewDeploymentManager(identity, twin, map[uint32]uint64{}, gridClient, ncPool, &sub)
 	apiClient := workloads.APIClient{
 		SubstrateExt: subext,
 		NCPool:       ncPool,

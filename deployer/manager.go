@@ -37,7 +37,7 @@ type deploymentManager struct {
 	nameContracts        map[string]uint64
 	plannedNameContracts []string
 	gridClient           proxy.Client
-	ncPool               client.NodeClientCollection
+	ncPool               client.NodeClientGetter
 	substrate            subi.ManagerInterface
 	//connection field
 }
@@ -47,7 +47,7 @@ func NewDeploymentManager(
 	twinID uint32,
 	deploymentIDs map[uint32]uint64,
 	gridClient proxy.Client,
-	ncPool client.NodeClientCollection,
+	ncPool client.NodeClientGetter,
 	sub subi.ManagerInterface) DeploymentManager {
 
 	return &deploymentManager{
