@@ -8,10 +8,6 @@ import (
 	proxy "github.com/threefoldtech/grid_proxy_server/pkg/client"
 )
 
-type Workload interface {
-	Stage(d deployer.DeploymentManager, NodeID uint32) error
-}
-
 type APIClient struct {
 	SubstrateExt subi.SubstrateExt
 	NCPool       *client.NodeClientPool

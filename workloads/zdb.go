@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 
 	"github.com/pkg/errors"
+	"github.com/threefoldtech/grid3-go/deployer"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
@@ -103,4 +104,37 @@ func (z *ZDB) Dictify() map[string]interface{} {
 	res["password"] = z.Password
 	res["public"] = z.Public
 	return res
+}
+
+// GenerateWorkloadFromZDB generates a workload from a zdb
+func (z *ZDB) GenerateWorkloadFromZDB() (gridtypes.Workload, error) {
+	return gridtypes.Workload{
+		Name:        gridtypes.Name(z.Name),
+		Type:        zos.ZDBType,
+		Description: z.Description,
+		Version:     0,
+		Data: gridtypes.MustMarshal(zos.ZDB{
+			Size:     gridtypes.Unit(z.Size) * gridtypes.Gigabyte,
+			Mode:     zos.ZDBMode(z.Mode),
+			Password: z.Password,
+			Public:   z.Public,
+		}),
+	}, nil
+}
+
+// Stage for staging workloads
+func (z *ZDB) Stage(manager deployer.DeploymentManager, NodeId uint32) error {
+	workloadsMap := map[uint32][]gridtypes.Workload{}
+	workloads := make([]gridtypes.Workload, 0)
+
+	workload, err := z.GenerateWorkloadFromZDB()
+	if err != nil {
+		return err
+	}
+
+	workloads = append(workloads, workload)
+	workloadsMap[NodeId] = workloads
+
+	err = manager.SetWorkloads(workloadsMap)
+	return err
 }

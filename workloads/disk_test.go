@@ -54,6 +54,12 @@ func TestDiskWorkload(t *testing.T) {
 		assert.Equal(t, disk, diskFromWorkload)
 	})
 
+	t.Run("test_workload_from_disk", func(t *testing.T) {
+		workloadFromDisk, err := disk.GenerateWorkloadFromDisk()
+		assert.NoError(t, err)
+		assert.Equal(t, diskWorkload, workloadFromDisk)
+	})
+
 	t.Run("test_set_workloads", func(t *testing.T) {
 		nodeID := uint32(1)
 		workloadsMap := map[uint32][]gridtypes.Workload{}
@@ -62,7 +68,7 @@ func TestDiskWorkload(t *testing.T) {
 		manager := mocks.NewMockDeploymentManager(ctrl)
 		manager.EXPECT().SetWorkloads(gomock.Eq(workloadsMap)).Return(nil)
 
-		err := manager.SetWorkloads(workloadsMap)
+		err := disk.Stage(manager, nodeID)
 		assert.NoError(t, err)
 	})
 }

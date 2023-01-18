@@ -43,6 +43,12 @@ func TestGatewayFQDNProxyWorkload(t *testing.T) {
 		assert.Equal(t, gateway.ZosWorkload(), gatewayWorkload)
 	})
 
+	t.Run("test_workload_from_gateway_fqdn", func(t *testing.T) {
+		workloadFromFQDN, err := gateway.GenerateWorkloadFromFQDN()
+		assert.NoError(t, err)
+		assert.Equal(t, workloadFromFQDN, gatewayWorkload)
+	})
+
 	t.Run("test_set_workloads", func(t *testing.T) {
 		nodeID := uint32(1)
 		workloadsMap := map[uint32][]gridtypes.Workload{}
@@ -51,7 +57,7 @@ func TestGatewayFQDNProxyWorkload(t *testing.T) {
 		manager := mocks.NewMockDeploymentManager(ctrl)
 		manager.EXPECT().SetWorkloads(gomock.Eq(workloadsMap)).Return(nil)
 
-		err := manager.SetWorkloads(workloadsMap)
+		err := gateway.Stage(manager, nodeID)
 		assert.NoError(t, err)
 	})
 }

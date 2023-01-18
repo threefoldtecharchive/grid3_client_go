@@ -1,4 +1,4 @@
-package deployer
+package todo
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"math/big"
 
 	"github.com/pkg/errors"
+	"github.com/threefoldtech/grid3-go/deployer"
 	client "github.com/threefoldtech/grid3-go/node"
 	"github.com/threefoldtech/grid3-go/subi"
 	"github.com/threefoldtech/grid3-go/workloads"
@@ -36,7 +37,7 @@ type NetworkDeployer struct {
 }
 
 // NewNetworkDeployer generates a new network deployer
-func NewNetworkDeployer(manager DeploymentManager, network workloads.ZNet) (NetworkDeployer, error) {
+func NewNetworkDeployer(manager deployer.DeploymentManager, network workloads.ZNet) (NetworkDeployer, error) {
 	// externalIP, err := gridtypes.ParseIPNet(userAccess.UserAddress)
 	// if err != nil {
 	// 	return NetworkDeployer{}, errors.Wrapf(err, "couldn't parse user address")

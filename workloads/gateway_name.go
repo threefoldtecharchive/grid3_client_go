@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 
 	"github.com/pkg/errors"
+	"github.com/threefoldtech/grid3-go/deployer"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
@@ -61,4 +62,33 @@ func (g *GatewayNameProxy) ZosWorkload() gridtypes.Workload {
 			Backends:       g.Backends,
 		}),
 	}
+}
+
+// GenerateWorkloadFromGName generates a workload from a name gateway
+func (g *GatewayNameProxy) GenerateWorkloadFromGName() (gridtypes.Workload, error) {
+	return gridtypes.Workload{
+		Version: 0,
+		Type:    zos.GatewayNameProxyType,
+		Name:    gridtypes.Name(g.Name),
+		// REVISE: whether description should be set here
+		Data: gridtypes.MustMarshal(zos.GatewayNameProxy{
+			Name:           g.Name,
+			TLSPassthrough: g.TLSPassthrough,
+			Backends:       g.Backends,
+		}),
+	}, nil
+}
+
+// Stage for staging workloads
+func (g *GatewayNameProxy) Stage(manager deployer.DeploymentManager, NodeID uint32) error {
+	workloadsMap := map[uint32][]gridtypes.Workload{}
+	workloads := make([]gridtypes.Workload, 0)
+	workload, err := g.GenerateWorkloadFromGName()
+	if err != nil {
+		return err
+	}
+	workloads = append(workloads, workload)
+	workloadsMap[NodeID] = workloads
+	err = manager.SetWorkloads(workloadsMap)
+	return err
 }

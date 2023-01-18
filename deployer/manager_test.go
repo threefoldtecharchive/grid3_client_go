@@ -308,7 +308,7 @@ func (z *ZDB) GenerateWorkloadFromZDB(zdb ZDB) (gridtypes.Workload, error) {
 	}, nil
 }
 
-func (z *ZDB) Stage(manager DeploymentManager, NodeId uint32) error {
+func (z *ZDB) Stage(manager DeploymentManager, nodeID uint32) error {
 	workloadsMap := map[uint32][]gridtypes.Workload{}
 	workloads := make([]gridtypes.Workload, 0)
 	workload, err := z.GenerateWorkloadFromZDB(*z)
@@ -316,7 +316,7 @@ func (z *ZDB) Stage(manager DeploymentManager, NodeId uint32) error {
 		panic(err)
 	}
 	workloads = append(workloads, workload)
-	workloadsMap[NodeId] = workloads
+	workloadsMap[nodeID] = workloads
 	err = manager.SetWorkloads(workloadsMap)
 	return err
 }

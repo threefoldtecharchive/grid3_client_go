@@ -5,6 +5,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 
+	"github.com/threefoldtech/grid3-go/deployer"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
@@ -36,9 +37,10 @@ func zlogs(dl *gridtypes.Deployment, name string) []Zlog {
 }
 
 // GenerateWorkload generates a zmachine workload
-func (zlog *Zlog) GenerateWorkload(zmachine string) gridtypes.Workload {
+func (zlog *Zlog) GenerateWorkload(zmachine string) (gridtypes.Workload, error) {
 	url := []byte(zlog.Output)
 	urlHash := md5.Sum([]byte(url))
+
 	return gridtypes.Workload{
 		Version: 0,
 		Name:    gridtypes.Name(hex.EncodeToString(urlHash[:])),
@@ -47,5 +49,22 @@ func (zlog *Zlog) GenerateWorkload(zmachine string) gridtypes.Workload {
 			ZMachine: gridtypes.Name(zmachine),
 			Output:   zlog.Output,
 		}),
+	}, nil
+}
+
+// Stage for staging workloads
+func (zlog *Zlog) Stage(manager deployer.DeploymentManager, NodeID uint32, zmachine string) error {
+	workloadsMap := map[uint32][]gridtypes.Workload{}
+	workloads := make([]gridtypes.Workload, 0)
+
+	workload, err := zlog.GenerateWorkload(zmachine)
+	if err != nil {
+		return err
 	}
+
+	workloads = append(workloads, workload)
+	workloadsMap[NodeID] = workloads
+
+	err = manager.SetWorkloads(workloadsMap)
+	return err
 }

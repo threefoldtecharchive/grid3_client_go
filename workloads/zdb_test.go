@@ -72,6 +72,12 @@ func TestZDB(t *testing.T) {
 		assert.Equal(t, zdb.GenerateZDBWorkload(), zdbWorkload)
 	})
 
+	t.Run("test_workload_from_zdb", func(t *testing.T) {
+		workloadFromZDB, err := zdb.GenerateWorkloadFromZDB()
+		assert.NoError(t, err)
+		assert.Equal(t, workloadFromZDB, zdbWorkload)
+	})
+
 	t.Run("test_set_workloads", func(t *testing.T) {
 		nodeID := uint32(1)
 		workloadsMap := map[uint32][]gridtypes.Workload{}
@@ -80,7 +86,7 @@ func TestZDB(t *testing.T) {
 		manager := mocks.NewMockDeploymentManager(ctrl)
 		manager.EXPECT().SetWorkloads(gomock.Eq(workloadsMap)).Return(nil)
 
-		err := manager.SetWorkloads(workloadsMap)
+		err := zdb.Stage(manager, nodeID)
 		assert.NoError(t, err)
 	})
 }

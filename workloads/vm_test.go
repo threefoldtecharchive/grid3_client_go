@@ -18,6 +18,8 @@ func TestVMWorkload(t *testing.T) {
 
 	var vmMap map[string]interface{}
 
+	var workloadsFromVM []gridtypes.Workload
+
 	vm := VM{
 		Name:          "test",
 		Flist:         "flist test",
@@ -145,6 +147,16 @@ func TestVMWorkload(t *testing.T) {
 		assert.NoError(t, vm.Validate())
 	})
 
+	t.Run("test_workload_from_vm", func(t *testing.T) {
+		var err error
+
+		workloadsFromVM, err = vm.GenerateWorkloadFromVM()
+		assert.NoError(t, err)
+
+		assert.Equal(t, workloadsFromVM[2], vmWorkload)
+		assert.Equal(t, workloadsFromVM[0], pubIPWorkload)
+	})
+
 	t.Run("test_vm_set_network_name", func(t *testing.T) {
 		vmWithNetwork := vm.WithNetworkName("net")
 		assert.Equal(t, vmWithNetwork.NetworkName, "net")
@@ -154,18 +166,22 @@ func TestVMWorkload(t *testing.T) {
 		vm2 := vm.WithNetworkName("net")
 		vm.Match(vm2)
 		assert.Equal(t, *vm2, vm)
+
+		// reset network name
+		vm2 = vm.WithNetworkName("test network")
+		vm.Match(vm2)
+		assert.Equal(t, *vm2, vm)
 	})
 
 	t.Run("test_set_workloads", func(t *testing.T) {
 		nodeID := uint32(1)
 		workloadsMap := map[uint32][]gridtypes.Workload{}
-		workloadsMap[nodeID] = append(workloadsMap[nodeID], pubIPWorkload)
-		workloadsMap[nodeID] = append(workloadsMap[nodeID], vmWorkload)
+		workloadsMap[nodeID] = append(workloadsMap[nodeID], workloadsFromVM...)
 
 		manager := mocks.NewMockDeploymentManager(ctrl)
 		manager.EXPECT().SetWorkloads(gomock.Eq(workloadsMap)).Return(nil)
 
-		err := manager.SetWorkloads(workloadsMap)
+		err := vm.Stage(manager, nodeID)
 		assert.NoError(t, err)
 	})
 }

@@ -17,13 +17,15 @@ func TestZLog(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
+	zmachineName := "test"
+
 	urlHash := md5.Sum([]byte("output"))
 	zlogWorkload := gridtypes.Workload{
 		Version: 0,
 		Name:    gridtypes.Name(hex.EncodeToString(urlHash[:])),
 		Type:    zos.ZLogsType,
 		Data: gridtypes.MustMarshal(zos.ZLogs{
-			ZMachine: gridtypes.Name("test"),
+			ZMachine: gridtypes.Name(zmachineName),
 			Output:   "output",
 		}),
 	}
@@ -44,15 +46,18 @@ func TestZLog(t *testing.T) {
 		},
 	}
 
+	zlogWorkload.Result.State = ""
 	zlog := Zlog{Output: "output"}
 
 	t.Run("test_zLogs_generate_workload", func(t *testing.T) {
-		zosWorkload := zlog.GenerateWorkload("test")
+		zosWorkload, err := zlog.GenerateWorkload(zmachineName)
+		assert.NoError(t, err)
 		assert.Equal(t, zosWorkload.Type, zos.ZLogsType)
+		assert.Equal(t, zlogWorkload, zosWorkload)
 	})
 
 	t.Run("test_zLogs_from_deployment", func(t *testing.T) {
-		zlogs := zlogs(&deployment, "test")
+		zlogs := zlogs(&deployment, zmachineName)
 		assert.Equal(t, zlogs, []Zlog{zlog})
 	})
 
@@ -64,7 +69,7 @@ func TestZLog(t *testing.T) {
 		manager := mocks.NewMockDeploymentManager(ctrl)
 		manager.EXPECT().SetWorkloads(gomock.Eq(workloadsMap)).Return(nil)
 
-		err := manager.SetWorkloads(workloadsMap)
+		err := zlog.Stage(manager, nodeID, zmachineName)
 		assert.NoError(t, err)
 	})
 }

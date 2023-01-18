@@ -19,6 +19,7 @@ func TestK8sNodeData(t *testing.T) {
 
 	var k8s K8sNodeData
 	var cluster K8sCluster
+	var k8sWorkloads []gridtypes.Workload
 
 	flist := "https://hub.grid.tf/tf-official-apps/base:latest.flist"
 	flistCheckSum, err := GetFlistChecksum(flist)
@@ -80,18 +81,6 @@ func TestK8sNodeData(t *testing.T) {
 		assert.Equal(t, k8s.Dictify(), k8sMap)
 	})
 
-	t.Run("test_set_workloads", func(t *testing.T) {
-		nodeID := uint32(1)
-		workloadsMap := map[uint32][]gridtypes.Workload{}
-		workloadsMap[nodeID] = append(workloadsMap[nodeID], k8sWorkload)
-
-		manager := mocks.NewMockDeploymentManager(ctrl)
-		manager.EXPECT().SetWorkloads(gomock.Eq(workloadsMap)).Return(nil)
-
-		err := manager.SetWorkloads(workloadsMap)
-		assert.NoError(t, err)
-	})
-
 	t.Run("test_new_k8s_cluster", func(t *testing.T) {
 		cluster = K8sCluster{
 			Master:      &k8s,
@@ -113,10 +102,21 @@ func TestK8sNodeData(t *testing.T) {
 	})
 
 	t.Run("test_generate_k8s_workloads", func(t *testing.T) {
-		workloads := k8s.GenerateK8sWorkload(&cluster, "")
+		k8sWorkloads = k8s.GenerateK8sWorkload(&cluster, false)
 
-		assert.Equal(t, workloads[0].Type, zos.ZMountType)
-		assert.Equal(t, workloads[1].Type, zos.ZMachineType)
-		assert.Equal(t, len(workloads), 2)
+		assert.Equal(t, k8sWorkloads[0].Type, zos.ZMountType)
+		assert.Equal(t, k8sWorkloads[1].Type, zos.ZMachineType)
+		assert.Equal(t, len(k8sWorkloads), 2)
+	})
+
+	t.Run("test_set_workloads", func(t *testing.T) {
+		workloadsMap := map[uint32][]gridtypes.Workload{}
+		workloadsMap[cluster.Master.Node] = append(workloadsMap[cluster.Master.Node], k8sWorkloads...)
+
+		manager := mocks.NewMockDeploymentManager(ctrl)
+		manager.EXPECT().SetWorkloads(gomock.Eq(workloadsMap)).Return(nil)
+
+		err := cluster.Stage(context.Background(), manager)
+		assert.NoError(t, err)
 	})
 }

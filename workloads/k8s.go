@@ -9,6 +9,7 @@ import (
 	"regexp"
 
 	"github.com/pkg/errors"
+	"github.com/threefoldtech/grid3-go/deployer"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
@@ -120,7 +121,7 @@ func (k *K8sNodeData) Dictify() map[string]interface{} {
 	return res
 }
 
-func (k *K8sNodeData) GenerateK8sWorkload(cluster *K8sCluster, masterIP string) []gridtypes.Workload {
+func (k *K8sNodeData) GenerateK8sWorkload(cluster *K8sCluster, worker bool) []gridtypes.Workload {
 	diskName := fmt.Sprintf("%sdisk", k.Name)
 	K8sWorkloads := make([]gridtypes.Workload, 0)
 	diskWorkload := gridtypes.Workload{
@@ -146,8 +147,9 @@ func (k *K8sNodeData) GenerateK8sWorkload(cluster *K8sCluster, masterIP string) 
 		"K3S_NODE_NAME":     k.Name,
 		"K3S_URL":           "",
 	}
-	if masterIP != "" {
-		envVars["K3S_URL"] = fmt.Sprintf("https://%s:6443", masterIP)
+	if worker {
+		// K3S_URL marks where to find the master node
+		envVars["K3S_URL"] = fmt.Sprintf("https://%s:6443", cluster.Master.IP)
 	}
 	workload := gridtypes.Workload{
 		Version: 0,
@@ -204,5 +206,27 @@ func (k *K8sCluster) ValidateNames(ctx context.Context) error {
 		}
 		names[w.Name] = true
 	}
+	return nil
+}
+
+// Stage for staging workloads
+func (k *K8sCluster) Stage(ctx context.Context, manager deployer.DeploymentManager) error {
+	err := k.ValidateNames(ctx)
+	if err != nil {
+		return err
+	}
+
+	workloads := map[uint32][]gridtypes.Workload{}
+
+	workloads[k.Master.Node] = append(workloads[k.Master.Node], k.Master.GenerateK8sWorkload(k, false)...)
+	for _, worker := range k.Workers {
+		workloads[worker.Node] = append(workloads[worker.Node], worker.GenerateK8sWorkload(k, true)...)
+	}
+
+	err = manager.SetWorkloads(workloads)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

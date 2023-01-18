@@ -204,6 +204,12 @@ func TestQSFSWorkload(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
+	t.Run("test_workload_from_gateway_qsfs", func(t *testing.T) {
+		workloadFromQSFS, err := qsfs.GenerateWorkloadFromQSFS()
+		assert.NoError(t, err)
+		assert.Equal(t, workloadFromQSFS, qsfsWorkload)
+	})
+
 	t.Run("test_set_workloads", func(t *testing.T) {
 		nodeID := uint32(1)
 		workloadsMap := map[uint32][]gridtypes.Workload{}
@@ -212,7 +218,7 @@ func TestQSFSWorkload(t *testing.T) {
 		manager := mocks.NewMockDeploymentManager(ctrl)
 		manager.EXPECT().SetWorkloads(gomock.Eq(workloadsMap)).Return(nil)
 
-		err := manager.SetWorkloads(workloadsMap)
+		err := qsfs.Stage(manager, nodeID)
 		assert.NoError(t, err)
 	})
 }
