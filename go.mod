@@ -19,7 +19,17 @@ require (
 	github.com/hashicorp/go-multierror v1.0.0
 )
 
-require github.com/hashicorp/errwrap v1.0.0 // indirect
+require (
+	github.com/blang/semver v3.5.1+incompatible // indirect
+	github.com/go-ole/go-ole v1.2.6 // indirect
+	github.com/hashicorp/errwrap v1.0.0 // indirect
+	github.com/shirou/gopsutil v3.21.11+incompatible // indirect
+	github.com/tklauser/go-sysconf v0.3.9 // indirect
+	github.com/tklauser/numcpus v0.3.0 // indirect
+	github.com/vishvananda/netlink v1.1.1-0.20201029203352-d40f9887b852 // indirect
+	github.com/vishvananda/netns v0.0.0-20210104183010-2eb08e3e575f // indirect
+	github.com/yusufpapurcu/wmi v1.2.2 // indirect
+)
 
 require (
 	github.com/ChainSafe/go-schnorrkel v1.0.0 // indirect

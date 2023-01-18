@@ -11,10 +11,11 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
-func TestZDBStage(t *testing.T) {
+func TestZDB(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	manager := mocks.NewMockDeploymentManager(ctrl)
+
+	var ips []string
 
 	zdb := ZDB{
 		Name:        "test",
@@ -23,8 +24,24 @@ func TestZDBStage(t *testing.T) {
 		Size:        100,
 		Description: "test des",
 		Mode:        "user",
+		IPs:         ips,
+		Port:        0,
+		Namespace:   "",
 	}
-	zdbWl := gridtypes.Workload{
+
+	zdbMap := map[string]interface{}{
+		"name":        "test",
+		"size":        100,
+		"description": "test des",
+		"password":    "password",
+		"public":      true,
+		"mode":        "user",
+		"ips":         ips,
+		"port":        0,
+		"namespace":   "",
+	}
+
+	zdbWorkload := gridtypes.Workload{
 		Name:        gridtypes.Name("test"),
 		Type:        zos.ZDBType,
 		Description: "test des",
@@ -36,9 +53,34 @@ func TestZDBStage(t *testing.T) {
 			Public:   true,
 		}),
 	}
-	wlMap := map[uint32][]gridtypes.Workload{}
-	wlMap[1] = append(wlMap[1], zdbWl)
-	manager.EXPECT().SetWorkloads(gomock.Eq(wlMap)).Return(nil)
-	err := zdb.Stage(manager, 1)
-	assert.NoError(t, err)
+
+	t.Run("test_zdb_from_map", func(t *testing.T) {
+		zdbFromMap := ConvertsMapIntoZDB(zdbMap)
+		assert.Equal(t, zdb, zdbFromMap)
+
+	})
+
+	t.Run("test_zdb_from_workload", func(t *testing.T) {
+		zdbFromWorkload, err := NewZDBFromWorkload(&zdbWorkload)
+		assert.NoError(t, err)
+		assert.Equal(t, zdb, zdbFromWorkload)
+	})
+
+	t.Run("test_zdb_functions", func(t *testing.T) {
+		assert.Equal(t, zdb.Dictify(), zdbMap)
+		assert.Equal(t, zdb.GetName(), "test")
+		assert.Equal(t, zdb.GenerateZDBWorkload(), zdbWorkload)
+	})
+
+	t.Run("test_set_workloads", func(t *testing.T) {
+		nodeID := uint32(1)
+		workloadsMap := map[uint32][]gridtypes.Workload{}
+		workloadsMap[nodeID] = append(workloadsMap[nodeID], zdbWorkload)
+
+		manager := mocks.NewMockDeploymentManager(ctrl)
+		manager.EXPECT().SetWorkloads(gomock.Eq(workloadsMap)).Return(nil)
+
+		err := manager.SetWorkloads(workloadsMap)
+		assert.NoError(t, err)
+	})
 }
