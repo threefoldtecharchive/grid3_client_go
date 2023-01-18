@@ -22,8 +22,8 @@ type ZDB struct {
 	Namespace   string
 }
 
-// ConvertsMapIntoZDB converts a map including zdb data to a zdb struct
-func ConvertsMapIntoZDB(zdb map[string]interface{}) ZDB {
+// NewZDBFromSchema converts a map including zdb data to a zdb struct
+func NewZDBFromSchema(zdb map[string]interface{}) ZDB {
 	ips := zdb["ips"].([]string)
 
 	return ZDB{

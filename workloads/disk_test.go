@@ -37,7 +37,7 @@ func TestDiskWorkload(t *testing.T) {
 	}
 
 	t.Run("test_disk_from_map", func(t *testing.T) {
-		disk = ConvertsMapIntoDisk(diskMap)
+		disk = NewDiskFromSchema(diskMap)
 
 	})
 

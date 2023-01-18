@@ -14,8 +14,8 @@ type Disk struct {
 	Description string
 }
 
-// ConvertsMapIntoDisk converts a disk data map to a struct
-func ConvertsMapIntoDisk(disk map[string]interface{}) Disk {
+// NewDiskFromSchema converts a disk data map to a struct
+func NewDiskFromSchema(disk map[string]interface{}) Disk {
 	return Disk{
 		Name:        disk["name"].(string),
 		Size:        disk["size"].(int),

@@ -55,7 +55,7 @@ func TestZDB(t *testing.T) {
 	}
 
 	t.Run("test_zdb_from_map", func(t *testing.T) {
-		zdbFromMap := ConvertsMapIntoZDB(zdbMap)
+		zdbFromMap := NewZDBFromSchema(zdbMap)
 		assert.Equal(t, zdb, zdbFromMap)
 
 	})

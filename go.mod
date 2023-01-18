@@ -5,6 +5,8 @@ go 1.18
 require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/centrifuge/go-substrate-rpc-client/v4 v4.0.5
+	github.com/goombaio/namegenerator v0.0.0-20181006234301-989e774b106e
+	github.com/hashicorp/go-multierror v1.0.0
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.7.0
 	github.com/threefoldtech/go-rmb v0.2.0
@@ -12,23 +14,6 @@ require (
 	github.com/threefoldtech/substrate-client v0.0.0-20220822132933-d0d75781793c
 	github.com/threefoldtech/zos v0.5.6-0.20220823125932-7df5043ab018
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20200609130330-bd2cb7843e1b
-)
-
-require (
-	github.com/goombaio/namegenerator v0.0.0-20181006234301-989e774b106e
-	github.com/hashicorp/go-multierror v1.0.0
-)
-
-require (
-	github.com/blang/semver v3.5.1+incompatible // indirect
-	github.com/go-ole/go-ole v1.2.6 // indirect
-	github.com/hashicorp/errwrap v1.0.0 // indirect
-	github.com/shirou/gopsutil v3.21.11+incompatible // indirect
-	github.com/tklauser/go-sysconf v0.3.9 // indirect
-	github.com/tklauser/numcpus v0.3.0 // indirect
-	github.com/vishvananda/netlink v1.1.1-0.20201029203352-d40f9887b852 // indirect
-	github.com/vishvananda/netns v0.0.0-20210104183010-2eb08e3e575f // indirect
-	github.com/yusufpapurcu/wmi v1.2.2 // indirect
 )
 
 require (
@@ -51,6 +36,7 @@ require (
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/gtank/merlin v0.1.1 // indirect
 	github.com/gtank/ristretto255 v0.1.2 // indirect
+	github.com/hashicorp/errwrap v1.0.0 // indirect
 	github.com/jbenet/go-base58 v0.0.0-20150317085156-6237cf65f3a6 // indirect
 	github.com/mimoo/StrobeGo v0.0.0-20210601165009-122bf33a46e0 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible
