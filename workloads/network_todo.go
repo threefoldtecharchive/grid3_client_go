@@ -233,7 +233,7 @@ func (k *NetworkDeployer) assignNodesIPs(nodes []uint32) error {
 				return err
 			}
 			usedIPs = append(usedIPs, cur)
-			ip := IpNet(k.IPRange.IP[l-4], k.IPRange.IP[l-3], cur, k.IPRange.IP[l-1], 24)
+			ip := IPNet(k.IPRange.IP[l-4], k.IPRange.IP[l-3], cur, k.IPRange.IP[l-1], 24)
 			k.ExternalIP = &ip
 		}
 	}
@@ -244,7 +244,7 @@ func (k *NetworkDeployer) assignNodesIPs(nodes []uint32) error {
 				return err
 			}
 			usedIPs = append(usedIPs, cur)
-			ips[node] = IpNet(k.IPRange.IP[l-4], k.IPRange.IP[l-3], cur, k.IPRange.IP[l-2], 24)
+			ips[node] = IPNet(k.IPRange.IP[l-4], k.IPRange.IP[l-3], cur, k.IPRange.IP[l-2], 24)
 		}
 	}
 	k.NodesIPRange = ips

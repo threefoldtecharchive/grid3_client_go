@@ -25,7 +25,7 @@ func TestNetwork(t *testing.T) {
 	}
 
 	t.Run("test_ip_net", func(t *testing.T) {
-		ip := IpNet(1, 1, 1, 1, 24)
+		ip := IPNet(1, 1, 1, 1, 24)
 		assert.Equal(t, ip, znet.IPRange)
 	})
 

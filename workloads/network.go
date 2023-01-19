@@ -46,7 +46,7 @@ var (
 )
 
 // IpNet returns an IP net type
-func IpNet(a, b, c, d, msk byte) gridtypes.IPNet {
+func IPNet(a, b, c, d, msk byte) gridtypes.IPNet {
 	return gridtypes.NewIPNet(net.IPNet{
 		IP:   net.IPv4(a, b, c, d),
 		Mask: net.CIDRMask(int(msk), 32),
@@ -141,19 +141,19 @@ func GetPublicNode(ctx context.Context, gridClient proxy.Client, preferredNodes 
 }
 
 // GetNodeFreeWGPort returns node free wireguard port
-func GetNodeFreeWGPort(ctx context.Context, nodeClient *client.NodeClient, nodeId uint32) (int, error) {
+func GetNodeFreeWGPort(ctx context.Context, nodeClient *client.NodeClient, nodeID uint32) (int, error) {
 	rand.Seed(time.Now().UnixNano())
 	freePorts, err := nodeClient.NetworkListWGPorts(ctx)
 	if err != nil {
 		return 0, errors.Wrap(err, "failed to list wg ports")
 	}
-	log.Printf("reserved ports for node %d: %v\n", nodeId, freePorts)
+	log.Printf("reserved ports for node %d: %v\n", nodeID, freePorts)
 	p := uint(rand.Intn(6000) + 2000)
 
 	for Contains(freePorts, uint16(p)) {
 		p = uint(rand.Intn(6000) + 2000)
 	}
-	log.Printf("Selected port for node %d is %d\n", nodeId, p)
+	log.Printf("Selected port for node %d is %d\n", nodeID, p)
 	return int(p), nil
 }
 
@@ -377,7 +377,7 @@ func (znet *ZNet) Stage(
 				Subnet:      nodeIPRange,
 				AllowedIPs: []gridtypes.IPNet{
 					k.IPRange,
-					IpNet(100, 64, 0, 0, 16),
+					IPNet(100, 64, 0, 0, 16),
 				},
 				Endpoint: fmt.Sprintf("%s:%d", endpoints[k.PublicNodeID], k.WGPort[k.PublicNodeID]),
 			})
