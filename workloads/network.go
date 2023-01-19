@@ -45,7 +45,7 @@ var (
 	ErrNoAccessibleInterfaceFound = fmt.Errorf("couldn't find a publicly accessible ipv4 or ipv6")
 )
 
-// IpNet returns an IP net type
+// IPNet returns an IP net type
 func IPNet(a, b, c, d, msk byte) gridtypes.IPNet {
 	return gridtypes.NewIPNet(net.IPNet{
 		IP:   net.IPv4(a, b, c, d),

@@ -16,6 +16,7 @@ import (
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
+// NetworkDeployer struct
 type NetworkDeployer struct {
 	Name        string
 	Description string
@@ -205,7 +206,7 @@ func NewNetworkDeployer(manager deployer.DeploymentManager, network ZNet) (Netwo
 
 func nextFreeOctet(used []byte, start *byte) error {
 	for Contains(used, *start) && *start <= 254 {
-		*start += 1
+		*start++
 	}
 	if *start == 255 {
 		return errors.New("couldn't find a free ip to add node")
@@ -282,6 +283,7 @@ func (k *NetworkDeployer) assignNodesWGKey(nodes []uint32) error {
 	return nil
 }
 
+// Validate validates a network deployer
 func (k *NetworkDeployer) Validate(ctx context.Context, sub subi.SubstrateExt, identity subi.Identity, ncPool *client.NodeClientPool) error {
 	if err := validateAccountBalanceForExtrinsics(sub, identity); err != nil {
 		return err
