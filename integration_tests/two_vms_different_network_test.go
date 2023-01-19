@@ -19,7 +19,7 @@ import (
 func TestTwoVmDifferentNet(t *testing.T) {
 	manager, apiClient := setup()
 	publicKey := os.Getenv("PUBLICKEY")
-	network1 := workloads.TargetNetwork{
+	network1 := workloads.ZNet{
 		Name:        "Network1",
 		Description: "network for testing",
 		Nodes:       []uint32{14},
@@ -29,7 +29,7 @@ func TestTwoVmDifferentNet(t *testing.T) {
 		}),
 		AddWGAccess: false,
 	}
-	network2 := workloads.TargetNetwork{
+	network2 := workloads.ZNet{
 		Name:        "Network2",
 		Description: "network for testing",
 		Nodes:       []uint32{14},
@@ -43,7 +43,7 @@ func TestTwoVmDifferentNet(t *testing.T) {
 	vm1 := workloads.VM{
 		Name:       "vm1",
 		Flist:      "https://hub.grid.tf/tf-official-apps/threefoldtech-ubuntu-20.04.flist",
-		Cpu:        2,
+		CPU:        2,
 		Planetary:  true,
 		Memory:     1024,
 		RootfsSize: 20 * 1024,
@@ -59,7 +59,7 @@ func TestTwoVmDifferentNet(t *testing.T) {
 	vm2 := workloads.VM{
 		Name:       "vm2",
 		Flist:      "https://hub.grid.tf/tf-official-apps/threefoldtech-ubuntu-20.04.flist",
-		Cpu:        2,
+		CPU:        2,
 		Planetary:  true,
 		Memory:     1024,
 		RootfsSize: 20 * 1024,
@@ -92,7 +92,9 @@ func TestTwoVmDifferentNet(t *testing.T) {
 
 		err = manager.Commit(ctx)
 		assert.NoError(t, err)
-		defer manager.CancelAll()
+
+		err = manager.CancelAll()
+		assert.NoError(t, err)
 
 		res1, err := loader.LoadVmFromGrid(manager, 14, "vm1")
 		assert.NoError(t, err)
@@ -159,7 +161,9 @@ func TestTwoVmDifferentNet(t *testing.T) {
 
 		err = manager.Commit(ctx)
 		assert.NoError(t, err)
-		defer manager.CancelAll()
+
+		err = manager.CancelAll()
+		assert.NoError(t, err)
 
 		err = vm1.Stage(manager, 13)
 		assert.NoError(t, err)

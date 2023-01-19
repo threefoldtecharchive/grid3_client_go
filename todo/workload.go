@@ -1,4 +1,3 @@
-// Package workloads includes workloads types (vm, zdb, qsfs, public IP, gateway name, gateway fqdn, disk)
 package todo
 
 import (
@@ -8,6 +7,7 @@ import (
 	proxy "github.com/threefoldtech/grid_proxy_server/pkg/client"
 )
 
+// APIClient struct
 type APIClient struct {
 	SubstrateExt subi.SubstrateExt
 	NCPool       *client.NodeClientPool

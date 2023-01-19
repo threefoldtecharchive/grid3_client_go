@@ -16,7 +16,7 @@ func TestDeployment(t *testing.T) {
 
 	manager, apiClient := setup()
 
-	network := workloads.TargetNetwork{
+	network := workloads.ZNet{
 		Name:        "net1",
 		Description: "not skynet",
 		Nodes:       []uint32{33, 34},
@@ -36,9 +36,12 @@ func TestDeployment(t *testing.T) {
 
 	err = manager.Commit(context.Background())
 	assert.Equal(t, nil, err)
-	defer manager.CancelAll()
+
+	err = manager.CancelAll()
+	assert.NoError(t, err)
 
 	ln, err := loader.LoadNetworkFromGrid(manager, "net1")
+	assert.NoError(t, err)
 	log.Printf("current network: %+v", ln)
 	log.Printf("current contracts: %+v", manager.GetContractIDs())
 
@@ -52,6 +55,7 @@ func TestDeployment(t *testing.T) {
 	assert.Equal(t, nil, err)
 
 	ln, err = loader.LoadNetworkFromGrid(manager, "net1")
+	assert.NoError(t, err)
 	log.Printf("current network: %+v", ln)
 	log.Printf("current contracts: %+v", manager.GetContractIDs())
 
@@ -64,11 +68,16 @@ func TestDeployment(t *testing.T) {
 	err = manager.Commit(context.Background())
 	assert.NoError(t, err)
 	ln, err = loader.LoadNetworkFromGrid(manager, "net1")
+	assert.NoError(t, err)
 	log.Printf("current network: %+v", ln)
 	log.Printf("current contracts: %+v", manager.GetContractIDs())
 
 	err = manager.CancelAll()
+	assert.NoError(t, err)
+
 	ln, err = loader.LoadNetworkFromGrid(manager, "net1")
+	assert.NoError(t, err)
+
 	log.Printf("current network: %+v", ln)
 	log.Printf("current contracts: %+v", manager.GetContractIDs())
 }

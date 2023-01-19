@@ -442,7 +442,6 @@ func (d *deploymentManager) GetWorkload(nodeID uint32, name string) (gridtypes.W
 }
 
 func (d *deploymentManager) GetDeployment(nodeID uint32) (gridtypes.Deployment, error) {
-	dl := gridtypes.Deployment{}
 	if dID, ok := d.deploymentIDs[nodeID]; ok {
 		s, err := d.substrate.SubstrateExt()
 		if err != nil {
@@ -453,7 +452,7 @@ func (d *deploymentManager) GetDeployment(nodeID uint32) (gridtypes.Deployment, 
 		if err != nil {
 			return gridtypes.Deployment{}, errors.Wrapf(err, "couldn't get node client: %d", nodeID)
 		}
-		dl, err = nodeClient.DeploymentGet(context.Background(), dID)
+		dl, err := nodeClient.DeploymentGet(context.Background(), dID)
 		if err != nil {
 			return gridtypes.Deployment{}, errors.Wrapf(err, "couldn't get deployment from node %d", nodeID)
 		}

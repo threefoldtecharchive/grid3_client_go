@@ -30,7 +30,9 @@ func TestGatewayFQDNDeployment(t *testing.T) {
 	defer cancel()
 
 	err = manager.Commit(ctx)
-	defer manager.CancelAll()
+	assert.NoError(t, err)
+
+	err = manager.CancelAll()
 	assert.NoError(t, err)
 	result, err := loader.LoadGatewayFqdnFromGrid(manager, 49, "tf")
 	assert.NoError(t, err)

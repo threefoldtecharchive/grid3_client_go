@@ -30,8 +30,12 @@ func NewDiskFromWorkload(wl *gridtypes.Workload) (Disk, error) {
 	if err != nil {
 		return Disk{}, errors.Wrap(err, "failed to get workload data")
 	}
-	// TODO: check ok?
-	data := dataI.(*zos.ZMount)
+
+	data, ok := dataI.(*zos.ZMount)
+	if !ok {
+		return Disk{}, errors.New("couldn't cast workload data")
+	}
+
 	return Disk{
 		Name:        wl.Name.String(),
 		Description: wl.Description,

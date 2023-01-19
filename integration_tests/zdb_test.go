@@ -27,7 +27,10 @@ func TestZDBDeployment(t *testing.T) {
 	defer cancel()
 	err = manager.Commit(ctx)
 	assert.NoError(t, err)
-	defer manager.CancelAll()
+
+	err = manager.CancelAll()
+	assert.NoError(t, err)
+
 	result, err := loader.LoadZdbFromGrid(manager, 13, "testName")
 	assert.NoError(t, err)
 	assert.NotEmpty(t, result.IPs)

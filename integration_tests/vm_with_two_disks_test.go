@@ -17,7 +17,7 @@ import (
 func TestVMWithTwoDisk(t *testing.T) {
 	manager, apiClient := setup()
 	publicKey := os.Getenv("PUBLICKEY")
-	network := workloads.TargetNetwork{
+	network := workloads.ZNet{
 		Name:        "testingNetwork123",
 		Description: "network for testing",
 		Nodes:       []uint32{14},
@@ -38,7 +38,7 @@ func TestVMWithTwoDisk(t *testing.T) {
 	vm := workloads.VM{
 		Name:       "vm",
 		Flist:      "https://hub.grid.tf/tf-official-apps/threefoldtech-ubuntu-20.04.flist",
-		Cpu:        2,
+		CPU:        2,
 		Planetary:  true,
 		Memory:     1024,
 		RootfsSize: 20 * 1024,
@@ -66,7 +66,9 @@ func TestVMWithTwoDisk(t *testing.T) {
 
 	err = manager.Commit(ctx)
 	assert.NoError(t, err)
-	defer manager.CancelAll()
+
+	err = manager.CancelAll()
+	assert.NoError(t, err)
 
 	err = vm.Stage(manager, 14)
 	assert.NoError(t, err)

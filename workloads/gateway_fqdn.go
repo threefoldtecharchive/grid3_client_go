@@ -29,7 +29,11 @@ func GatewayFQDNProxyFromZosWorkload(wl gridtypes.Workload) (GatewayFQDNProxy, e
 	if err != nil {
 		return GatewayFQDNProxy{}, errors.Wrap(err, "failed to get workload data")
 	}
-	data := dataI.(*zos.GatewayFQDNProxy)
+
+	data, ok := dataI.(*zos.GatewayFQDNProxy)
+	if !ok {
+		return GatewayFQDNProxy{}, errors.New("couldn't cast workload data")
+	}
 
 	return GatewayFQDNProxy{
 		Name:           wl.Name.String(),

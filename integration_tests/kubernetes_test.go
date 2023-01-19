@@ -24,7 +24,7 @@ func TestKubernetes(t *testing.T) {
 		DiskSize:  1,
 		PublicIP:  false,
 		Planetary: true,
-		Cpu:       1,
+		CPU:       1,
 		Memory:    2048,
 	}
 	worker1 := master
@@ -41,7 +41,7 @@ func TestKubernetes(t *testing.T) {
 		NetworkName: "skynet",
 	}
 
-	network := workloads.TargetNetwork{
+	network := workloads.ZNet{
 		Name:        "skynet",
 		Description: "not skynet",
 		Nodes:       []uint32{45},
@@ -65,7 +65,9 @@ func TestKubernetes(t *testing.T) {
 
 		err = manager.Commit(ctx)
 		assert.NoError(t, err)
-		defer manager.CancelAll()
+
+		err = manager.CancelAll()
+		assert.NoError(t, err)
 
 		masterNode := map[uint32]string{master.Node: master.Name}
 		workerNodes := map[uint32][]string{}

@@ -39,7 +39,11 @@ func GatewayNameProxyFromZosWorkload(wl gridtypes.Workload) (GatewayNameProxy, e
 	if err != nil {
 		return GatewayNameProxy{}, errors.Wrap(err, "failed to get workload data")
 	}
-	data := dataI.(*zos.GatewayNameProxy)
+
+	data, ok := dataI.(*zos.GatewayNameProxy)
+	if !ok {
+		return GatewayNameProxy{}, errors.New("couldn't cast workload data")
+	}
 
 	return GatewayNameProxy{
 		Name:           data.Name,

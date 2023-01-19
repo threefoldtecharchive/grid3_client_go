@@ -131,7 +131,10 @@ func TestVMWorkload(t *testing.T) {
 		dataI, err := vmWorkload.WorkloadData()
 		assert.NoError(t, err)
 
-		mountsOfVMWorkload := mounts(dataI.(*zos.ZMachine).Mounts)
+		zosZmachine, ok := dataI.(*zos.ZMachine)
+		assert.Equal(t, ok, true)
+
+		mountsOfVMWorkload := mounts(zosZmachine.Mounts)
 		assert.Equal(t, mountsOfVMWorkload, vm.Mounts)
 	})
 

@@ -1,4 +1,4 @@
-package todo
+package workloads
 
 import (
 	"context"
@@ -10,7 +10,6 @@ import (
 	"github.com/threefoldtech/grid3-go/deployer"
 	client "github.com/threefoldtech/grid3-go/node"
 	"github.com/threefoldtech/grid3-go/subi"
-	"github.com/threefoldtech/grid3-go/workloads"
 	"github.com/threefoldtech/substrate-client"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
@@ -37,7 +36,7 @@ type NetworkDeployer struct {
 }
 
 // NewNetworkDeployer generates a new network deployer
-func NewNetworkDeployer(manager deployer.DeploymentManager, network workloads.ZNet) (NetworkDeployer, error) {
+func NewNetworkDeployer(manager deployer.DeploymentManager, network ZNet) (NetworkDeployer, error) {
 	// externalIP, err := gridtypes.ParseIPNet(userAccess.UserAddress)
 	// if err != nil {
 	// 	return NetworkDeployer{}, errors.Wrapf(err, "couldn't parse user address")
@@ -205,7 +204,7 @@ func NewNetworkDeployer(manager deployer.DeploymentManager, network workloads.ZN
 }
 
 func nextFreeOctet(used []byte, start *byte) error {
-	for workloads.Contains(used, *start) && *start <= 254 {
+	for Contains(used, *start) && *start <= 254 {
 		*start += 1
 	}
 	if *start == 255 {
@@ -219,7 +218,7 @@ func (k *NetworkDeployer) assignNodesIPs(nodes []uint32) error {
 	l := len(k.IPRange.IP)
 	usedIPs := make([]byte, 0) // the third octet
 	for node, ip := range k.NodesIPRange {
-		if workloads.Contains(nodes, node) {
+		if Contains(nodes, node) {
 			usedIPs = append(usedIPs, ip.IP[l-2])
 			ips[node] = ip
 		}
@@ -234,7 +233,7 @@ func (k *NetworkDeployer) assignNodesIPs(nodes []uint32) error {
 				return err
 			}
 			usedIPs = append(usedIPs, cur)
-			ip := workloads.IpNet(k.IPRange.IP[l-4], k.IPRange.IP[l-3], cur, k.IPRange.IP[l-1], 24)
+			ip := IpNet(k.IPRange.IP[l-4], k.IPRange.IP[l-3], cur, k.IPRange.IP[l-1], 24)
 			k.ExternalIP = &ip
 		}
 	}
@@ -245,7 +244,7 @@ func (k *NetworkDeployer) assignNodesIPs(nodes []uint32) error {
 				return err
 			}
 			usedIPs = append(usedIPs, cur)
-			ips[node] = workloads.IpNet(k.IPRange.IP[l-4], k.IPRange.IP[l-3], cur, k.IPRange.IP[l-2], 24)
+			ips[node] = IpNet(k.IPRange.IP[l-4], k.IPRange.IP[l-3], cur, k.IPRange.IP[l-2], 24)
 		}
 	}
 	k.NodesIPRange = ips
@@ -258,7 +257,7 @@ func (k *NetworkDeployer) assignNodesWGPort(ctx context.Context, sub subi.Substr
 			if err != nil {
 				return errors.Wrap(err, "coudln't get node client")
 			}
-			port, err := workloads.GetNodeFreeWGPort(ctx, cl, node)
+			port, err := GetNodeFreeWGPort(ctx, cl, node)
 			if err != nil {
 				return errors.Wrap(err, "failed to get node free wg ports")
 			}

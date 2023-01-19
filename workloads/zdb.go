@@ -46,8 +46,12 @@ func NewZDBFromWorkload(wl *gridtypes.Workload) (ZDB, error) {
 	if err != nil {
 		return ZDB{}, errors.Wrap(err, "failed to get workload data")
 	}
-	// TODO: check ok?
-	data := dataI.(*zos.ZDB)
+
+	data, ok := dataI.(*zos.ZDB)
+	if !ok {
+		return ZDB{}, errors.New("couldn't cast workload data")
+	}
+
 	var result zos.ZDBResult
 
 	if len(wl.Result.Data) > 0 {

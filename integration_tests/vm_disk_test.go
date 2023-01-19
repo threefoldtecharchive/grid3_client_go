@@ -18,7 +18,7 @@ import (
 func TestVmDisk(t *testing.T) {
 	manager, apiClient := setup()
 	publicKey := os.Getenv("PUBLICKEY")
-	network := workloads.TargetNetwork{
+	network := workloads.ZNet{
 		Name:        "networkalaa",
 		Description: "network for testing",
 		Nodes:       []uint32{14},
@@ -35,7 +35,7 @@ func TestVmDisk(t *testing.T) {
 	vm := workloads.VM{
 		Name:       "vm",
 		Flist:      "https://hub.grid.tf/tf-official-apps/threefoldtech-ubuntu-20.04.flist",
-		Cpu:        2,
+		CPU:        2,
 		Planetary:  true,
 		Memory:     1024,
 		RootfsSize: 20 * 1024,
@@ -64,7 +64,9 @@ func TestVmDisk(t *testing.T) {
 
 	err = manager.Commit(ctx)
 	assert.NoError(t, err)
-	defer manager.CancelAll()
+
+	err = manager.CancelAll()
+	assert.NoError(t, err)
 
 	result, err := loader.LoadVmFromGrid(manager, 14, "vm")
 	assert.NoError(t, err)

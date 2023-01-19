@@ -94,8 +94,12 @@ func NewVMFromWorkloads(wl *gridtypes.Workload, dl *gridtypes.Deployment) (VM, e
 	if err != nil {
 		return VM{}, errors.Wrap(err, "failed to get workload data")
 	}
-	// TODO: check ok?
-	data := dataI.(*zos.ZMachine)
+
+	data, ok := dataI.(*zos.ZMachine)
+	if !ok {
+		return VM{}, errors.New("couldn't cast workload data")
+	}
+
 	var result zos.ZMachineResult
 
 	if len(wl.Result.Data) > 0 {

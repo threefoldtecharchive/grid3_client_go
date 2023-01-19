@@ -12,7 +12,7 @@ type Contract interface {
 	PublicIPCount() uint32
 }
 
-// DevContract is for dev contract
+// ContractImpl is for contract implementation
 type ContractImpl struct {
 	*substrate.Contract
 }

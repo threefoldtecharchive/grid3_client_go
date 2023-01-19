@@ -3,7 +3,6 @@ package integration
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net"
 	"os"
@@ -15,7 +14,7 @@ import (
 	"github.com/threefoldtech/grid3-go/deployer"
 	client "github.com/threefoldtech/grid3-go/node"
 	"github.com/threefoldtech/grid3-go/subi"
-	"github.com/threefoldtech/grid3-go/workloads"
+	"github.com/threefoldtech/grid3-go/todo"
 	proxy "github.com/threefoldtech/grid_proxy_server/pkg/client"
 	"github.com/threefoldtech/substrate-client"
 	"golang.org/x/crypto/ssh"
@@ -36,9 +35,9 @@ var (
 	}
 )
 
-func setup() (deployer.DeploymentManager, workloads.APIClient) {
+func setup() (deployer.DeploymentManager, todo.APIClient) {
 	mnemonics := os.Getenv("MNEMONICS")
-	SshKeys()
+	SSHKeys()
 	identity, err := substrate.NewIdentityFromSr25519Phrase(mnemonics)
 	if err != nil {
 		panic(err)
@@ -67,7 +66,7 @@ func setup() (deployer.DeploymentManager, workloads.APIClient) {
 	gridClient := proxy.NewRetryingClient(proxy.NewClient(RMB_PROXY_URL[network]))
 	ncPool := client.NewNodeClientPool(cl)
 	manager := deployer.NewDeploymentManager(identity, twin, map[uint32]uint64{}, gridClient, ncPool, &sub)
-	apiClient := workloads.APIClient{
+	apiClient := todo.APIClient{
 		SubstrateExt: subext,
 		NCPool:       ncPool,
 		ProxyClient:  gridClient,
@@ -77,19 +76,6 @@ func setup() (deployer.DeploymentManager, workloads.APIClient) {
 	log.Printf("api client: %+v", apiClient.NCPool)
 	log.Printf("api client: %+v", apiClient.SubstrateExt)
 	return manager, apiClient
-}
-
-func generateWGConfig(userAccess workloads.UserAccess) string {
-	return fmt.Sprintf(`
-[Interface]
-Address = %s
-PrivateKey = %s
-[Peer]
-PublicKey = %s
-AllowedIPs = %s, 100.64.0.0/16
-PersistentKeepalive = 25
-Endpoint = %s
-	`, userAccess.UserAddress, userAccess.UserSecretKey, userAccess.PublicNodePK, userAccess.AllowedIPs[0], userAccess.PublicNodeEndpoint)
 }
 
 // UpWg used for up wireguard
@@ -202,8 +188,13 @@ func Wait(addr string, port string) bool {
 	return true
 }
 
-func SshKeys() {
-	os.Mkdir("/tmp/.ssh", 0755)
+// SSHKeys generates ssh keys in a temp directory and set env PUBLICKEY and PRIVATEKEY with them
+func SSHKeys() {
+	err := os.Mkdir("/tmp/.ssh", 0755)
+	if err != nil {
+		fmt.Println(err)
+	}
+
 	cmd := exec.Command("ssh-keygen", "-t", "rsa", "-f", "/tmp/.ssh/id_rsa", "-q")
 	stdout, err := cmd.Output()
 
@@ -212,16 +203,16 @@ func SshKeys() {
 	}
 	fmt.Println(string(stdout))
 
-	private_key, err := ioutil.ReadFile("/tmp/.ssh/id_rsa")
+	privateKey, err := os.ReadFile("/tmp/.ssh/id_rsa")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	public_key, e := ioutil.ReadFile("/tmp/.ssh/id_rsa.pub")
+	publicKey, e := os.ReadFile("/tmp/.ssh/id_rsa.pub")
 	if e != nil {
 		log.Fatal(err)
 	}
 
-	os.Setenv("PUBLICKEY", string(public_key))
-	os.Setenv("PRIVATEKEY", string(private_key))
+	os.Setenv("PUBLICKEY", string(publicKey))
+	os.Setenv("PRIVATEKEY", string(privateKey))
 }

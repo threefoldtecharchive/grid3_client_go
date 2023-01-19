@@ -21,14 +21,21 @@ func zlogs(dl *gridtypes.Deployment, name string) []Zlog {
 		if !wl.Result.State.IsOkay() {
 			continue
 		}
+
 		dataI, err := wl.WorkloadData()
 		if err != nil {
 			continue
 		}
-		data := dataI.(*zos.ZLogs)
+
+		data, ok := dataI.(*zos.ZLogs)
+		if !ok {
+			continue
+		}
+
 		if data.ZMachine.String() != name {
 			continue
 		}
+
 		res = append(res, Zlog{
 			Output: data.Output,
 		})
