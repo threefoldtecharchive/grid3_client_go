@@ -360,13 +360,14 @@ func (vm *VM) GenerateWorkloadFromVM() ([]gridtypes.Workload, error) {
 	return workloads, nil
 }
 
-func (vm VM) Stage(manager deployer.DeploymentManager, NodeId uint32) error {
+// Stage for staging workloads
+func (vm VM) Stage(manager deployer.DeploymentManager, nodeID uint32) error {
 	workloadsMap := map[uint32][]gridtypes.Workload{}
 	workloads, err := vm.GenerateWorkloadFromVM()
 	if err != nil {
 		return err
 	}
-	workloadsMap[NodeId] = workloads
+	workloadsMap[nodeID] = workloads
 	err = manager.SetWorkloads(workloadsMap)
 	return err
 }
