@@ -190,6 +190,13 @@ func (k *K8sNodeData) GenerateK8sWorkload(cluster *K8sCluster, worker bool) []gr
 
 // ValidateToken validate cluster token
 func (k *K8sCluster) ValidateToken(ctx context.Context) error {
+	if len(k.Token) < 6 {
+		return errors.New("token must be at least 6 characters")
+	}
+	if len(k.Token) > 15 {
+		return errors.New("token must be at most 15 characters")
+	}
+
 	isAlphanumeric := regexp.MustCompile(`^[a-zA-Z0-9]+$`).MatchString(k.Token)
 	if !isAlphanumeric {
 		return errors.New("token should be alphanumeric")
