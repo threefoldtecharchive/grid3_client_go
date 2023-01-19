@@ -7,7 +7,6 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	"github.com/threefoldtech/grid3-go/mocks"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
@@ -205,20 +204,18 @@ func TestQSFSWorkload(t *testing.T) {
 	})
 
 	t.Run("test_workload_from_gateway_qsfs", func(t *testing.T) {
-		workloadFromQSFS, err := qsfs.GenerateWorkloadFromQSFS()
+		workloadFromQSFS, err := qsfs.GenerateWorkloads()
 		assert.NoError(t, err)
-		assert.Equal(t, workloadFromQSFS, qsfsWorkload)
+		assert.Equal(t, workloadFromQSFS[0], qsfsWorkload)
 	})
 
-	t.Run("test_set_workloads", func(t *testing.T) {
+	t.Run("test_workloads_map", func(t *testing.T) {
 		nodeID := uint32(1)
 		workloadsMap := map[uint32][]gridtypes.Workload{}
 		workloadsMap[nodeID] = append(workloadsMap[nodeID], qsfsWorkload)
 
-		manager := mocks.NewMockDeploymentManager(ctrl)
-		manager.EXPECT().SetWorkloads(gomock.Eq(workloadsMap)).Return(nil)
-
-		err := qsfs.Stage(manager, nodeID)
+		workloadsMap2, err := qsfs.GenerateNodeWorkloadsMap(nodeID)
 		assert.NoError(t, err)
+		assert.Equal(t, workloadsMap, workloadsMap2)
 	})
 }

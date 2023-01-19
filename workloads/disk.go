@@ -3,7 +3,6 @@ package workloads
 
 import (
 	"github.com/pkg/errors"
-	"github.com/threefoldtech/grid3-go/deployer"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
@@ -72,30 +71,30 @@ func (d *Disk) GetName() string {
 	return d.Name
 }
 
-// GenerateWorkloadFromDisk generates a workload from a disk
-func (d *Disk) GenerateWorkloadFromDisk() (gridtypes.Workload, error) {
-	return gridtypes.Workload{
-		Name:        gridtypes.Name(d.Name),
-		Version:     0,
-		Type:        zos.ZMountType,
-		Description: d.Description,
-		Data: gridtypes.MustMarshal(zos.ZMount{
-			Size: gridtypes.Unit(d.Size) * gridtypes.Gigabyte,
-		}),
+// GenerateWorkloads generates a workload from a disk
+func (d *Disk) GenerateWorkloads() ([]gridtypes.Workload, error) {
+	return []gridtypes.Workload{
+		{
+			Name:        gridtypes.Name(d.Name),
+			Version:     0,
+			Type:        zos.ZMountType,
+			Description: d.Description,
+			Data: gridtypes.MustMarshal(zos.ZMount{
+				Size: gridtypes.Unit(d.Size) * gridtypes.Gigabyte,
+			}),
+		},
 	}, nil
 }
 
-// Stage for staging workloads
-func (d *Disk) Stage(manager deployer.DeploymentManager, nodeID uint32) error {
+// GenerateNodeWorkloadsMap for staging workloads with node ID
+func (d *Disk) GenerateNodeWorkloadsMap(nodeID uint32) (map[uint32][]gridtypes.Workload, error) {
 	workloadsMap := map[uint32][]gridtypes.Workload{}
-	workloads := make([]gridtypes.Workload, 0)
-	workload, err := d.GenerateWorkloadFromDisk()
-	if err != nil {
-		return err
-	}
-	workloads = append(workloads, workload)
-	workloadsMap[nodeID] = workloads
 
-	err = manager.SetWorkloads(workloadsMap)
-	return err
+	workloads, err := d.GenerateWorkloads()
+	if err != nil {
+		return workloadsMap, err
+	}
+
+	workloadsMap[nodeID] = workloads
+	return workloadsMap, nil
 }

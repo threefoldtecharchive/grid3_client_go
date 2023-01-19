@@ -47,11 +47,11 @@ func TestQSFSDeployment(t *testing.T) {
 	manager, _ := setup()
 	var err error
 	for i := 0; i < DATA_ZDB_NUM; i++ {
-		err = dataZDBs[i].Stage(manager, 14)
+		err = manager.Stage(&dataZDBs[i], 14)
 		assert.NoError(t, err)
 	}
 	for i := 0; i < META_ZDB_NUM; i++ {
-		err = metaZDBs[i].Stage(manager, 14)
+		err = manager.Stage(&metaZDBs[i], 14)
 		assert.NoError(t, err)
 	}
 
@@ -114,7 +114,7 @@ func TestQSFSDeployment(t *testing.T) {
 			Backends:            metaBackends,
 		},
 	}
-	err = qsfs.Stage(manager, 14)
+	err = manager.Stage(&qsfs, 14)
 	assert.NoError(t, err)
 	err = manager.Commit(ctx)
 	assert.NoError(t, err)

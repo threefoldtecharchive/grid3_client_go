@@ -5,14 +5,14 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 
-	"github.com/threefoldtech/grid3-go/deployer"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
 // Zlog logger struct
 type Zlog struct {
-	Output string
+	Zmachine string
+	Output   string
 }
 
 func zlogs(dl *gridtypes.Deployment, name string) []Zlog {
@@ -37,41 +37,41 @@ func zlogs(dl *gridtypes.Deployment, name string) []Zlog {
 		}
 
 		res = append(res, Zlog{
-			Output: data.Output,
+			Output:   data.Output,
+			Zmachine: name,
 		})
 	}
 	return res
 }
 
-// GenerateWorkload generates a zmachine workload
-func (zlog *Zlog) GenerateWorkload(zmachine string) (gridtypes.Workload, error) {
+// GenerateWorkloads generates a zmachine workload
+func (zlog *Zlog) GenerateWorkloads() ([]gridtypes.Workload, error) {
 	url := []byte(zlog.Output)
 	urlHash := md5.Sum([]byte(url))
 
-	return gridtypes.Workload{
-		Version: 0,
-		Name:    gridtypes.Name(hex.EncodeToString(urlHash[:])),
-		Type:    zos.ZLogsType,
-		Data: gridtypes.MustMarshal(zos.ZLogs{
-			ZMachine: gridtypes.Name(zmachine),
-			Output:   zlog.Output,
-		}),
+	return []gridtypes.Workload{
+		{
+			Version: 0,
+			Name:    gridtypes.Name(hex.EncodeToString(urlHash[:])),
+			Type:    zos.ZLogsType,
+			Data: gridtypes.MustMarshal(zos.ZLogs{
+				ZMachine: gridtypes.Name(zlog.Zmachine),
+				Output:   zlog.Output,
+			}),
+		},
 	}, nil
 }
 
 // Stage for staging workloads
-func (zlog *Zlog) Stage(manager deployer.DeploymentManager, NodeID uint32, zmachine string) error {
+func (zlog *Zlog) GenerateNodeWorkloadsMap(nodeID uint32) (map[uint32][]gridtypes.Workload, error) {
 	workloadsMap := map[uint32][]gridtypes.Workload{}
-	workloads := make([]gridtypes.Workload, 0)
 
-	workload, err := zlog.GenerateWorkload(zmachine)
+	workloads, err := zlog.GenerateWorkloads()
 	if err != nil {
-		return err
+		return workloadsMap, err
 	}
 
-	workloads = append(workloads, workload)
-	workloadsMap[NodeID] = workloads
+	workloadsMap[nodeID] = workloads
 
-	err = manager.SetWorkloads(workloadsMap)
-	return err
+	return workloadsMap, nil
 }

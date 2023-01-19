@@ -8,7 +8,6 @@ import (
 	"sort"
 
 	"github.com/pkg/errors"
-	"github.com/threefoldtech/grid3-go/deployer"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
@@ -61,7 +60,10 @@ func NewVMFromSchema(vm map[string]interface{}) *VM {
 	}
 	zlogs := make([]Zlog, 0)
 	for _, v := range vm["zlogs"].([]interface{}) {
-		zlogs = append(zlogs, Zlog{v.(string)})
+		zlogs = append(zlogs, Zlog{
+			Zmachine: vm["name"].(string),
+			Output:   v.(string),
+		})
 	}
 
 	return &VM{
@@ -177,12 +179,12 @@ func (vm *VM) GenerateVMWorkload() []gridtypes.Workload {
 		mounts = append(mounts, zos.MachineMount{Name: gridtypes.Name(mount.DiskName), Mountpoint: mount.MountPoint})
 	}
 	for _, zlog := range vm.Zlogs {
-		zlogWorkload, err := zlog.GenerateWorkload(vm.Name)
+		zlogWorkload, err := zlog.GenerateWorkloads()
 		if err != nil {
 			continue
 		}
 
-		workloads = append(workloads, zlogWorkload)
+		workloads = append(workloads, zlogWorkload...)
 	}
 	workload := gridtypes.Workload{
 		Version: 0,
@@ -307,8 +309,8 @@ func (vm *VM) Match(vm2 *VM) {
 	vm.FlistChecksum = vm2.FlistChecksum
 }
 
-// GenerateWorkloadFromVM generates a workload from a vm
-func (vm *VM) GenerateWorkloadFromVM() ([]gridtypes.Workload, error) {
+// GenerateWorkloads generates a workload from a vm
+func (vm *VM) GenerateWorkloads() ([]gridtypes.Workload, error) {
 	workloads := make([]gridtypes.Workload, 0)
 	publicIPName := ""
 	if vm.PublicIP || vm.PublicIP6 {
@@ -320,12 +322,12 @@ func (vm *VM) GenerateWorkloadFromVM() ([]gridtypes.Workload, error) {
 		mounts = append(mounts, zos.MachineMount{Name: gridtypes.Name(mount.DiskName), Mountpoint: mount.MountPoint})
 	}
 	for _, zlog := range vm.Zlogs {
-		zlogWorkload, err := zlog.GenerateWorkload(vm.Name)
+		zlogWorkload, err := zlog.GenerateWorkloads()
 		if err != nil {
 			continue
 		}
 
-		workloads = append(workloads, zlogWorkload)
+		workloads = append(workloads, zlogWorkload...)
 	}
 
 	workload := gridtypes.Workload{
@@ -361,13 +363,14 @@ func (vm *VM) GenerateWorkloadFromVM() ([]gridtypes.Workload, error) {
 }
 
 // Stage for staging workloads
-func (vm VM) Stage(manager deployer.DeploymentManager, nodeID uint32) error {
+func (vm *VM) GenerateNodeWorkloadsMap(nodeID uint32) (map[uint32][]gridtypes.Workload, error) {
 	workloadsMap := map[uint32][]gridtypes.Workload{}
-	workloads, err := vm.GenerateWorkloadFromVM()
+
+	workloads, err := vm.GenerateWorkloads()
 	if err != nil {
-		return err
+		return workloadsMap, err
 	}
+
 	workloadsMap[nodeID] = workloads
-	err = manager.SetWorkloads(workloadsMap)
-	return err
+	return workloadsMap, nil
 }

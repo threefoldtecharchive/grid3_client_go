@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 
 	"github.com/pkg/errors"
-	"github.com/threefoldtech/grid3-go/deployer"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
@@ -110,35 +109,33 @@ func (z *ZDB) Dictify() map[string]interface{} {
 	return res
 }
 
-// GenerateWorkloadFromZDB generates a workload from a zdb
-func (z *ZDB) GenerateWorkloadFromZDB() (gridtypes.Workload, error) {
-	return gridtypes.Workload{
-		Name:        gridtypes.Name(z.Name),
-		Type:        zos.ZDBType,
-		Description: z.Description,
-		Version:     0,
-		Data: gridtypes.MustMarshal(zos.ZDB{
-			Size:     gridtypes.Unit(z.Size) * gridtypes.Gigabyte,
-			Mode:     zos.ZDBMode(z.Mode),
-			Password: z.Password,
-			Public:   z.Public,
-		}),
+// GenerateWorkloads generates a workload from a zdb
+func (z *ZDB) GenerateWorkloads() ([]gridtypes.Workload, error) {
+	return []gridtypes.Workload{
+		{
+			Name:        gridtypes.Name(z.Name),
+			Type:        zos.ZDBType,
+			Description: z.Description,
+			Version:     0,
+			Data: gridtypes.MustMarshal(zos.ZDB{
+				Size:     gridtypes.Unit(z.Size) * gridtypes.Gigabyte,
+				Mode:     zos.ZDBMode(z.Mode),
+				Password: z.Password,
+				Public:   z.Public,
+			}),
+		},
 	}, nil
 }
 
 // Stage for staging workloads
-func (z *ZDB) Stage(manager deployer.DeploymentManager, nodeID uint32) error {
+func (z *ZDB) GenerateNodeWorkloadsMap(nodeID uint32) (map[uint32][]gridtypes.Workload, error) {
 	workloadsMap := map[uint32][]gridtypes.Workload{}
-	workloads := make([]gridtypes.Workload, 0)
 
-	workload, err := z.GenerateWorkloadFromZDB()
+	workloads, err := z.GenerateWorkloads()
 	if err != nil {
-		return err
+		return workloadsMap, err
 	}
 
-	workloads = append(workloads, workload)
 	workloadsMap[nodeID] = workloads
-
-	err = manager.SetWorkloads(workloadsMap)
-	return err
+	return workloadsMap, nil
 }

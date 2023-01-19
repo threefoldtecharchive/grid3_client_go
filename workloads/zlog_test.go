@@ -8,7 +8,6 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	"github.com/threefoldtech/grid3-go/mocks"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
@@ -47,13 +46,13 @@ func TestZLog(t *testing.T) {
 	}
 
 	zlogWorkload.Result.State = ""
-	zlog := Zlog{Output: "output"}
+	zlog := Zlog{Output: "output", Zmachine: zmachineName}
 
 	t.Run("test_zLogs_generate_workload", func(t *testing.T) {
-		zosWorkload, err := zlog.GenerateWorkload(zmachineName)
+		zosWorkload, err := zlog.GenerateWorkloads()
 		assert.NoError(t, err)
-		assert.Equal(t, zosWorkload.Type, zos.ZLogsType)
-		assert.Equal(t, zlogWorkload, zosWorkload)
+		assert.Equal(t, zosWorkload[0].Type, zos.ZLogsType)
+		assert.Equal(t, zlogWorkload, zosWorkload[0])
 	})
 
 	t.Run("test_zLogs_from_deployment", func(t *testing.T) {
@@ -61,15 +60,13 @@ func TestZLog(t *testing.T) {
 		assert.Equal(t, zlogs, []Zlog{zlog})
 	})
 
-	t.Run("test_set_workloads", func(t *testing.T) {
+	t.Run("test_workloads_map", func(t *testing.T) {
 		nodeID := uint32(1)
 		workloadsMap := map[uint32][]gridtypes.Workload{}
 		workloadsMap[nodeID] = append(workloadsMap[nodeID], zlogWorkload)
 
-		manager := mocks.NewMockDeploymentManager(ctrl)
-		manager.EXPECT().SetWorkloads(gomock.Eq(workloadsMap)).Return(nil)
-
-		err := zlog.Stage(manager, nodeID, zmachineName)
+		workloadsMap2, err := zlog.GenerateNodeWorkloadsMap(nodeID)
 		assert.NoError(t, err)
+		assert.Equal(t, workloadsMap, workloadsMap2)
 	})
 }

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/threefoldtech/grid3-go/deployer"
 	"github.com/threefoldtech/grid3-go/loader"
 	"github.com/threefoldtech/grid3-go/workloads"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
@@ -26,11 +27,15 @@ func TestDeployment(t *testing.T) {
 		}),
 		AddWGAccess: true,
 	}
+
+	networkManager, err := deployer.NewNetworkDeployer(apiClient.Manager, network)
+	assert.NoError(t, err)
+
 	// vm := workloads.VM{
 	// 	Name: "vm1",
 	// }
 
-	access, err := network.Stage(context.Background(), apiClient)
+	access, err := networkManager.Stage(context.Background(), apiClient, network)
 	assert.Equal(t, nil, err)
 	log.Printf("user access: %+v", access)
 
@@ -47,7 +52,7 @@ func TestDeployment(t *testing.T) {
 
 	// network.AddWGAccess = true
 	network.Nodes = []uint32{33, 31}
-	access, err = network.Stage(context.Background(), apiClient)
+	access, err = networkManager.Stage(context.Background(), apiClient, network)
 	assert.Equal(t, nil, err)
 	log.Printf("user access: %+v", access)
 
@@ -61,7 +66,7 @@ func TestDeployment(t *testing.T) {
 
 	network.AddWGAccess = false
 	network.Nodes = []uint32{33, 31}
-	access, err = network.Stage(context.Background(), apiClient)
+	access, err = networkManager.Stage(context.Background(), apiClient, network)
 	assert.Equal(t, nil, err)
 	log.Printf("user access: %+v", access)
 

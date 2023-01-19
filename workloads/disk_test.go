@@ -6,7 +6,6 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	"github.com/threefoldtech/grid3-go/mocks"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
@@ -55,20 +54,18 @@ func TestDiskWorkload(t *testing.T) {
 	})
 
 	t.Run("test_workload_from_disk", func(t *testing.T) {
-		workloadFromDisk, err := disk.GenerateWorkloadFromDisk()
+		workloadFromDisk, err := disk.GenerateWorkloads()
 		assert.NoError(t, err)
-		assert.Equal(t, diskWorkload, workloadFromDisk)
+		assert.Equal(t, diskWorkload, workloadFromDisk[0])
 	})
 
-	t.Run("test_set_workloads", func(t *testing.T) {
+	t.Run("test_workloads_map", func(t *testing.T) {
 		nodeID := uint32(1)
 		workloadsMap := map[uint32][]gridtypes.Workload{}
 		workloadsMap[nodeID] = append(workloadsMap[nodeID], diskWorkload)
 
-		manager := mocks.NewMockDeploymentManager(ctrl)
-		manager.EXPECT().SetWorkloads(gomock.Eq(workloadsMap)).Return(nil)
-
-		err := disk.Stage(manager, nodeID)
+		workloadsMap2, err := disk.GenerateNodeWorkloadsMap(nodeID)
 		assert.NoError(t, err)
+		assert.Equal(t, workloadsMap, workloadsMap2)
 	})
 }

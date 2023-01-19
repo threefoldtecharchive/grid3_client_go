@@ -2,13 +2,11 @@
 package workloads
 
 import (
-	"context"
 	"net"
 	"testing"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	"github.com/threefoldtech/grid3-go/mocks"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
@@ -85,19 +83,19 @@ func TestK8sNodeData(t *testing.T) {
 		cluster = K8sCluster{
 			Master:      &k8s,
 			Workers:     []K8sNodeData{},
-			Token:       "token",
+			Token:       "testtoken",
 			SSHKey:      "",
 			NetworkName: "",
 		}
 	})
 
 	t.Run("test_validate_names", func(t *testing.T) {
-		err := cluster.ValidateNames(context.Background())
+		err := cluster.ValidateNames()
 		assert.NoError(t, err)
 	})
 
 	t.Run("test_validate_token", func(t *testing.T) {
-		err := cluster.ValidateToken(context.Background())
+		err := cluster.ValidateToken()
 		assert.NoError(t, err)
 	})
 
@@ -109,14 +107,20 @@ func TestK8sNodeData(t *testing.T) {
 		assert.Equal(t, len(k8sWorkloads), 2)
 	})
 
-	t.Run("test_set_workloads", func(t *testing.T) {
+	t.Run("test_generate_k8s_workloads_from_cluster", func(t *testing.T) {
+		k8sWorkloads, err = cluster.GenerateWorkloads()
+		assert.NoError(t, err)
+		assert.Equal(t, k8sWorkloads[0].Type, zos.ZMountType)
+		assert.Equal(t, k8sWorkloads[1].Type, zos.ZMachineType)
+		assert.Equal(t, len(k8sWorkloads), 2)
+	})
+
+	t.Run("test_workloads_map", func(t *testing.T) {
 		workloadsMap := map[uint32][]gridtypes.Workload{}
 		workloadsMap[cluster.Master.Node] = append(workloadsMap[cluster.Master.Node], k8sWorkloads...)
 
-		manager := mocks.NewMockDeploymentManager(ctrl)
-		manager.EXPECT().SetWorkloads(gomock.Eq(workloadsMap)).Return(nil)
-
-		err := cluster.Stage(context.Background(), manager)
+		workloadsMap2, err := cluster.GenerateNodeWorkloadsMap(0)
 		assert.NoError(t, err)
+		assert.Equal(t, workloadsMap, workloadsMap2)
 	})
 }

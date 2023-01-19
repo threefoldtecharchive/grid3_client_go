@@ -2,14 +2,12 @@
 package workloads
 
 import (
-	"context"
 	"fmt"
 	"net"
 	"reflect"
 	"regexp"
 
 	"github.com/pkg/errors"
-	"github.com/threefoldtech/grid3-go/deployer"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
@@ -125,6 +123,15 @@ func (k *K8sNodeData) Dictify() map[string]interface{} {
 	return res
 }
 
+// HasWorkload checks if a workload belongs to the k8s data
+func (k *K8sNodeData) HasWorkload(workload gridtypes.Workload) bool {
+	if workload.Name == gridtypes.Name(k.Name) ||
+		workload.Name == gridtypes.Name(fmt.Sprintf("%sdisk", k.Name)) {
+		return true
+	}
+	return false
+}
+
 // GenerateK8sWorkload generates a k8s workload from a k8s data
 func (k *K8sNodeData) GenerateK8sWorkload(cluster *K8sCluster, worker bool) []gridtypes.Workload {
 	diskName := fmt.Sprintf("%sdisk", k.Name)
@@ -189,7 +196,7 @@ func (k *K8sNodeData) GenerateK8sWorkload(cluster *K8sCluster, worker bool) []gr
 }
 
 // ValidateToken validate cluster token
-func (k *K8sCluster) ValidateToken(ctx context.Context) error {
+func (k *K8sCluster) ValidateToken() error {
 	if len(k.Token) < 6 {
 		return errors.New("token must be at least 6 characters")
 	}
@@ -206,7 +213,7 @@ func (k *K8sCluster) ValidateToken(ctx context.Context) error {
 }
 
 // ValidateNames validate names for master and workers
-func (k *K8sCluster) ValidateNames(ctx context.Context) error {
+func (k *K8sCluster) ValidateNames() error {
 	names := make(map[string]bool)
 	names[k.Master.Name] = true
 
@@ -219,24 +226,46 @@ func (k *K8sCluster) ValidateNames(ctx context.Context) error {
 	return nil
 }
 
-// Stage for staging workloads
-func (k *K8sCluster) Stage(ctx context.Context, manager deployer.DeploymentManager) error {
-	err := k.ValidateNames(ctx)
-	if err != nil {
-		return err
-	}
+// GenerateWorkloads generates k8s workloads from a k8s cluster
+func (k *K8sCluster) GenerateWorkloads() ([]gridtypes.Workload, error) {
+	k8sWorkloads := []gridtypes.Workload{}
+	k8sWorkloads = append(k8sWorkloads, k.Master.GenerateK8sWorkload(k, false)...)
 
-	workloads := map[uint32][]gridtypes.Workload{}
-
-	workloads[k.Master.Node] = append(workloads[k.Master.Node], k.Master.GenerateK8sWorkload(k, false)...)
 	for _, worker := range k.Workers {
-		workloads[worker.Node] = append(workloads[worker.Node], worker.GenerateK8sWorkload(k, true)...)
+		k8sWorkloads = append(k8sWorkloads, worker.GenerateK8sWorkload(k, true)...)
 	}
 
-	err = manager.SetWorkloads(workloads)
+	return k8sWorkloads, nil
+}
+
+// GenerateNodeWorkloadsMap for staging workloads with node ID
+func (k *K8sCluster) GenerateNodeWorkloadsMap(nodeID uint32) (map[uint32][]gridtypes.Workload, error) {
+	workloadsMap := map[uint32][]gridtypes.Workload{}
+
+	err := k.ValidateNames()
 	if err != nil {
-		return err
+		return workloadsMap, err
 	}
 
-	return nil
+	workloads, err := k.GenerateWorkloads()
+	if err != nil {
+		return workloadsMap, err
+	}
+
+	for _, workload := range workloads {
+		// master workloads
+		if k.Master.HasWorkload(workload) {
+			workloadsMap[k.Master.Node] = append(workloadsMap[k.Master.Node], workload)
+		}
+
+		// workers workloads
+		for _, worker := range k.Workers {
+			if worker.HasWorkload(workload) {
+				workloadsMap[worker.Node] = append(workloadsMap[worker.Node], workload)
+			}
+		}
+
+	}
+
+	return workloadsMap, nil
 }

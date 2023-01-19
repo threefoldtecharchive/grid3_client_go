@@ -14,7 +14,6 @@ import (
 	"github.com/threefoldtech/grid3-go/deployer"
 	client "github.com/threefoldtech/grid3-go/node"
 	"github.com/threefoldtech/grid3-go/subi"
-	"github.com/threefoldtech/grid3-go/todo"
 	proxy "github.com/threefoldtech/grid_proxy_server/pkg/client"
 	"github.com/threefoldtech/substrate-client"
 	"golang.org/x/crypto/ssh"
@@ -35,7 +34,7 @@ var (
 	}
 )
 
-func setup() (deployer.DeploymentManager, todo.APIClient) {
+func setup() (deployer.DeploymentManager, deployer.APIClient) {
 	mnemonics := os.Getenv("MNEMONICS")
 	SSHKeys()
 	identity, err := substrate.NewIdentityFromSr25519Phrase(mnemonics)
@@ -66,7 +65,7 @@ func setup() (deployer.DeploymentManager, todo.APIClient) {
 	gridClient := proxy.NewRetryingClient(proxy.NewClient(RMB_PROXY_URL[network]))
 	ncPool := client.NewNodeClientPool(cl)
 	manager := deployer.NewDeploymentManager(identity, twin, map[uint32]uint64{}, gridClient, ncPool, &sub)
-	apiClient := todo.APIClient{
+	apiClient := deployer.APIClient{
 		SubstrateExt: subext,
 		NCPool:       ncPool,
 		ProxyClient:  gridClient,
@@ -75,6 +74,7 @@ func setup() (deployer.DeploymentManager, todo.APIClient) {
 	}
 	log.Printf("api client: %+v", apiClient.NCPool)
 	log.Printf("api client: %+v", apiClient.SubstrateExt)
+
 	return manager, apiClient
 }
 

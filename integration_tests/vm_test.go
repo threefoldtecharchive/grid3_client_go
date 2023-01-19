@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/threefoldtech/grid3-go/deployer"
 	"github.com/threefoldtech/grid3-go/loader"
 	"github.com/threefoldtech/grid3-go/workloads"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
@@ -45,11 +46,14 @@ func TestVMDeployment(t *testing.T) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
+
+	networkManager, err := deployer.NewNetworkDeployer(apiClient.Manager, network)
+	assert.NoError(t, err)
+
 	t.Run("check VM configuration is correct", func(t *testing.T) {
-		networkCp := network
 		vmCp := vm
 
-		_, err := networkCp.Stage(ctx, apiClient)
+		_, err := networkManager.Stage(ctx, apiClient, network)
 		assert.NoError(t, err)
 		err = manager.Commit(ctx)
 		assert.NoError(t, err)
@@ -57,7 +61,7 @@ func TestVMDeployment(t *testing.T) {
 		err = manager.CancelAll()
 		assert.NoError(t, err)
 
-		err = vmCp.Stage(manager, 14)
+		err = manager.Stage(&vmCp, 14)
 		assert.NoError(t, err)
 		err = manager.Commit(ctx)
 		assert.NoError(t, err)
@@ -90,12 +94,11 @@ func TestVMDeployment(t *testing.T) {
 	})
 	t.Run("check public ip is reachable", func(t *testing.T) {
 		t.SkipNow()
-		networkCp := network
-		networkCp.Nodes = []uint32{45}
+		network.Nodes = []uint32{45}
 		vmCp := vm
 		vmCp.PublicIP = true
 
-		_, err := networkCp.Stage(ctx, apiClient)
+		_, err := networkManager.Stage(ctx, apiClient, network)
 		assert.NoError(t, err)
 		err = manager.Commit(ctx)
 		assert.NoError(t, err)
@@ -103,7 +106,7 @@ func TestVMDeployment(t *testing.T) {
 		err = manager.CancelAll()
 		assert.NoError(t, err)
 
-		err = vmCp.Stage(manager, 45)
+		err = manager.Stage(&vmCp, 45)
 		assert.NoError(t, err)
 		err = manager.Commit(ctx)
 		assert.NoError(t, err)

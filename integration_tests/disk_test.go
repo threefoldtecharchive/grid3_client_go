@@ -17,7 +17,7 @@ func TestDiskDeployment(t *testing.T) {
 		Description: "disk test",
 	}
 	manager, _ := setup()
-	err := disk.Stage(manager, 13)
+	err := manager.Stage(&disk, 13)
 	assert.NoError(t, err)
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 	defer cancel()

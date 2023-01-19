@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/threefoldtech/grid3-go/deployer"
 	"github.com/threefoldtech/grid3-go/loader"
 	"github.com/threefoldtech/grid3-go/workloads"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
@@ -73,21 +74,27 @@ func TestTwoVmDifferentNet(t *testing.T) {
 		PublicIP6:   true,
 	}
 
+	networkManager1, err := deployer.NewNetworkDeployer(apiClient.Manager, network1)
+	assert.NoError(t, err)
+
+	networkManager2, err := deployer.NewNetworkDeployer(apiClient.Manager, network2)
+	assert.NoError(t, err)
+
 	t.Run("check public ipv6 and yggdrasil", func(t *testing.T) {
 
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 		defer cancel()
 
-		_, err := network1.Stage(ctx, apiClient)
+		_, err := networkManager1.Stage(ctx, apiClient, network1)
 		assert.NoError(t, err)
 
-		_, err = network2.Stage(ctx, apiClient)
+		_, err = networkManager2.Stage(ctx, apiClient, network2)
 		assert.NoError(t, err)
 
-		err = vm1.Stage(manager, 14)
+		err = manager.Stage(&vm1, 14)
 		assert.NoError(t, err)
 
-		err = vm2.Stage(manager, 14)
+		err = manager.Stage(&vm2, 14)
 		assert.NoError(t, err)
 
 		err = manager.Commit(ctx)
@@ -153,10 +160,10 @@ func TestTwoVmDifferentNet(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 		defer cancel()
 
-		_, err := network1.Stage(ctx, apiClient)
+		_, err := networkManager1.Stage(ctx, apiClient, network1)
 		assert.NoError(t, err)
 
-		_, err = network2.Stage(ctx, apiClient)
+		_, err = networkManager2.Stage(ctx, apiClient, network2)
 		assert.NoError(t, err)
 
 		err = manager.Commit(ctx)
@@ -165,10 +172,10 @@ func TestTwoVmDifferentNet(t *testing.T) {
 		err = manager.CancelAll()
 		assert.NoError(t, err)
 
-		err = vm1.Stage(manager, 13)
+		err = manager.Stage(&vm1, 13)
 		assert.NoError(t, err)
 
-		err = vm2.Stage(manager, 13)
+		err = manager.Stage(&vm2, 13)
 		assert.NoError(t, err)
 
 		err = manager.Commit(ctx)

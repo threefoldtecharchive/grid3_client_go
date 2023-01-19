@@ -21,7 +21,7 @@ func TestZDBDeployment(t *testing.T) {
 		Mode:        zos.ZDBModeUser,
 	}
 	manager, _ := setup()
-	err := zdb.Stage(manager, 13)
+	err := manager.Stage(&zdb, 13)
 	assert.NoError(t, err)
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 	defer cancel()

@@ -12,6 +12,7 @@ import (
 	"github.com/pkg/errors"
 	client "github.com/threefoldtech/grid3-go/node"
 	"github.com/threefoldtech/grid3-go/subi"
+	"github.com/threefoldtech/grid3-go/workloads"
 	proxy "github.com/threefoldtech/grid_proxy_server/pkg/client"
 	"github.com/threefoldtech/substrate-client"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
@@ -26,6 +27,7 @@ type DeploymentManager interface {
 	GetWorkload(nodeID uint32, name string) (gridtypes.Workload, error)
 	GetDeployment(nodeID uint32) (gridtypes.Deployment, error)
 	GetContractIDs() map[uint32]uint64
+	Stage(workloadGenerator workloads.WorkloadGenerator, nodeID uint32) error
 }
 
 type deploymentManager struct {
@@ -474,4 +476,15 @@ func (d *deploymentManager) updateDeploymentIDs(committedDeploymentsIDs map[uint
 			delete(d.deploymentIDs, k)
 		}
 	}
+}
+
+// Stage stages workloads with their node IDs
+func (d *deploymentManager) Stage(workloadGenerator workloads.WorkloadGenerator, nodeID uint32) error {
+	workloadsNodeMap, err := workloadGenerator.GenerateNodeWorkloadsMap(nodeID)
+	if err != nil {
+		return err
+	}
+
+	err = d.SetWorkloads(workloadsNodeMap)
+	return err
 }

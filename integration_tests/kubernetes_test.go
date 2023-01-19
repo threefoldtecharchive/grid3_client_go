@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/threefoldtech/grid3-go/deployer"
 	"github.com/threefoldtech/grid3-go/loader"
 	"github.com/threefoldtech/grid3-go/workloads"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
@@ -52,15 +53,18 @@ func TestKubernetes(t *testing.T) {
 		AddWGAccess: false,
 	}
 
+	networkManager, err := deployer.NewNetworkDeployer(apiClient.Manager, network)
+	assert.NoError(t, err)
+
 	t.Run("cluster with 3 nodes", func(t *testing.T) {
 
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 		defer cancel()
 
-		err := cluster.Stage(ctx, manager)
+		err := manager.Stage(&cluster, 0)
 		assert.NoError(t, err)
 
-		_, err = network.Stage(ctx, apiClient)
+		_, err = networkManager.Stage(ctx, apiClient, network)
 		assert.NoError(t, err)
 
 		err = manager.Commit(ctx)
@@ -103,12 +107,9 @@ func TestKubernetes(t *testing.T) {
 	})
 
 	t.Run("nodes with duplicate names", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-		defer cancel()
-
 		cluster.Workers[0].Name = cluster.Master.Name
 
-		err := cluster.Stage(ctx, manager)
+		err := manager.Stage(&cluster, 0)
 		assert.ErrorIs(t, err, workloads.ErrDuplicateName)
 	})
 

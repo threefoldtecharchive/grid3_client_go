@@ -10,6 +10,7 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	gridtypes "github.com/threefoldtech/zos/pkg/gridtypes"
+	"github.com/threefoldtech/grid3-go/workloads"
 )
 
 // MockDeploymentManager is a mock of DeploymentManager interface.
@@ -133,4 +134,18 @@ func (m *MockDeploymentManager) SetWorkloads(workloads map[uint32][]gridtypes.Wo
 func (mr *MockDeploymentManagerMockRecorder) SetWorkloads(workloads interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetWorkloads", reflect.TypeOf((*MockDeploymentManager)(nil).SetWorkloads), workloads)
+}
+
+// Stage mocks base method.
+func (m *MockDeploymentManager) Stage(workloadGenerator workloads.WorkloadGenerator, nodeID uint32) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Stage", workloadGenerator, nodeID)
+	ret0, _ := ret[1].(error)
+	return ret0
+}
+
+// Stage indicates an expected call of Stage.
+func (mr *MockDeploymentManagerMockRecorder) Stage(workloadGenerator, nodeID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Stage", reflect.TypeOf((*MockDeploymentManager)(nil).Stage), workloadGenerator, nodeID)
 }

@@ -7,7 +7,6 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	"github.com/threefoldtech/grid3-go/mocks"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
@@ -38,7 +37,7 @@ func TestVMWorkload(t *testing.T) {
 			{DiskName: "disk", MountPoint: "mount"},
 		},
 		Zlogs: []Zlog{
-			{Output: "output"},
+			{Output: "output", Zmachine: "test"},
 		},
 		EnvVars:     map[string]string{"var1": "val1"},
 		NetworkName: "test network",
@@ -117,7 +116,10 @@ func TestVMWorkload(t *testing.T) {
 		// no result yet so they are set manually
 		vmFromWorkload.Planetary = true
 		vmFromWorkload.PublicIP = true
-		vmFromWorkload.Zlogs = []Zlog{{"output"}}
+		vmFromWorkload.Zlogs = []Zlog{{
+			Zmachine: "test",
+			Output:   "output",
+		}}
 
 		assert.Equal(t, vmFromWorkload, vm)
 	})
@@ -153,7 +155,7 @@ func TestVMWorkload(t *testing.T) {
 	t.Run("test_workload_from_vm", func(t *testing.T) {
 		var err error
 
-		workloadsFromVM, err = vm.GenerateWorkloadFromVM()
+		workloadsFromVM, err = vm.GenerateWorkloads()
 		assert.NoError(t, err)
 
 		assert.Equal(t, workloadsFromVM[2], vmWorkload)
@@ -176,15 +178,13 @@ func TestVMWorkload(t *testing.T) {
 		assert.Equal(t, *vm2, vm)
 	})
 
-	t.Run("test_set_workloads", func(t *testing.T) {
+	t.Run("test_workloads_map", func(t *testing.T) {
 		nodeID := uint32(1)
 		workloadsMap := map[uint32][]gridtypes.Workload{}
 		workloadsMap[nodeID] = append(workloadsMap[nodeID], workloadsFromVM...)
 
-		manager := mocks.NewMockDeploymentManager(ctrl)
-		manager.EXPECT().SetWorkloads(gomock.Eq(workloadsMap)).Return(nil)
-
-		err := vm.Stage(manager, nodeID)
+		workloadsMap2, err := vm.GenerateNodeWorkloadsMap(nodeID)
 		assert.NoError(t, err)
+		assert.Equal(t, workloadsMap, workloadsMap2)
 	})
 }
