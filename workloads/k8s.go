@@ -188,7 +188,7 @@ func (k *K8sNodeData) GenerateK8sWorkload(cluster *K8sCluster, worker bool) []gr
 	return K8sWorkloads
 }
 
-// validate cluster token
+// ValidateToken validate cluster token
 func (k *K8sCluster) ValidateToken(ctx context.Context) error {
 	isAlphanumeric := regexp.MustCompile(`^[a-zA-Z0-9]+$`).MatchString(k.Token)
 	if !isAlphanumeric {
