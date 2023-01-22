@@ -1,3 +1,4 @@
+// Package deployer for grid deployer
 package deployer
 
 import (
@@ -17,11 +18,13 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 )
 
+// Deployer interface for grid
 type Deployer interface {
 	Deploy(ctx context.Context, sub subi.SubstrateExt, oldDeployments map[uint32]uint64, newDeployments map[uint32]gridtypes.Deployment) (map[uint32]uint64, error)
 	GetDeploymentObjects(ctx context.Context, sub subi.SubstrateExt, dls map[uint32]uint64) (map[uint32]gridtypes.Deployment, error)
 }
 
+// DeployerImpl for deployer implementation
 type DeployerImpl struct {
 	identity        substrate.Identity
 	twinID          uint32
@@ -30,6 +33,7 @@ type DeployerImpl struct {
 	revertOnFailure bool
 }
 
+// NewDeployer generates a new deployer
 func NewDeployer(
 	identity substrate.Identity,
 	twinID uint32,
@@ -46,6 +50,7 @@ func NewDeployer(
 	}
 }
 
+// Deploy for deploying the difference between old and new deployments
 func (d *DeployerImpl) Deploy(ctx context.Context, sub subi.SubstrateExt, oldDeploymentIDs map[uint32]uint64, newDeployments map[uint32]gridtypes.Deployment) (map[uint32]uint64, error) {
 	oldDeployments, oldErr := d.GetDeploymentObjects(ctx, sub, oldDeploymentIDs)
 	if oldErr == nil {
@@ -136,9 +141,8 @@ func (d *DeployerImpl) deploy(
 				log.Printf("failed to send deployment deploy request to node %s", err)
 				if rerr != nil {
 					return currentDeployments, fmt.Errorf("error sending deployment to the node: %w, error cancelling contract: %s; you must cancel it manually (id: %d)", err, rerr, contractID)
-				} else {
-					return currentDeployments, errors.Wrap(err, "error sending deployment to the node")
 				}
+				return currentDeployments, errors.Wrap(err, "error sending deployment to the node")
 			}
 			currentDeployments[node] = dl.ContractID
 			newWorkloadVersions := map[string]uint32{}
@@ -242,20 +246,22 @@ func (d *DeployerImpl) deploy(
 	return currentDeployments, nil
 }
 
+// Progress struct for checking progress
 type Progress struct {
 	time    time.Time
 	stateOk int
 }
 
-func getExponentialBackoff(initial_interval time.Duration, multiplier float64, max_interval time.Duration, max_elapsed_time time.Duration) *backoff.ExponentialBackOff {
+func getExponentialBackoff(initialInterval time.Duration, multiplier float64, maxInterval time.Duration, maxElapsedTime time.Duration) *backoff.ExponentialBackOff {
 	b := backoff.NewExponentialBackOff()
-	b.InitialInterval = initial_interval
+	b.InitialInterval = initialInterval
 	b.Multiplier = multiplier
-	b.MaxInterval = max_interval
-	b.MaxElapsedTime = max_elapsed_time
+	b.MaxInterval = maxInterval
+	b.MaxElapsedTime = maxElapsedTime
 	return b
 }
 
+// Wait waits for a deployments to finish
 func (d *DeployerImpl) Wait(
 	ctx context.Context,
 	nodeClient *client.NodeClient,

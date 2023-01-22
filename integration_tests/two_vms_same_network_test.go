@@ -1,3 +1,4 @@
+// Package integration for integration tests
 package integration
 
 import (

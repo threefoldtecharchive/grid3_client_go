@@ -70,6 +70,7 @@
 //	}
 //
 // ```
+// Package client for node client
 package client
 
 import (
@@ -253,12 +254,7 @@ func (n *NodeClient) NetworkGetPublicConfig(ctx context.Context) (cfg PublicConf
 // public config can be used as an access node for wireguard.
 func (n *NodeClient) NetworkSetPublicConfig(ctx context.Context, cfg PublicConfig) error {
 	const cmd = "zos.network.public_config_set"
-
-	if err := n.bus.Call(ctx, n.nodeTwin, cmd, cfg, nil); err != nil {
-		return err
-	}
-
-	return nil
+	return n.bus.Call(ctx, n.nodeTwin, cmd, cfg, nil)
 }
 
 // SystemDMI executes dmidecode to get dmidecode output

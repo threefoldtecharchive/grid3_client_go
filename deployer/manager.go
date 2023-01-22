@@ -1,3 +1,4 @@
+// Package deployer for grid deployer
 package deployer
 
 import (
@@ -19,6 +20,7 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
+// DeploymentManager interface for deployment manager
 type DeploymentManager interface {
 	CancelAll() error
 	Commit(ctx context.Context) error
@@ -30,6 +32,7 @@ type DeploymentManager interface {
 	Stage(workloadsToNodeBinder workloads.WorkloadsToNodeBinder, nodeID uint32) error
 }
 
+// DeploymentManager for managing deployments
 type deploymentManager struct {
 	identity             substrate.Identity
 	twinID               uint32
@@ -44,6 +47,7 @@ type deploymentManager struct {
 	//connection field
 }
 
+// NewDeploymentManager generates a new deployment manager
 func NewDeploymentManager(
 	identity substrate.Identity,
 	twinID uint32,

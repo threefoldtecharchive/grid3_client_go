@@ -1,3 +1,4 @@
+// Package client for node client
 package client
 
 import (

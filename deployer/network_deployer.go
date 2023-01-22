@@ -1,3 +1,4 @@
+// Package deployer for grid deployer
 package deployer
 
 import (
@@ -456,18 +457,18 @@ func (k *NetworkDeployer) Stage(ctx context.Context, apiClient APIClient, znet w
 				continue
 			}
 			neighIPRange := k.NodesIPRange[neigh]
-			allowed_ips := []gridtypes.IPNet{
+			allowedIPs := []gridtypes.IPNet{
 				neighIPRange,
 				workloads.WgIP(neighIPRange),
 			}
 			if neigh == k.PublicNodeID {
-				allowed_ips = append(allowed_ips, nonAccessibleIPRanges...)
+				allowedIPs = append(allowedIPs, nonAccessibleIPRanges...)
 			}
 			peers = append(peers, zos.Peer{
 				Subnet:      k.NodesIPRange[neigh],
 				WGPublicKey: k.Keys[neigh].PublicKey().String(),
 				Endpoint:    fmt.Sprintf("%s:%d", endpoints[neigh], k.WGPort[neigh]),
-				AllowedIPs:  allowed_ips,
+				AllowedIPs:  allowedIPs,
 			})
 		}
 		if node == k.PublicNodeID {

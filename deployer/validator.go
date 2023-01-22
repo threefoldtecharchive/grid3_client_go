@@ -1,3 +1,4 @@
+// Package deployer for grid deployer
 package deployer
 
 import (
@@ -12,10 +13,12 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
+// Validator interface for deployments
 type Validator interface {
 	Validate(ctx context.Context, sub subi.SubstrateExt, oldDeployments map[uint32]gridtypes.Deployment, newDeployments map[uint32]gridtypes.Deployment) error
 }
 
+// ValidatorImpl validator implementation
 type ValidatorImpl struct {
 	gridClient proxy.Client
 }

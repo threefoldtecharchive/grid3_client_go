@@ -1,3 +1,4 @@
+// Package loader to load different types, workloads from grid
 package loader
 
 import (
@@ -10,6 +11,7 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
+// LoadZdbFromGrid loads a zdb from grid
 func LoadZdbFromGrid(manager deployer.DeploymentManager, nodeID uint32, name string) (workloads.ZDB, error) {
 	wl, err := manager.GetWorkload(nodeID, name)
 	if err != nil {

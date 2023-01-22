@@ -1,3 +1,4 @@
+// Package loader to load different types, workloads from grid
 package loader
 
 import (
@@ -11,6 +12,7 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
+// LoadedK8sNode for k8s node data
 type LoadedK8sNode struct {
 	Name          string
 	Node          uint32
@@ -28,6 +30,7 @@ type LoadedK8sNode struct {
 	Memory        int
 }
 
+// LoadedK8sCluster for k8s cluster loader
 type LoadedK8sCluster struct {
 	Master      *LoadedK8sNode
 	Workers     []LoadedK8sNode
@@ -36,6 +39,7 @@ type LoadedK8sCluster struct {
 	NetworkName string
 }
 
+// LoadK8sFromGrid loads k8s from grid
 func LoadK8sFromGrid(manager deployer.DeploymentManager, masterNode map[uint32]string, workerNodes map[uint32][]string) (LoadedK8sCluster, error) {
 	ret := LoadedK8sCluster{}
 	nodes := []uint32{}

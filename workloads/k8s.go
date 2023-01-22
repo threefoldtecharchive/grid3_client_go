@@ -39,7 +39,7 @@ type K8sCluster struct {
 	NetworkName string
 }
 
-// NewK8sNodeData generates new k8s node data
+// NewK8sNodeDataFromSchema generates new k8s node data
 func NewK8sNodeDataFromSchema(m map[string]interface{}) K8sNodeData {
 	return K8sNodeData{
 		Name:          m["name"].(string),

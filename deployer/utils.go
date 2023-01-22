@@ -1,3 +1,4 @@
+// Package deployer for grid deployer
 package deployer
 
 import (
@@ -14,6 +15,7 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
+// GetDeploymentObjects returns deployments objects
 func (d *DeployerImpl) GetDeploymentObjects(ctx context.Context, sub subi.SubstrateExt, dls map[uint32]uint64) (map[uint32]gridtypes.Deployment, error) {
 	res := make(map[uint32]gridtypes.Deployment)
 	for nodeID, dlID := range dls {
@@ -33,7 +35,7 @@ func (d *DeployerImpl) GetDeploymentObjects(ctx context.Context, sub subi.Substr
 }
 
 func countDeploymentPublicIPs(dl gridtypes.Deployment) uint32 {
-	var res uint32 = 0
+	var res uint32
 	for _, wl := range dl.Workloads {
 		if wl.Type == zos.PublicIPType {
 			data, err := wl.WorkloadData()

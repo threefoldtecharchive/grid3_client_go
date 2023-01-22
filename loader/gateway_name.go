@@ -1,3 +1,4 @@
+// Package loader to load different types, workloads from grid
 package loader
 
 import (
@@ -9,6 +10,7 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
+// LoadGatewayNameFromGrid loads a gateway name proxy from grid
 func LoadGatewayNameFromGrid(manager deployer.DeploymentManager, nodeID uint32, name string) (workloads.GatewayNameProxy, error) {
 	wl, err := manager.GetWorkload(nodeID, name)
 	if err != nil {

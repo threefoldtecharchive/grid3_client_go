@@ -1,3 +1,4 @@
+// Package loader to load different types, workloads from grid
 package loader
 
 import (
@@ -11,6 +12,7 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
+// LoadQsfsFromGrid loads a qsfs from grid
 func LoadQsfsFromGrid(manager deployer.DeploymentManager, nodeID uint32, name string) (workloads.QSFS, error) {
 	wl, err := manager.GetWorkload(nodeID, name)
 	if err != nil {
@@ -56,6 +58,7 @@ func LoadQsfsFromGrid(manager deployer.DeploymentManager, nodeID uint32, name st
 	}, nil
 }
 
+// BackendsFromZos returns backends from zos
 func BackendsFromZos(bs []zos.ZdbBackend) workloads.Backends {
 	z := make(workloads.Backends, 0)
 	for _, e := range bs {
@@ -64,6 +67,7 @@ func BackendsFromZos(bs []zos.ZdbBackend) workloads.Backends {
 	return z
 }
 
+// GroupsFromZos returns groups from zos
 func GroupsFromZos(gs []zos.ZdbGroup) workloads.Groups {
 	z := make(workloads.Groups, 0)
 	for _, e := range gs {

@@ -1,3 +1,4 @@
+// Package integration for integration tests
 package integration
 
 import (
@@ -20,13 +21,15 @@ import (
 )
 
 var (
-	SUBSTRATE_URL = map[string]string{
+	// SubstrateURLs for substrate urls
+	SubstrateURLs = map[string]string{
 		"dev":  "wss://tfchain.dev.grid.tf/ws",
 		"test": "wss://tfchain.test.grid.tf/ws",
 		"qa":   "wss://tfchain.qa.grid.tf/ws",
 		"main": "wss://tfchain.grid.tf/ws",
 	}
-	RMB_PROXY_URL = map[string]string{
+	// RMBProxyURLs for RMB proxy urls
+	RMBProxyURLs = map[string]string{
 		"dev":  "https://gridproxy.dev.grid.tf/",
 		"test": "https://gridproxy.test.grid.tf/",
 		"qa":   "https://gridproxy.qa.grid.tf/",
@@ -47,7 +50,7 @@ func setup() (deployer.DeploymentManager, deployer.APIClient) {
 	}
 	network := os.Getenv("NETWORK")
 	log.Printf("network: %s", network)
-	sub := subi.NewManager(SUBSTRATE_URL[network])
+	sub := subi.NewManager(SubstrateURLs[network])
 	pub := sk.Public()
 	subext, err := sub.SubstrateExt()
 	if err != nil {
@@ -58,11 +61,11 @@ func setup() (deployer.DeploymentManager, deployer.APIClient) {
 	if err != nil {
 		panic(err)
 	}
-	cl, err := client.NewProxyBus(RMB_PROXY_URL[network], twin, subext, identity, true)
+	cl, err := client.NewProxyBus(RMBProxyURLs[network], twin, subext, identity, true)
 	if err != nil {
 		panic(err)
 	}
-	gridClient := proxy.NewRetryingClient(proxy.NewClient(RMB_PROXY_URL[network]))
+	gridClient := proxy.NewRetryingClient(proxy.NewClient(RMBProxyURLs[network]))
 	ncPool := client.NewNodeClientPool(cl)
 	manager := deployer.NewDeploymentManager(identity, twin, map[uint32]uint64{}, gridClient, ncPool, &sub)
 	apiClient := deployer.APIClient{
@@ -150,6 +153,7 @@ func RemoteRun(user string, addr string, cmd string) (string, error) {
 	return b.String(), err
 }
 
+// VerifyIPs checks IPs
 func VerifyIPs(wgConfig string, verifyIPs []string) bool {
 	UpWg(wgConfig)
 
@@ -169,6 +173,7 @@ func VerifyIPs(wgConfig string, verifyIPs []string) bool {
 	return true
 }
 
+// RandomName generates a random name
 func RandomName() string {
 	seed := time.Now().UTC().UnixNano()
 	nameGenerator := namegenerator.NewNameGenerator(seed)
@@ -178,6 +183,7 @@ func RandomName() string {
 	return name
 }
 
+// Wait waits for addr to connect
 func Wait(addr string, port string) bool {
 	for t := time.Now(); time.Since(t) < 3*time.Minute; {
 		_, err := net.DialTimeout("tcp", net.JoinHostPort(addr, "22"), time.Second*12)

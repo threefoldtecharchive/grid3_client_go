@@ -1,3 +1,4 @@
+// Package loader to load different types, workloads from grid
 package loader
 
 import (
@@ -7,6 +8,7 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
+// LoadedNetwork for a loaded network
 type LoadedNetwork struct {
 	Name          string
 	Description   string
@@ -14,6 +16,7 @@ type LoadedNetwork struct {
 	NodeContracts map[uint32]uint64
 }
 
+// LoadNetworkFromGrid loads a network from grid
 func LoadNetworkFromGrid(manager deployer.DeploymentManager, name string) (LoadedNetwork, error) {
 	ret := LoadedNetwork{
 		NodeNetwork:   make(map[uint32]zos.Network),
