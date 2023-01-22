@@ -20,6 +20,8 @@ import (
 
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
+
+	"github.com/joho/godotenv"
 )
 
 var (
@@ -38,15 +40,22 @@ var (
 )
 
 func setUP() (identity subi.Identity, twinID uint32) {
-	mnemonics := os.Getenv("MNEMONICS")
-	identity, err := substrate.NewIdentityFromSr25519Phrase(mnemonics)
+	err := godotenv.Load("../.env")
 	if err != nil {
 		panic(err)
 	}
+
+	mnemonics := os.Getenv("MNEMONICS")
+	identity, err = substrate.NewIdentityFromSr25519Phrase(mnemonics)
+	if err != nil {
+		panic(err)
+	}
+
 	sk, err := identity.KeyPair()
 	if err != nil {
 		panic(err)
 	}
+
 	network := os.Getenv("NETWORK")
 	pub := sk.Public()
 	sub := subi.NewManager(SubstrateURLs[network])
@@ -122,6 +131,7 @@ type EmptyValidator struct{}
 func (d *EmptyValidator) Validate(ctx context.Context, sub subi.SubstrateExt, oldDeployments map[uint32]gridtypes.Deployment, newDeployments map[uint32]gridtypes.Deployment) error {
 	return nil
 }
+
 func TestCreate(t *testing.T) {
 	identity, twinID := setUP()
 	ctrl := gomock.NewController(t)
