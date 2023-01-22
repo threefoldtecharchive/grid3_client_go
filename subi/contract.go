@@ -1,3 +1,4 @@
+// package subi for substrate client
 package subi
 
 import (

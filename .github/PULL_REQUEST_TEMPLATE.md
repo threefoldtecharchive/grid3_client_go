@@ -15,4 +15,4 @@ List of related issues
 - [ ] Tests included
 - [ ] Build pass
 - [ ] Documentation
-- [ ] Code format and docstrings
+- [ ] Code format and docstring

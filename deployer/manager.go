@@ -1,3 +1,4 @@
+// package deployer for grid deployer
 package deployer
 
 import (
@@ -44,6 +45,7 @@ type deploymentManager struct {
 	//connection field
 }
 
+// NewDeploymentManager generates a new deployment manager
 func NewDeploymentManager(
 	identity substrate.Identity,
 	twinID uint32,

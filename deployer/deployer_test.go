@@ -1,3 +1,4 @@
+// package deployer for grid deployer
 package deployer
 
 import (
@@ -22,13 +23,13 @@ import (
 )
 
 var (
-	SUBSTRATE_URL = map[string]string{
+	SubstrateURLs = map[string]string{
 		"dev":  "wss://tfchain.dev.grid.tf/ws",
 		"test": "wss://tfchain.test.grid.tf/ws",
 		"qa":   "wss://tfchain.qa.grid.tf/ws",
 		"main": "wss://tfchain.grid.tf/ws",
 	}
-	RMB_PROXY_URL = map[string]string{
+	RMBProxyURLs = map[string]string{
 		"dev":  "https://gridproxy.dev.grid.tf/",
 		"test": "https://gridproxy.test.grid.tf/",
 		"qa":   "https://gridproxy.qa.grid.tf/",
@@ -48,7 +49,7 @@ func setUP() (identity subi.Identity, twinID uint32) {
 	}
 	network := os.Getenv("NETWORK")
 	pub := sk.Public()
-	sub := subi.NewManager(SUBSTRATE_URL[network])
+	sub := subi.NewManager(SubstrateURLs[network])
 	subext, err := sub.SubstrateExt()
 	if err != nil {
 		panic(err)

@@ -1,3 +1,4 @@
+// package loader to load different types, workloads from grid
 package loader
 
 import (
@@ -8,6 +9,7 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
+// LoadDiskFromGrid loads a disk from grid
 func LoadDiskFromGrid(manager deployer.DeploymentManager, nodeID uint32, name string) (workloads.Disk, error) {
 	wl, err := manager.GetWorkload(nodeID, name)
 	if err != nil {

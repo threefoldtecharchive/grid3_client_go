@@ -379,7 +379,7 @@ func (q *QSFS) GenerateWorkloads() ([]gridtypes.Workload, error) {
 	}, nil
 }
 
-// Stage for staging workloads
+// BindWorkloadsToNode for staging workloads to node IDs
 func (q *QSFS) BindWorkloadsToNode(nodeID uint32) (map[uint32][]gridtypes.Workload, error) {
 	workloadsMap := map[uint32][]gridtypes.Workload{}
 

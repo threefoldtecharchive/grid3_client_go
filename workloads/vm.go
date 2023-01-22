@@ -367,7 +367,7 @@ func (vm *VM) GenerateWorkloads() ([]gridtypes.Workload, error) {
 	return workloads, nil
 }
 
-// Stage for staging workloads
+// BindWorkloadsToNode for staging workloads to node IDs
 func (vm *VM) BindWorkloadsToNode(nodeID uint32) (map[uint32][]gridtypes.Workload, error) {
 	workloadsMap := map[uint32][]gridtypes.Workload{}
 

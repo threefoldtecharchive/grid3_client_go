@@ -1,3 +1,4 @@
+// package integration for integration tests
 package integration
 
 import (
@@ -14,14 +15,14 @@ import (
 )
 
 const (
-	DATA_ZDB_NUM = 4
-	META_ZDB_NUM = 4
+	DataZDBNum = 4
+	MetaZDBNum = 4
 )
 
 func TestQSFSDeployment(t *testing.T) {
 	dataZDBs := []workloads.ZDB{}
 	metaZDBs := []workloads.ZDB{}
-	for i := 1; i <= DATA_ZDB_NUM; i++ {
+	for i := 1; i <= DataZDBNum; i++ {
 		zdb := workloads.ZDB{
 			Name:        "qsfsDataZdb" + strconv.Itoa(i),
 			Password:    "password",
@@ -32,7 +33,7 @@ func TestQSFSDeployment(t *testing.T) {
 		}
 		dataZDBs = append(dataZDBs, zdb)
 	}
-	for i := 1; i <= META_ZDB_NUM; i++ {
+	for i := 1; i <= MetaZDBNum; i++ {
 		zdb := workloads.ZDB{
 			Name:        "qsfsMetaZdb" + strconv.Itoa(i),
 			Password:    "password",
@@ -46,11 +47,11 @@ func TestQSFSDeployment(t *testing.T) {
 
 	manager, _ := setup()
 	var err error
-	for i := 0; i < DATA_ZDB_NUM; i++ {
+	for i := 0; i < DataZDBNum; i++ {
 		err = manager.Stage(&dataZDBs[i], 14)
 		assert.NoError(t, err)
 	}
-	for i := 0; i < META_ZDB_NUM; i++ {
+	for i := 0; i < MetaZDBNum; i++ {
 		err = manager.Stage(&metaZDBs[i], 14)
 		assert.NoError(t, err)
 	}
@@ -65,13 +66,13 @@ func TestQSFSDeployment(t *testing.T) {
 
 	resDataZDBs := []workloads.ZDB{}
 	resMetaZDBs := []workloads.ZDB{}
-	for i := 1; i <= DATA_ZDB_NUM; i++ {
+	for i := 1; i <= DataZDBNum; i++ {
 		res, err := loader.LoadZdbFromGrid(manager, 14, "qsfsDataZdb"+strconv.Itoa(i))
 		assert.NotEmpty(t, res)
 		assert.NoError(t, err)
 		resDataZDBs = append(resDataZDBs, res)
 	}
-	for i := 1; i <= META_ZDB_NUM; i++ {
+	for i := 1; i <= MetaZDBNum; i++ {
 		res, err := loader.LoadZdbFromGrid(manager, 14, "qsfsMetaZdb"+strconv.Itoa(i))
 		assert.NotEmpty(t, res)
 		assert.NoError(t, err)
@@ -79,14 +80,14 @@ func TestQSFSDeployment(t *testing.T) {
 	}
 
 	dataBackends := []workloads.Backend{}
-	for i := 0; i < DATA_ZDB_NUM; i++ {
+	for i := 0; i < DataZDBNum; i++ {
 		dataBackends = append(dataBackends, workloads.Backend{
 			Address:   "[" + resDataZDBs[i].IPs[1] + "]" + ":" + fmt.Sprint(resDataZDBs[i].Port),
 			Namespace: resDataZDBs[i].Namespace,
 			Password:  resDataZDBs[i].Password})
 	}
 	metaBackends := []workloads.Backend{}
-	for i := 0; i < META_ZDB_NUM; i++ {
+	for i := 0; i < MetaZDBNum; i++ {
 		metaBackends = append(metaBackends, workloads.Backend{
 			Address:   "[" + resMetaZDBs[i].IPs[1] + "]" + ":" + fmt.Sprint(resMetaZDBs[i].Port),
 			Namespace: resMetaZDBs[i].Namespace,

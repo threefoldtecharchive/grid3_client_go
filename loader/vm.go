@@ -1,3 +1,4 @@
+// package loader to load different types, workloads from grid
 package loader
 
 import (
@@ -11,6 +12,7 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
+// LoadVmFromGrid loads a vm from a grid
 func LoadVmFromGrid(manager deployer.DeploymentManager, nodeID uint32, name string) (workloads.VM, error) {
 	dl, err := manager.GetDeployment(nodeID)
 	if err != nil {

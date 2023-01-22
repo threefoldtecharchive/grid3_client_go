@@ -1,3 +1,4 @@
+// package loader to load different types, workloads from grid
 package loader
 
 import (
@@ -7,6 +8,7 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
+// LoadGatewayFqdnFromGrid loads a gateway FQDN proxy from grid
 func LoadGatewayFqdnFromGrid(manager deployer.DeploymentManager, nodeID uint32, name string) (workloads.GatewayFQDNProxy, error) {
 	wl, err := manager.GetWorkload(nodeID, name)
 	if err != nil {
