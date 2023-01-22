@@ -24,7 +24,7 @@ func NewDiskFromSchema(disk map[string]interface{}) Disk {
 }
 
 // NewDiskFromWorkload generates a new disk from a workload
-func NewDiskFromWorkload(wl *gridtypes.Workload) (Disk, error) {
+func NewDiskFromWorkload(wl gridtypes.Workload) (Disk, error) {
 	dataI, err := wl.WorkloadData()
 	if err != nil {
 		return Disk{}, errors.Wrap(err, "failed to get workload data")

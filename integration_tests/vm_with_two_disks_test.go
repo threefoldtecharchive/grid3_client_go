@@ -82,7 +82,7 @@ func TestVMWithTwoDisk(t *testing.T) {
 	err = manager.Commit(ctx)
 	assert.NoError(t, err)
 
-	result, err := loader.LoadVmFromGrid(manager, 14, "vm")
+	result, err := loader.LoadVMFromGrid(manager, 14, "vm")
 	assert.NoError(t, err)
 
 	yggIP := result.YggIP

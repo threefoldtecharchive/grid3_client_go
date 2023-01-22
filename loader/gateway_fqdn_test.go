@@ -13,6 +13,10 @@ import (
 )
 
 func TestLoadGatewayFqdnFromGrid(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	manager := mocks.NewMockDeploymentManager(ctrl)
+
 	gatewayWl := gridtypes.Workload{
 		Version: 0,
 		Type:    zos.GatewayFQDNProxyType,
@@ -29,35 +33,31 @@ func TestLoadGatewayFqdnFromGrid(t *testing.T) {
 		Backends:       []zos.Backend{"http://1.1.1.1"},
 		FQDN:           "test",
 	}
+
 	t.Run("success", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-		manager := mocks.NewMockDeploymentManager(ctrl)
 		manager.EXPECT().GetWorkload(uint32(1), "test").Return(gatewayWl, nil)
+
 		got, err := LoadGatewayFqdnFromGrid(manager, 1, "test")
 		assert.NoError(t, err)
 		assert.Equal(t, gateway, got)
 	})
+
 	t.Run("invalid type", func(t *testing.T) {
 		gatewayWlCp := gatewayWl
 		gatewayWlCp.Type = "invalid"
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-		manager := mocks.NewMockDeploymentManager(ctrl)
+
 		manager.EXPECT().GetWorkload(uint32(1), "test").Return(gatewayWlCp, nil)
 		_, err := LoadGatewayFqdnFromGrid(manager, 1, "test")
 		assert.Error(t, err)
 	})
+
 	t.Run("wrong workload data", func(t *testing.T) {
 		gatewayWlCp := gatewayWl
 		gatewayWlCp.Type = zos.GatewayNameProxyType
 		gatewayWlCp.Data = gridtypes.MustMarshal(zos.GatewayNameProxy{
 			Name: "name",
 		})
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
 
-		manager := mocks.NewMockDeploymentManager(ctrl)
 		manager.EXPECT().GetWorkload(uint32(1), "test").Return(gatewayWlCp, nil)
 
 		_, err := LoadGatewayFqdnFromGrid(manager, 1, "test")

@@ -15,11 +15,19 @@ import (
 )
 
 func TestLoadQsfsFromGrid(t *testing.T) {
-	res, _ := json.Marshal(zos.QuatumSafeFSResult{
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	manager := mocks.NewMockDeploymentManager(ctrl)
+
+	res, err := json.Marshal(zos.QuatumSafeFSResult{
 		Path:            "path",
 		MetricsEndpoint: "endpoint",
 	})
-	k, _ := hex.DecodeString("4d778ba3216e4da4231540c92a55f06157cabba802f9b68fb0f78375d2e825af")
+	assert.NoError(t, err)
+
+	k, err := hex.DecodeString("4d778ba3216e4da4231540c92a55f06157cabba802f9b68fb0f78375d2e825af")
+	assert.NoError(t, err)
+
 	qsfsWl := gridtypes.Workload{
 		Version:     0,
 		Name:        gridtypes.Name("test"),
@@ -64,6 +72,7 @@ func TestLoadQsfsFromGrid(t *testing.T) {
 			Data:    res,
 		},
 	}
+
 	qsfs := workloads.QSFS{
 		Name:                 "test",
 		Description:          "test des",
@@ -90,11 +99,10 @@ func TestLoadQsfsFromGrid(t *testing.T) {
 		}}},
 		MetricsEndpoint: "endpoint",
 	}
+
 	t.Run("success", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-		manager := mocks.NewMockDeploymentManager(ctrl)
 		manager.EXPECT().GetWorkload(uint32(1), "test").Return(qsfsWl, nil)
+
 		got, err := LoadQsfsFromGrid(manager, 1, "test")
 		assert.NoError(t, err)
 		assert.Equal(t, qsfs, got)
@@ -102,35 +110,30 @@ func TestLoadQsfsFromGrid(t *testing.T) {
 	t.Run("invalid type", func(t *testing.T) {
 		qsfsWlCp := qsfsWl
 		qsfsWlCp.Type = "invalid"
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-		manager := mocks.NewMockDeploymentManager(ctrl)
+
 		manager.EXPECT().GetWorkload(uint32(1), "test").Return(qsfsWlCp, nil)
+
 		_, err := LoadQsfsFromGrid(manager, 1, "test")
 		assert.Error(t, err)
 	})
+
 	t.Run("wrong workload data", func(t *testing.T) {
 		qsfsWlCp := qsfsWl
 		qsfsWlCp.Type = zos.GatewayNameProxyType
 		qsfsWlCp.Data = gridtypes.MustMarshal(zos.GatewayNameProxy{
 			Name: "name",
 		})
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
 
-		manager := mocks.NewMockDeploymentManager(ctrl)
 		manager.EXPECT().GetWorkload(uint32(1), "test").Return(qsfsWlCp, nil)
 
 		_, err := LoadQsfsFromGrid(manager, 1, "test")
 		assert.Error(t, err)
 	})
+
 	t.Run("invalid result data", func(t *testing.T) {
 		qsfsWlCp := qsfsWl
 		qsfsWlCp.Result.Data = nil
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
 
-		manager := mocks.NewMockDeploymentManager(ctrl)
 		manager.EXPECT().GetWorkload(uint32(1), "test").Return(qsfsWlCp, nil)
 
 		_, err := LoadQsfsFromGrid(manager, 1, "test")

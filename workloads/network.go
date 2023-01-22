@@ -14,6 +14,7 @@ import (
 	proxy "github.com/threefoldtech/grid_proxy_server/pkg/client"
 	proxyTypes "github.com/threefoldtech/grid_proxy_server/pkg/types"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
+	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
 // UserAccess struct
@@ -32,6 +33,28 @@ type ZNet struct {
 	Nodes       []uint32
 	IPRange     gridtypes.IPNet
 	AddWGAccess bool
+	ContractID  uint64
+}
+
+// NewNetworkFromWorkload generates a new znet from a workload
+func NewNetworkFromWorkload(wl gridtypes.Workload, nodeID uint32, contractID uint64) (ZNet, error) {
+	dataI, err := wl.WorkloadData()
+	if err != nil {
+		return ZNet{}, errors.Wrap(err, "failed to get workload data")
+	}
+	data, ok := dataI.(*zos.Network)
+	if !ok {
+		return ZNet{}, errors.New("couldn't cast workload data")
+	}
+
+	return ZNet{
+		Name:        wl.Name.String(),
+		Description: wl.Description,
+		Nodes:       []uint32{nodeID},
+		IPRange:     data.NetworkIPRange,
+		AddWGAccess: data.WGPrivateKey != "",
+		ContractID:  contractID,
+	}, nil
 }
 
 var (

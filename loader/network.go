@@ -2,48 +2,39 @@
 package loader
 
 import (
+	"reflect"
+
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/grid3-go/deployer"
+	"github.com/threefoldtech/grid3-go/workloads"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
-// LoadedNetwork for a loaded network
-type LoadedNetwork struct {
-	Name          string
-	Description   string
-	NodeNetwork   map[uint32]zos.Network
-	NodeContracts map[uint32]uint64
-}
-
 // LoadNetworkFromGrid loads a network from grid
-func LoadNetworkFromGrid(manager deployer.DeploymentManager, name string) (LoadedNetwork, error) {
-	ret := LoadedNetwork{
-		NodeNetwork:   make(map[uint32]zos.Network),
-		NodeContracts: make(map[uint32]uint64),
-	}
+func LoadNetworkFromGrid(manager deployer.DeploymentManager, name string) (workloads.ZNet, error) {
+	znet := workloads.ZNet{}
+
 	for nodeID, contractID := range manager.GetContractIDs() {
 		dl, err := manager.GetDeployment(nodeID)
 		if err != nil {
-			return LoadedNetwork{}, errors.Wrapf(err, "failed to get deployment with id %d", nodeID)
+			return znet, errors.Wrapf(err, "failed to get deployment with id %d", nodeID)
 		}
+
 		for _, wl := range dl.Workloads {
 			if wl.Type == zos.NetworkType && wl.Name == gridtypes.Name(name) {
-				ret.Name = wl.Name.String()
-				ret.Description = wl.Description
-				dataI, err := wl.WorkloadData()
+				znet, err = workloads.NewNetworkFromWorkload(wl, nodeID, contractID)
 				if err != nil {
-					return LoadedNetwork{}, errors.Wrap(err, "failed to get workload data")
+					return workloads.ZNet{}, errors.Wrapf(err, "failed to get network from workload %s", name)
 				}
-				data, ok := dataI.(*zos.Network)
-				if !ok {
-					return LoadedNetwork{}, errors.New("couldn't cast workload data")
-				}
-				ret.NodeNetwork[nodeID] = *data
-				ret.NodeContracts[nodeID] = contractID
 				break
 			}
 		}
 	}
-	return ret, nil
+
+	if reflect.DeepEqual(znet, workloads.ZNet{}) {
+		return znet, errors.Errorf("failed to get network %s", name)
+	}
+
+	return znet, nil
 }

@@ -73,7 +73,7 @@ func TestVmDisk(t *testing.T) {
 	err = manager.CancelAll()
 	assert.NoError(t, err)
 
-	result, err := loader.LoadVmFromGrid(manager, 14, "vm")
+	result, err := loader.LoadVMFromGrid(manager, 14, "vm")
 	assert.NoError(t, err)
 
 	resDisk, err := loader.LoadDiskFromGrid(manager, 14, "testdisk")

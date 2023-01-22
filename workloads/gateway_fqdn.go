@@ -22,8 +22,8 @@ type GatewayFQDNProxy struct {
 	FQDN string
 }
 
-// GatewayFQDNProxyFromZosWorkload generates a gateway FQDN proxy from a zos workload
-func GatewayFQDNProxyFromZosWorkload(wl gridtypes.Workload) (GatewayFQDNProxy, error) {
+// NewGatewayFQDNProxyFromZosWorkload generates a gateway FQDN proxy from a zos workload
+func NewGatewayFQDNProxyFromZosWorkload(wl gridtypes.Workload) (GatewayFQDNProxy, error) {
 	dataI, err := wl.WorkloadData()
 	if err != nil {
 		return GatewayFQDNProxy{}, errors.Wrap(err, "failed to get workload data")

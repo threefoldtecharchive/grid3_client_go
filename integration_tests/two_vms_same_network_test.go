@@ -85,10 +85,10 @@ func TestTwoVMsSameNetwork(t *testing.T) {
 		err = manager.Commit(ctx)
 		assert.NoError(t, err)
 
-		result1, err := loader.LoadVmFromGrid(manager, 14, "vm1")
+		result1, err := loader.LoadVMFromGrid(manager, 14, "vm1")
 		assert.NoError(t, err)
 
-		result2, err := loader.LoadVmFromGrid(manager, 14, "vm2")
+		result2, err := loader.LoadVMFromGrid(manager, 14, "vm2")
 		assert.NoError(t, err)
 
 		yggIP1 := result1.YggIP
@@ -172,10 +172,10 @@ func TestTwoVMsSameNetwork(t *testing.T) {
 			t.FailNow()
 		}
 
-		result1, err := loader.LoadVmFromGrid(manager, 45, "vm1")
+		result1, err := loader.LoadVMFromGrid(manager, 45, "vm1")
 		assert.NoError(t, err)
 
-		result2, err := loader.LoadVmFromGrid(manager, 45, "vm2")
+		result2, err := loader.LoadVMFromGrid(manager, 45, "vm2")
 		assert.NoError(t, err)
 
 		yggIP1 := result1.YggIP

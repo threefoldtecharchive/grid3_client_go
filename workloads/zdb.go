@@ -40,7 +40,7 @@ func NewZDBFromSchema(zdb map[string]interface{}) ZDB {
 }
 
 // NewZDBFromWorkload generates a new zdb from a workload
-func NewZDBFromWorkload(wl *gridtypes.Workload) (ZDB, error) {
+func NewZDBFromWorkload(wl gridtypes.Workload) (ZDB, error) {
 	dataI, err := wl.WorkloadData()
 	if err != nil {
 		return ZDB{}, errors.Wrap(err, "failed to get workload data")
@@ -53,10 +53,8 @@ func NewZDBFromWorkload(wl *gridtypes.Workload) (ZDB, error) {
 
 	var result zos.ZDBResult
 
-	if len(wl.Result.Data) > 0 {
-		if err := json.Unmarshal(wl.Result.Data, &result); err != nil {
-			return ZDB{}, errors.Wrap(err, "failed to get zdb result")
-		}
+	if err := json.Unmarshal(wl.Result.Data, &result); err != nil {
+		return ZDB{}, errors.Wrap(err, "failed to get zdb result")
 	}
 
 	return ZDB{

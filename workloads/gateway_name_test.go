@@ -2,6 +2,7 @@
 package workloads
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -19,6 +20,11 @@ func TestGatewayNameProxyWorkload(t *testing.T) {
 
 	var gateway GatewayNameProxy
 
+	res, err := json.Marshal(zos.GatewayNameProxy{
+		Name: "test",
+	})
+	assert.NoError(t, err)
+
 	gatewayWorkload := gridtypes.Workload{
 		Version: 0,
 		Type:    zos.GatewayNameProxyType,
@@ -28,29 +34,43 @@ func TestGatewayNameProxyWorkload(t *testing.T) {
 			TLSPassthrough: true,
 			Backends:       []zos.Backend{gatewayZosBackend},
 		}),
+		Result: gridtypes.Result{
+			Created: 5000,
+			State:   gridtypes.StateOk,
+			Data:    res,
+		},
 	}
 
 	t.Run("test_gateway_from_zos_workload", func(t *testing.T) {
 		var err error
 
-		gateway, err = GatewayNameProxyFromZosWorkload(gatewayWorkload)
+		gateway, err = NewGatewayNameProxyFromZosWorkload(gatewayWorkload)
 		assert.NoError(t, err)
 	})
 
 	t.Run("test_gateway_functions", func(t *testing.T) {
-		assert.Equal(t, gateway.ZosWorkload(), gatewayWorkload)
+		gatewayWorkloadCp := gatewayWorkload
+		gatewayWorkloadCp.Result = gridtypes.Result{}
+
+		assert.Equal(t, gateway.ZosWorkload(), gatewayWorkloadCp)
 	})
 
 	t.Run("test_workload_from_gateway_name", func(t *testing.T) {
+		gatewayWorkloadCp := gatewayWorkload
+		gatewayWorkloadCp.Result = gridtypes.Result{}
+
 		workloadFromName, err := gateway.GenerateWorkloads()
 		assert.NoError(t, err)
-		assert.Equal(t, workloadFromName[0], gatewayWorkload)
+		assert.Equal(t, workloadFromName[0], gatewayWorkloadCp)
 	})
 
 	t.Run("test_workloads_map", func(t *testing.T) {
+		gatewayWorkloadCp := gatewayWorkload
+		gatewayWorkloadCp.Result = gridtypes.Result{}
+
 		nodeID := uint32(1)
 		workloadsMap := map[uint32][]gridtypes.Workload{}
-		workloadsMap[nodeID] = append(workloadsMap[nodeID], gatewayWorkload)
+		workloadsMap[nodeID] = append(workloadsMap[nodeID], gatewayWorkloadCp)
 
 		workloadsMap2, err := gateway.BindWorkloadsToNode(nodeID)
 		assert.NoError(t, err)

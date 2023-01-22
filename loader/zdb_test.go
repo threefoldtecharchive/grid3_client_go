@@ -14,7 +14,11 @@ import (
 )
 
 func TestLoadZdbFromGrid(t *testing.T) {
-	res, _ := json.Marshal(zos.ZDBResult{
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	manager := mocks.NewMockDeploymentManager(ctrl)
+
+	res, err := json.Marshal(zos.ZDBResult{
 		Namespace: "test name",
 		IPs: []string{
 			"1.1.1.1",
@@ -22,6 +26,8 @@ func TestLoadZdbFromGrid(t *testing.T) {
 		},
 		Port: 5000,
 	})
+	assert.NoError(t, err)
+
 	zdbWl := gridtypes.Workload{
 		Name:        gridtypes.Name("test"),
 		Type:        zos.ZDBType,
@@ -54,46 +60,40 @@ func TestLoadZdbFromGrid(t *testing.T) {
 		Port: 5000,
 	}
 	t.Run("success", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-		manager := mocks.NewMockDeploymentManager(ctrl)
 		manager.EXPECT().GetWorkload(uint32(1), "test").Return(zdbWl, nil)
+
 		got, err := LoadZdbFromGrid(manager, 1, "test")
 		assert.NoError(t, err)
 		assert.Equal(t, zdb, got)
 	})
+
 	t.Run("invalid type", func(t *testing.T) {
 		zdbWlCp := zdbWl
 		zdbWlCp.Type = "invalid"
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-		manager := mocks.NewMockDeploymentManager(ctrl)
+
 		manager.EXPECT().GetWorkload(uint32(1), "test").Return(zdbWlCp, nil)
+
 		_, err := LoadZdbFromGrid(manager, 1, "test")
 		assert.Error(t, err)
 	})
+
 	t.Run("wrong workload data", func(t *testing.T) {
 		zdbWlCp := zdbWl
 		zdbWlCp.Type = zos.GatewayNameProxyType
 		zdbWlCp.Data = gridtypes.MustMarshal(zos.GatewayNameProxy{
 			Name: "name",
 		})
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
 
-		manager := mocks.NewMockDeploymentManager(ctrl)
 		manager.EXPECT().GetWorkload(uint32(1), "test").Return(zdbWlCp, nil)
 
 		_, err := LoadZdbFromGrid(manager, 1, "test")
 		assert.Error(t, err)
 	})
+
 	t.Run("invalid result data", func(t *testing.T) {
 		zdbWlCp := zdbWl
 		zdbWlCp.Result.Data = nil
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
 
-		manager := mocks.NewMockDeploymentManager(ctrl)
 		manager.EXPECT().GetWorkload(uint32(1), "test").Return(zdbWlCp, nil)
 
 		_, err := LoadZdbFromGrid(manager, 1, "test")

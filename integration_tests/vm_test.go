@@ -67,7 +67,7 @@ func TestVMDeployment(t *testing.T) {
 		err = manager.Commit(ctx)
 		assert.NoError(t, err)
 
-		result, err := loader.LoadVmFromGrid(manager, 14, "vm")
+		result, err := loader.LoadVMFromGrid(manager, 14, "vm")
 		assert.NoError(t, err)
 
 		assert.Equal(t, 20*1024, result.RootfsSize)
@@ -112,7 +112,7 @@ func TestVMDeployment(t *testing.T) {
 		err = manager.Commit(ctx)
 		assert.NoError(t, err)
 
-		result, err := loader.LoadVmFromGrid(manager, 45, "vm")
+		result, err := loader.LoadVMFromGrid(manager, 45, "vm")
 		assert.NoError(t, err)
 
 		pIP := strings.Split(result.ComputedIP, "/")[0]
