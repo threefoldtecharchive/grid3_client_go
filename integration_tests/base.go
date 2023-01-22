@@ -1,4 +1,4 @@
-// package integration for integration tests
+// Package integration for integration tests
 package integration
 
 import (
@@ -21,12 +21,14 @@ import (
 )
 
 var (
+	// SubstrateURLs for substrate urls
 	SubstrateURLs = map[string]string{
 		"dev":  "wss://tfchain.dev.grid.tf/ws",
 		"test": "wss://tfchain.test.grid.tf/ws",
 		"qa":   "wss://tfchain.qa.grid.tf/ws",
 		"main": "wss://tfchain.grid.tf/ws",
 	}
+	// RMBProxyURLs for RMB proxy urls
 	RMBProxyURLs = map[string]string{
 		"dev":  "https://gridproxy.dev.grid.tf/",
 		"test": "https://gridproxy.test.grid.tf/",
@@ -181,6 +183,7 @@ func RandomName() string {
 	return name
 }
 
+// Wait waits for addr to connect
 func Wait(addr string, port string) bool {
 	for t := time.Now(); time.Since(t) < 3*time.Minute; {
 		_, err := net.DialTimeout("tcp", net.JoinHostPort(addr, "22"), time.Second*12)

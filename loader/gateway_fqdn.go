@@ -1,4 +1,4 @@
-// package loader to load different types, workloads from grid
+// Package loader to load different types, workloads from grid
 package loader
 
 import (

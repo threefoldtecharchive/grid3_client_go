@@ -70,7 +70,7 @@
 //	}
 //
 // ```
-// package client for node client
+// Package client for node client
 package client
 
 import (
