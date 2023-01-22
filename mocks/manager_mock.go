@@ -5,12 +5,12 @@
 package mocks
 
 import (
-	context "context"
-	reflect "reflect"
+	"context"
+	"reflect"
 
-	gomock "github.com/golang/mock/gomock"
-	gridtypes "github.com/threefoldtech/zos/pkg/gridtypes"
+	"github.com/golang/mock/gomock"
 	"github.com/threefoldtech/grid3-go/workloads"
+	"github.com/threefoldtech/zos/pkg/gridtypes"
 )
 
 // MockDeploymentManager is a mock of DeploymentManager interface.

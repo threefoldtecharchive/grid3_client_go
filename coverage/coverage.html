@@ -1,0 +1,1975 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>workloads: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">github.com/threefoldtech/grid3-go/workloads/deployment.go (100.0%)</option>
+				
+				<option value="file1">github.com/threefoldtech/grid3-go/workloads/disk.go (87.0%)</option>
+				
+				<option value="file2">github.com/threefoldtech/grid3-go/workloads/flist.go (100.0%)</option>
+				
+				<option value="file3">github.com/threefoldtech/grid3-go/workloads/gateway_fqdn.go (80.0%)</option>
+				
+				<option value="file4">github.com/threefoldtech/grid3-go/workloads/gateway_name.go (73.7%)</option>
+				
+				<option value="file5">github.com/threefoldtech/grid3-go/workloads/k8s.go (75.9%)</option>
+				
+				<option value="file6">github.com/threefoldtech/grid3-go/workloads/network.go (27.5%)</option>
+				
+				<option value="file7">github.com/threefoldtech/grid3-go/workloads/public_ip.go (100.0%)</option>
+				
+				<option value="file8">github.com/threefoldtech/grid3-go/workloads/qsfs.go (89.6%)</option>
+				
+				<option value="file9">github.com/threefoldtech/grid3-go/workloads/slice_contains.go (100.0%)</option>
+				
+				<option value="file10">github.com/threefoldtech/grid3-go/workloads/vm.go (85.8%)</option>
+				
+				<option value="file11">github.com/threefoldtech/grid3-go/workloads/zdb.go (85.3%)</option>
+				
+				<option value="file12">github.com/threefoldtech/grid3-go/workloads/zlog.go (78.3%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">// Package workloads includes workloads types (vm, zdb, qsfs, public IP, gateway name, gateway fqdn, disk)
+package workloads
+
+import (
+        "github.com/threefoldtech/zos/pkg/gridtypes"
+)
+
+// NewDeployment generates a new deployment
+func NewDeployment(twin uint32) gridtypes.Deployment <span class="cov8" title="1">{
+        return gridtypes.Deployment{
+                Version: 0,
+                TwinID:  twin, //LocalTwin,
+                // this contract id must match the one on substrate
+                Workloads: []gridtypes.Workload{},
+                SignatureRequirement: gridtypes.SignatureRequirement{
+                        WeightRequired: 1,
+                        Requests: []gridtypes.SignatureRequest{
+                                {
+                                        TwinID: twin,
+                                        Weight: 1,
+                                },
+                        },
+                },
+        }
+}</span>
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">// Package workloads includes workloads types (vm, zdb, qsfs, public IP, gateway name, gateway fqdn, disk)
+package workloads
+
+import (
+        "github.com/pkg/errors"
+        "github.com/threefoldtech/zos/pkg/gridtypes"
+        "github.com/threefoldtech/zos/pkg/gridtypes/zos"
+)
+
+// Disk struct
+type Disk struct {
+        Name        string
+        Size        int
+        Description string
+}
+
+// NewDiskFromSchema converts a disk data map to a struct
+func NewDiskFromSchema(disk map[string]interface{}) Disk <span class="cov8" title="1">{
+        return Disk{
+                Name:        disk["name"].(string),
+                Size:        disk["size"].(int),
+                Description: disk["description"].(string),
+        }
+}</span>
+
+// NewDiskFromWorkload generates a new disk from a workload
+func NewDiskFromWorkload(wl *gridtypes.Workload) (Disk, error) <span class="cov8" title="1">{
+        dataI, err := wl.WorkloadData()
+        if err != nil </span><span class="cov0" title="0">{
+                return Disk{}, errors.Wrap(err, "failed to get workload data")
+        }</span>
+
+        <span class="cov8" title="1">data, ok := dataI.(*zos.ZMount)
+        if !ok </span><span class="cov0" title="0">{
+                return Disk{}, errors.New("couldn't cast workload data")
+        }</span>
+
+        <span class="cov8" title="1">return Disk{
+                Name:        wl.Name.String(),
+                Description: wl.Description,
+                Size:        int(data.Size / gridtypes.Gigabyte),
+        }, nil</span>
+}
+
+// Dictify converts a disk data to a map
+func (d *Disk) Dictify() map[string]interface{} <span class="cov8" title="1">{
+        res := make(map[string]interface{})
+        res["name"] = d.Name
+        res["description"] = d.Description
+        res["size"] = d.Size
+        return res
+}</span>
+
+// GenerateDiskWorkload generates a disk workload
+func (d *Disk) GenerateDiskWorkload() gridtypes.Workload <span class="cov8" title="1">{
+        workload := gridtypes.Workload{
+                Name:        gridtypes.Name(d.Name),
+                Version:     0,
+                Type:        zos.ZMountType,
+                Description: d.Description,
+                Data: gridtypes.MustMarshal(zos.ZMount{
+                        Size: gridtypes.Unit(d.Size) * gridtypes.Gigabyte,
+                }),
+        }
+
+        return workload
+}</span>
+
+// GetName returns disk name
+func (d *Disk) GetName() string <span class="cov8" title="1">{
+        return d.Name
+}</span>
+
+// GenerateWorkloads generates a workload from a disk
+func (d *Disk) GenerateWorkloads() ([]gridtypes.Workload, error) <span class="cov8" title="1">{
+        return []gridtypes.Workload{
+                {
+                        Name:        gridtypes.Name(d.Name),
+                        Version:     0,
+                        Type:        zos.ZMountType,
+                        Description: d.Description,
+                        Data: gridtypes.MustMarshal(zos.ZMount{
+                                Size: gridtypes.Unit(d.Size) * gridtypes.Gigabyte,
+                        }),
+                },
+        }, nil
+}</span>
+
+// GenerateNodeWorkloadsMap for staging workloads with node ID
+func (d *Disk) GenerateNodeWorkloadsMap(nodeID uint32) (map[uint32][]gridtypes.Workload, error) <span class="cov8" title="1">{
+        workloadsMap := map[uint32][]gridtypes.Workload{}
+
+        workloads, err := d.GenerateWorkloads()
+        if err != nil </span><span class="cov0" title="0">{
+                return workloadsMap, err
+        }</span>
+
+        <span class="cov8" title="1">workloadsMap[nodeID] = workloads
+        return workloadsMap, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">// Package workloads includes workloads types (vm, zdb, qsfs, public IP, gateway name, gateway fqdn, disk)
+package workloads
+
+import (
+        "fmt"
+        "io"
+        "net/http"
+        "strings"
+)
+
+// FlistChecksumURL returns flist check sum url format
+func FlistChecksumURL(url string) string <span class="cov8" title="1">{
+        return fmt.Sprintf("%s.md5", url)
+}</span>
+
+// GetFlistChecksum gets flist check sum url
+func GetFlistChecksum(url string) (string, error) <span class="cov8" title="1">{
+        response, err := http.Get(FlistChecksumURL(url))
+        if err != nil </span><span class="cov8" title="1">{
+                return "", err
+        }</span>
+        <span class="cov8" title="1">defer response.Body.Close()
+        hash, err := io.ReadAll(response.Body)
+        return strings.TrimSpace(string(hash)), err</span>
+}
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">// Package workloads includes workloads types (vm, zdb, qsfs, public IP, gateway name, gateway fqdn, disk)
+package workloads
+
+import (
+        "github.com/pkg/errors"
+        "github.com/threefoldtech/zos/pkg/gridtypes"
+        "github.com/threefoldtech/zos/pkg/gridtypes/zos"
+)
+
+// GatewayFQDNProxy for gateway FQDN proxy
+type GatewayFQDNProxy struct {
+        // Name the fully qualified domain name to use (cannot be present with Name)
+        Name string
+
+        // Passthrough whether to pass tls traffic or not
+        TLSPassthrough bool
+
+        // Backends are list of backend ips
+        Backends []zos.Backend
+
+        // FQDN deployed on the node
+        FQDN string
+}
+
+// GatewayFQDNProxyFromZosWorkload generates a gateway FQDN proxy from a zos workload
+func GatewayFQDNProxyFromZosWorkload(wl gridtypes.Workload) (GatewayFQDNProxy, error) <span class="cov8" title="1">{
+        dataI, err := wl.WorkloadData()
+        if err != nil </span><span class="cov0" title="0">{
+                return GatewayFQDNProxy{}, errors.Wrap(err, "failed to get workload data")
+        }</span>
+
+        <span class="cov8" title="1">data, ok := dataI.(*zos.GatewayFQDNProxy)
+        if !ok </span><span class="cov0" title="0">{
+                return GatewayFQDNProxy{}, errors.New("couldn't cast workload data")
+        }</span>
+
+        <span class="cov8" title="1">return GatewayFQDNProxy{
+                Name:           wl.Name.String(),
+                TLSPassthrough: data.TLSPassthrough,
+                Backends:       data.Backends,
+                FQDN:           data.FQDN,
+        }, nil</span>
+}
+
+// ZosWorkload generates a zos workload from GatewayFQDNProxy
+func (g *GatewayFQDNProxy) ZosWorkload() gridtypes.Workload <span class="cov8" title="1">{
+        return gridtypes.Workload{
+                Version: 0,
+                Type:    zos.GatewayFQDNProxyType,
+                Name:    gridtypes.Name(g.Name),
+                // REVISE: whether description should be set here
+                Data: gridtypes.MustMarshal(zos.GatewayFQDNProxy{
+                        TLSPassthrough: g.TLSPassthrough,
+                        Backends:       g.Backends,
+                        FQDN:           g.FQDN,
+                }),
+        }
+}</span>
+
+// GenerateWorkloads generates a workload from a fqdn
+func (g *GatewayFQDNProxy) GenerateWorkloads() ([]gridtypes.Workload, error) <span class="cov8" title="1">{
+        return []gridtypes.Workload{
+                {
+                        Version: 0,
+                        Type:    zos.GatewayFQDNProxyType,
+                        Name:    gridtypes.Name(g.Name),
+                        // REVISE: whether description should be set here
+                        Data: gridtypes.MustMarshal(zos.GatewayFQDNProxy{
+                                TLSPassthrough: g.TLSPassthrough,
+                                Backends:       g.Backends,
+                                FQDN:           g.FQDN,
+                        }),
+                },
+        }, nil
+}</span>
+
+// Stage for staging workloads
+func (g *GatewayFQDNProxy) GenerateNodeWorkloadsMap(nodeID uint32) (map[uint32][]gridtypes.Workload, error) <span class="cov8" title="1">{
+        workloadsMap := map[uint32][]gridtypes.Workload{}
+
+        workloads, err := g.GenerateWorkloads()
+        if err != nil </span><span class="cov0" title="0">{
+                return workloadsMap, err
+        }</span>
+
+        <span class="cov8" title="1">workloadsMap[nodeID] = workloads
+        return workloadsMap, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">// Package workloads includes workloads types (vm, zdb, qsfs, public IP, gateway name, gateway fqdn, disk)
+package workloads
+
+import (
+        "encoding/json"
+
+        "github.com/pkg/errors"
+        "github.com/threefoldtech/zos/pkg/gridtypes"
+        "github.com/threefoldtech/zos/pkg/gridtypes/zos"
+)
+
+// GatewayNameProxy struct for gateway name proxy
+type GatewayNameProxy struct {
+        // Name the fully qualified domain name to use (cannot be present with Name)
+        Name string
+
+        // Passthrough whether to pass tls traffic or not
+        TLSPassthrough bool
+
+        // Backends are list of backend ips
+        Backends []zos.Backend
+
+        // FQDN deployed on the node
+        FQDN string
+}
+
+// GatewayNameProxyFromZosWorkload generates a gateway name proxy from a zos workload
+func GatewayNameProxyFromZosWorkload(wl gridtypes.Workload) (GatewayNameProxy, error) <span class="cov8" title="1">{
+        var result zos.GatewayProxyResult
+
+        if len(wl.Result.Data) &gt; 0 </span><span class="cov0" title="0">{
+                if err := json.Unmarshal(wl.Result.Data, &amp;result); err != nil </span><span class="cov0" title="0">{
+                        return GatewayNameProxy{}, errors.Wrap(err, "error unmarshalling json")
+                }</span>
+        }
+
+        <span class="cov8" title="1">dataI, err := wl.WorkloadData()
+        if err != nil </span><span class="cov0" title="0">{
+                return GatewayNameProxy{}, errors.Wrap(err, "failed to get workload data")
+        }</span>
+
+        <span class="cov8" title="1">data, ok := dataI.(*zos.GatewayNameProxy)
+        if !ok </span><span class="cov0" title="0">{
+                return GatewayNameProxy{}, errors.New("couldn't cast workload data")
+        }</span>
+
+        <span class="cov8" title="1">return GatewayNameProxy{
+                Name:           data.Name,
+                TLSPassthrough: data.TLSPassthrough,
+                Backends:       data.Backends,
+                FQDN:           result.FQDN,
+        }, nil</span>
+}
+
+// ZosWorkload generates a zos workload from GatewayNameProxy
+func (g *GatewayNameProxy) ZosWorkload() gridtypes.Workload <span class="cov8" title="1">{
+        return gridtypes.Workload{
+                Version: 0,
+                Type:    zos.GatewayNameProxyType,
+                Name:    gridtypes.Name(g.Name),
+                // REVISE: whether description should be set here
+                Data: gridtypes.MustMarshal(zos.GatewayNameProxy{
+                        Name:           g.Name,
+                        TLSPassthrough: g.TLSPassthrough,
+                        Backends:       g.Backends,
+                }),
+        }
+}</span>
+
+// GenerateWorkloads generates a workload from a name gateway
+func (g *GatewayNameProxy) GenerateWorkloads() ([]gridtypes.Workload, error) <span class="cov8" title="1">{
+        return []gridtypes.Workload{
+                {
+                        Version: 0,
+                        Type:    zos.GatewayNameProxyType,
+                        Name:    gridtypes.Name(g.Name),
+                        // REVISE: whether description should be set here
+                        Data: gridtypes.MustMarshal(zos.GatewayNameProxy{
+                                Name:           g.Name,
+                                TLSPassthrough: g.TLSPassthrough,
+                                Backends:       g.Backends,
+                        }),
+                },
+        }, nil
+}</span>
+
+// GenerateNodeWorkloadsMap for staging workloads with node ID
+func (g *GatewayNameProxy) GenerateNodeWorkloadsMap(nodeID uint32) (map[uint32][]gridtypes.Workload, error) <span class="cov8" title="1">{
+        workloadsMap := map[uint32][]gridtypes.Workload{}
+
+        workloads, err := g.GenerateWorkloads()
+        if err != nil </span><span class="cov0" title="0">{
+                return workloadsMap, err
+        }</span>
+
+        <span class="cov8" title="1">workloadsMap[nodeID] = workloads
+        return workloadsMap, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file5" style="display: none">// Package workloads includes workloads types (vm, zdb, qsfs, public IP, gateway name, gateway fqdn, disk)
+package workloads
+
+import (
+        "fmt"
+        "net"
+        "reflect"
+        "regexp"
+
+        "github.com/pkg/errors"
+        "github.com/threefoldtech/zos/pkg/gridtypes"
+        "github.com/threefoldtech/zos/pkg/gridtypes/zos"
+)
+
+// ErrDuplicateName error for duplicate names
+var ErrDuplicateName = errors.New("node names are not unique")
+
+// K8sNodeData kubernetes data
+type K8sNodeData struct {
+        Name          string
+        Node          uint32
+        DiskSize      int
+        PublicIP      bool
+        PublicIP6     bool
+        Planetary     bool
+        Flist         string
+        FlistChecksum string
+        ComputedIP    string
+        ComputedIP6   string
+        YggIP         string
+        IP            string
+        CPU           int
+        Memory        int
+}
+
+// K8sCluster struct for k8s cluster
+type K8sCluster struct {
+        Master      *K8sNodeData
+        Workers     []K8sNodeData
+        Token       string
+        SSHKey      string
+        NetworkName string
+}
+
+// NewK8sNodeData generates new k8s node data
+func NewK8sNodeData(m map[string]interface{}) K8sNodeData <span class="cov8" title="1">{
+        return K8sNodeData{
+                Name:          m["name"].(string),
+                Node:          uint32(m["node"].(int)),
+                DiskSize:      m["disk_size"].(int),
+                PublicIP:      m["publicip"].(bool),
+                PublicIP6:     m["publicip6"].(bool),
+                Planetary:     m["planetary"].(bool),
+                Flist:         m["flist"].(string),
+                FlistChecksum: m["flist_checksum"].(string),
+                ComputedIP:    m["computedip"].(string),
+                ComputedIP6:   m["computedip6"].(string),
+                YggIP:         m["ygg_ip"].(string),
+                IP:            m["ip"].(string),
+                CPU:           m["cpu"].(int),
+                Memory:        m["memory"].(int),
+        }
+}</span>
+
+// NewK8sNodeDataFromWorkload generates a new k8s data from a workload
+func NewK8sNodeDataFromWorkload(w gridtypes.Workload, nodeID uint32, diskSize int, computedIP string, computedIP6 string) (K8sNodeData, error) <span class="cov8" title="1">{
+        var k K8sNodeData
+        data, err := w.WorkloadData()
+        if err != nil </span><span class="cov0" title="0">{
+                return k, err
+        }</span>
+        <span class="cov8" title="1">d := data.(*zos.ZMachine)
+        var result zos.ZMachineResult
+
+        if !reflect.DeepEqual(w.Result, gridtypes.Result{}) </span><span class="cov0" title="0">{
+                err = w.Result.Unmarshal(&amp;result)
+                if err != nil </span><span class="cov0" title="0">{
+                        return k, err
+                }</span>
+        }
+
+        <span class="cov8" title="1">flistCheckSum, err := GetFlistChecksum(d.FList)
+        if err != nil </span><span class="cov0" title="0">{
+                return k, err
+        }</span>
+
+        <span class="cov8" title="1">k = K8sNodeData{
+                Name:          string(w.Name),
+                Node:          nodeID,
+                DiskSize:      diskSize,
+                PublicIP:      computedIP != "",
+                PublicIP6:     computedIP6 != "",
+                Planetary:     result.YggIP != "",
+                Flist:         d.FList,
+                FlistChecksum: flistCheckSum,
+                ComputedIP:    computedIP,
+                ComputedIP6:   computedIP6,
+                YggIP:         result.YggIP,
+                IP:            d.Network.Interfaces[0].IP.String(),
+                CPU:           int(d.ComputeCapacity.CPU),
+                Memory:        int(d.ComputeCapacity.Memory / gridtypes.Megabyte),
+        }
+        return k, nil</span>
+}
+
+// Dictify converts k8s data to a map (dict)
+func (k *K8sNodeData) Dictify() map[string]interface{} <span class="cov8" title="1">{
+        res := make(map[string]interface{})
+        res["name"] = k.Name
+        res["node"] = int(k.Node)
+        res["disk_size"] = k.DiskSize
+        res["publicip"] = k.PublicIP
+        res["publicip6"] = k.PublicIP6
+        res["planetary"] = k.Planetary
+        res["flist"] = k.Flist
+        res["flist_checksum"] = k.FlistChecksum
+        res["computedip"] = k.ComputedIP
+        res["computedip6"] = k.ComputedIP6
+        res["ygg_ip"] = k.YggIP
+        res["ip"] = k.IP
+        res["cpu"] = k.CPU
+        res["memory"] = k.Memory
+        return res
+}</span>
+
+// HasWorkload checks if a workload belongs to the k8s data
+func (k *K8sNodeData) HasWorkload(workload gridtypes.Workload) bool <span class="cov8" title="1">{
+        if workload.Name == gridtypes.Name(k.Name) ||
+                workload.Name == gridtypes.Name(fmt.Sprintf("%sdisk", k.Name)) </span><span class="cov8" title="1">{
+                return true
+        }</span>
+        <span class="cov0" title="0">return false</span>
+}
+
+// GenerateK8sWorkload generates a k8s workload from a k8s data
+func (k *K8sNodeData) GenerateK8sWorkload(cluster *K8sCluster, worker bool) []gridtypes.Workload <span class="cov8" title="1">{
+        diskName := fmt.Sprintf("%sdisk", k.Name)
+        K8sWorkloads := make([]gridtypes.Workload, 0)
+        diskWorkload := gridtypes.Workload{
+                Name:        gridtypes.Name(diskName),
+                Version:     0,
+                Type:        zos.ZMountType,
+                Description: "",
+                Data: gridtypes.MustMarshal(zos.ZMount{
+                        Size: gridtypes.Unit(k.DiskSize) * gridtypes.Gigabyte,
+                }),
+        }
+        K8sWorkloads = append(K8sWorkloads, diskWorkload)
+        publicIPName := ""
+        if k.PublicIP || k.PublicIP6 </span><span class="cov0" title="0">{
+                publicIPName = fmt.Sprintf("%sip", k.Name)
+                K8sWorkloads = append(K8sWorkloads, ConstructPublicIPWorkload(publicIPName, k.PublicIP, k.PublicIP6))
+        }</span>
+        <span class="cov8" title="1">envVars := map[string]string{
+                "SSH_KEY":           cluster.SSHKey,
+                "K3S_TOKEN":         cluster.Token,
+                "K3S_DATA_DIR":      "/mydisk",
+                "K3S_FLANNEL_IFACE": "eth0",
+                "K3S_NODE_NAME":     k.Name,
+                "K3S_URL":           "",
+        }
+        if worker </span><span class="cov0" title="0">{
+                // K3S_URL marks where to find the master node
+                envVars["K3S_URL"] = fmt.Sprintf("https://%s:6443", cluster.Master.IP)
+        }</span>
+        <span class="cov8" title="1">workload := gridtypes.Workload{
+                Version: 0,
+                Name:    gridtypes.Name(k.Name),
+                Type:    zos.ZMachineType,
+                Data: gridtypes.MustMarshal(zos.ZMachine{
+                        FList: k.Flist,
+                        Network: zos.MachineNetwork{
+                                Interfaces: []zos.MachineInterface{
+                                        {
+                                                Network: gridtypes.Name(cluster.NetworkName),
+                                                IP:      net.ParseIP(k.IP),
+                                        },
+                                },
+                                PublicIP:  gridtypes.Name(publicIPName),
+                                Planetary: k.Planetary,
+                        },
+                        ComputeCapacity: zos.MachineCapacity{
+                                CPU:    uint8(k.CPU),
+                                Memory: gridtypes.Unit(uint(k.Memory)) * gridtypes.Megabyte,
+                        },
+                        Entrypoint: "/sbin/zinit init",
+                        Mounts: []zos.MachineMount{
+                                {Name: gridtypes.Name(diskName), Mountpoint: "/mydisk"},
+                        },
+                        Env: envVars,
+                }),
+        }
+        K8sWorkloads = append(K8sWorkloads, workload)
+
+        return K8sWorkloads</span>
+}
+
+// ValidateToken validate cluster token
+func (k *K8sCluster) ValidateToken() error <span class="cov8" title="1">{
+        if len(k.Token) &lt; 6 </span><span class="cov0" title="0">{
+                return errors.New("token must be at least 6 characters")
+        }</span>
+        <span class="cov8" title="1">if len(k.Token) &gt; 15 </span><span class="cov0" title="0">{
+                return errors.New("token must be at most 15 characters")
+        }</span>
+
+        <span class="cov8" title="1">isAlphanumeric := regexp.MustCompile(`^[a-zA-Z0-9]+$`).MatchString(k.Token)
+        if !isAlphanumeric </span><span class="cov0" title="0">{
+                return errors.New("token should be alphanumeric")
+        }</span>
+
+        <span class="cov8" title="1">return nil</span>
+}
+
+// ValidateNames validate names for master and workers
+func (k *K8sCluster) ValidateNames() error <span class="cov8" title="1">{
+        names := make(map[string]bool)
+        names[k.Master.Name] = true
+
+        for _, w := range k.Workers </span><span class="cov0" title="0">{
+                if _, ok := names[w.Name]; ok </span><span class="cov0" title="0">{
+                        return fmt.Errorf("k8s workers and master must have unique names: %s occurred more than once", w.Name)
+                }</span>
+                <span class="cov0" title="0">names[w.Name] = true</span>
+        }
+        <span class="cov8" title="1">return nil</span>
+}
+
+// GenerateWorkloads generates k8s workloads from a k8s cluster
+func (k *K8sCluster) GenerateWorkloads() ([]gridtypes.Workload, error) <span class="cov8" title="1">{
+        k8sWorkloads := []gridtypes.Workload{}
+        k8sWorkloads = append(k8sWorkloads, k.Master.GenerateK8sWorkload(k, false)...)
+
+        for _, worker := range k.Workers </span><span class="cov0" title="0">{
+                k8sWorkloads = append(k8sWorkloads, worker.GenerateK8sWorkload(k, true)...)
+        }</span>
+
+        <span class="cov8" title="1">return k8sWorkloads, nil</span>
+}
+
+// GenerateNodeWorkloadsMap for staging workloads with node ID
+func (k *K8sCluster) GenerateNodeWorkloadsMap(nodeID uint32) (map[uint32][]gridtypes.Workload, error) <span class="cov8" title="1">{
+        workloadsMap := map[uint32][]gridtypes.Workload{}
+
+        err := k.ValidateNames()
+        if err != nil </span><span class="cov0" title="0">{
+                return workloadsMap, err
+        }</span>
+
+        <span class="cov8" title="1">workloads, err := k.GenerateWorkloads()
+        if err != nil </span><span class="cov0" title="0">{
+                return workloadsMap, err
+        }</span>
+
+        <span class="cov8" title="1">for _, workload := range workloads </span><span class="cov8" title="1">{
+                // master workloads
+                if k.Master.HasWorkload(workload) </span><span class="cov8" title="1">{
+                        workloadsMap[k.Master.Node] = append(workloadsMap[k.Master.Node], workload)
+                }</span>
+
+                // workers workloads
+                <span class="cov8" title="1">for _, worker := range k.Workers </span><span class="cov0" title="0">{
+                        if worker.HasWorkload(workload) </span><span class="cov0" title="0">{
+                                workloadsMap[worker.Node] = append(workloadsMap[worker.Node], workload)
+                        }</span>
+                }
+
+        }
+
+        <span class="cov8" title="1">return workloadsMap, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file6" style="display: none">// Package workloads includes workloads types (vm, zdb, qsfs, public IP, gateway name, gateway fqdn, disk)
+package workloads
+
+import (
+        "context"
+        "fmt"
+        "log"
+        "math/rand"
+        "net"
+        "time"
+
+        "github.com/pkg/errors"
+        client "github.com/threefoldtech/grid3-go/node"
+        proxy "github.com/threefoldtech/grid_proxy_server/pkg/client"
+        proxyTypes "github.com/threefoldtech/grid_proxy_server/pkg/types"
+        "github.com/threefoldtech/zos/pkg/gridtypes"
+)
+
+// UserAccess struct
+type UserAccess struct {
+        UserAddress        string
+        UserSecretKey      string
+        PublicNodePK       string
+        AllowedIPs         []string
+        PublicNodeEndpoint string
+}
+
+// ZNet is zos network workload
+type ZNet struct {
+        Name        string
+        Description string
+        Nodes       []uint32
+        IPRange     gridtypes.IPNet
+        AddWGAccess bool
+}
+
+var (
+        trueVal  = true
+        statusUp = "up"
+
+        // ErrNoAccessibleInterfaceFound no accessible interface found
+        ErrNoAccessibleInterfaceFound = fmt.Errorf("couldn't find a publicly accessible ipv4 or ipv6")
+)
+
+// IPNet returns an IP net type
+func IPNet(a, b, c, d, msk byte) gridtypes.IPNet <span class="cov8" title="1">{
+        return gridtypes.NewIPNet(net.IPNet{
+                IP:   net.IPv4(a, b, c, d),
+                Mask: net.CIDRMask(int(msk), 32),
+        })
+}</span>
+
+// WgIP return wireguard IP network
+func WgIP(ip gridtypes.IPNet) gridtypes.IPNet <span class="cov8" title="1">{
+        a := ip.IP[len(ip.IP)-3]
+        b := ip.IP[len(ip.IP)-2]
+
+        return gridtypes.NewIPNet(net.IPNet{
+                IP:   net.IPv4(100, 64, a, b),
+                Mask: net.CIDRMask(32, 32),
+        })
+
+}</span>
+
+// GenerateWGConfig generates wireguard configs
+func GenerateWGConfig(Address string, AccessPrivatekey string, NodePublicKey string, NodeEndpoint string, NetworkIPRange string) string <span class="cov8" title="1">{
+
+        return fmt.Sprintf(`
+[Interface]
+Address = %s
+PrivateKey = %s
+[Peer]
+PublicKey = %s
+AllowedIPs = %s, 100.64.0.0/16
+PersistentKeepalive = 25
+Endpoint = %s
+        `, Address, AccessPrivatekey, NodePublicKey, NetworkIPRange, NodeEndpoint)
+}</span>
+
+// GetPublicNode return public node ID
+func GetPublicNode(ctx context.Context, gridClient proxy.Client, preferredNodes []uint32) (uint32, error) <span class="cov8" title="1">{
+        preferredNodesSet := make(map[int]struct{})
+        for _, node := range preferredNodes </span><span class="cov0" title="0">{
+                preferredNodesSet[int(node)] = struct{}{}
+        }</span>
+        <span class="cov8" title="1">nodes, _, err := gridClient.Nodes(proxyTypes.NodeFilter{
+                IPv4:   &amp;trueVal,
+                Status: &amp;statusUp,
+        }, proxyTypes.Limit{})
+        if err != nil </span><span class="cov0" title="0">{
+                return 0, errors.Wrap(err, "couldn't fetch nodes from the rmb proxy")
+        }</span>
+        // force add preferred nodes
+        <span class="cov8" title="1">nodeMap := make(map[int]struct{})
+        for _, node := range nodes </span><span class="cov8" title="1">{
+                nodeMap[node.NodeID] = struct{}{}
+        }</span>
+        <span class="cov8" title="1">for _, node := range preferredNodes </span><span class="cov0" title="0">{
+                if _, ok := nodeMap[int(node)]; ok </span><span class="cov0" title="0">{
+                        continue</span>
+                }
+                <span class="cov0" title="0">nodeInfo, err := gridClient.Node(node)
+                if err != nil </span><span class="cov0" title="0">{
+                        log.Printf("failed to get node %d from the grid proxy", node)
+                        continue</span>
+                }
+                <span class="cov0" title="0">if nodeInfo.PublicConfig.Ipv4 == "" </span><span class="cov0" title="0">{
+                        continue</span>
+                }
+                <span class="cov0" title="0">if nodeInfo.Status != "up" </span><span class="cov0" title="0">{
+                        continue</span>
+                }
+                <span class="cov0" title="0">nodes = append(nodes, proxyTypes.Node{
+                        PublicConfig: nodeInfo.PublicConfig,
+                })</span>
+        }
+        <span class="cov8" title="1">lastPreferred := 0
+        for i := range nodes </span><span class="cov8" title="1">{
+                if _, ok := preferredNodesSet[nodes[i].NodeID]; ok </span><span class="cov0" title="0">{
+                        nodes[i], nodes[lastPreferred] = nodes[lastPreferred], nodes[i]
+                        lastPreferred++
+                }</span>
+        }
+        <span class="cov8" title="1">for _, node := range nodes </span><span class="cov8" title="1">{
+                log.Printf("found a node with ipv4 public config: %d %s\n", node.NodeID, node.PublicConfig.Ipv4)
+                ip, _, err := net.ParseCIDR(node.PublicConfig.Ipv4)
+                if err != nil </span><span class="cov0" title="0">{
+                        log.Printf("couldn't parse public ip %s of node %d: %s", node.PublicConfig.Ipv4, node.NodeID, err.Error())
+                        continue</span>
+                }
+                <span class="cov8" title="1">if ip.IsPrivate() </span><span class="cov0" title="0">{
+                        log.Printf("public ip %s of node %d is private", node.PublicConfig.Ipv4, node.NodeID)
+                        continue</span>
+                }
+                <span class="cov8" title="1">return uint32(node.NodeID), nil</span>
+        }
+        <span class="cov0" title="0">return 0, errors.New("no nodes with public ipv4")</span>
+}
+
+// GetNodeFreeWGPort returns node free wireguard port
+func GetNodeFreeWGPort(ctx context.Context, nodeClient *client.NodeClient, nodeID uint32) (int, error) <span class="cov0" title="0">{
+        rand.Seed(time.Now().UnixNano())
+        freePorts, err := nodeClient.NetworkListWGPorts(ctx)
+        if err != nil </span><span class="cov0" title="0">{
+                return 0, errors.Wrap(err, "failed to list wg ports")
+        }</span>
+        <span class="cov0" title="0">log.Printf("reserved ports for node %d: %v\n", nodeID, freePorts)
+        p := uint(rand.Intn(6000) + 2000)
+
+        for Contains(freePorts, uint16(p)) </span><span class="cov0" title="0">{
+                p = uint(rand.Intn(6000) + 2000)
+        }</span>
+        <span class="cov0" title="0">log.Printf("Selected port for node %d is %d\n", nodeID, p)
+        return int(p), nil</span>
+}
+
+// GetNodeEndpoint gets node end point network ip
+func GetNodeEndpoint(ctx context.Context, nodeClient *client.NodeClient) (net.IP, error) <span class="cov0" title="0">{
+        publicConfig, err := nodeClient.NetworkGetPublicConfig(ctx)
+        log.Printf("publicConfig: %v\n", publicConfig)
+        log.Printf("publicConfig.IPv4: %v\n", publicConfig.IPv4)
+        log.Printf("publicConfig.IPv.IP: %v\n", publicConfig.IPv4.IP)
+        log.Printf("err: %s\n", err)
+        if err == nil &amp;&amp; publicConfig.IPv4.IP != nil </span><span class="cov0" title="0">{
+
+                ip := publicConfig.IPv4.IP
+                log.Printf("ip: %s, global unicast: %t, privateIP: %t\n", ip.String(), ip.IsGlobalUnicast(), ip.IsPrivate())
+                if ip.IsGlobalUnicast() &amp;&amp; !ip.IsPrivate() </span><span class="cov0" title="0">{
+                        return ip, nil
+                }</span>
+        } else<span class="cov0" title="0"> if err == nil &amp;&amp; publicConfig.IPv6.IP != nil </span><span class="cov0" title="0">{
+                ip := publicConfig.IPv6.IP
+                log.Printf("ip: %s, global unicast: %t, privateIP: %t\n", ip.String(), ip.IsGlobalUnicast(), ip.IsPrivate())
+                if ip.IsGlobalUnicast() &amp;&amp; !ip.IsPrivate() </span><span class="cov0" title="0">{
+                        return ip, nil
+                }</span>
+        }
+
+        <span class="cov0" title="0">ifs, err := nodeClient.NetworkListInterfaces(ctx)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, errors.Wrap(err, "couldn't list node interfaces")
+        }</span>
+        <span class="cov0" title="0">log.Printf("if: %v\n", ifs)
+
+        zosIf, ok := ifs["zos"]
+        if !ok </span><span class="cov0" title="0">{
+                return nil, errors.Wrap(ErrNoAccessibleInterfaceFound, "no zos interface")
+        }</span>
+        <span class="cov0" title="0">for _, ip := range zosIf </span><span class="cov0" title="0">{
+                log.Printf("ip: %s, global unicast: %t, privateIP: %t\n", ip.String(), ip.IsGlobalUnicast(), ip.IsPrivate())
+                if !ip.IsGlobalUnicast() || ip.IsPrivate() </span><span class="cov0" title="0">{
+                        continue</span>
+                }
+
+                <span class="cov0" title="0">return ip, nil</span>
+        }
+        <span class="cov0" title="0">return nil, errors.Wrap(ErrNoAccessibleInterfaceFound, "no public ipv4 or ipv6 on zos interface found")</span>
+}
+</pre>
+		
+		<pre class="file" id="file7" style="display: none">// Package workloads includes workloads types (vm, zdb, qsfs, public IP, gateway name, gateway fqdn, disk)
+package workloads
+
+import (
+        "github.com/threefoldtech/zos/pkg/gridtypes"
+        "github.com/threefoldtech/zos/pkg/gridtypes/zos"
+)
+
+// ConstructPublicIPWorkload constructs a public IP workload
+func ConstructPublicIPWorkload(workloadName string, ipv4 bool, ipv6 bool) gridtypes.Workload <span class="cov8" title="1">{
+        return gridtypes.Workload{
+                Version: 0,
+                Name:    gridtypes.Name(workloadName),
+                Type:    zos.PublicIPType,
+                Data: gridtypes.MustMarshal(zos.PublicIP{
+                        V4: ipv4,
+                        V6: ipv6,
+                }),
+        }
+}</span>
+</pre>
+		
+		<pre class="file" id="file8" style="display: none">// Package workloads includes workloads types (vm, zdb, qsfs, public IP, gateway name, gateway fqdn, disk)
+package workloads
+
+import (
+        "encoding/hex"
+        "log"
+        "reflect"
+
+        "github.com/pkg/errors"
+        "github.com/threefoldtech/zos/pkg/gridtypes"
+        "github.com/threefoldtech/zos/pkg/gridtypes/zos"
+)
+
+// QSFS struct
+type QSFS struct {
+        Name                 string
+        Description          string
+        Cache                int
+        MinimalShards        uint32
+        ExpectedShards       uint32
+        RedundantGroups      uint32
+        RedundantNodes       uint32
+        MaxZDBDataDirSize    uint32
+        EncryptionAlgorithm  string
+        EncryptionKey        string
+        CompressionAlgorithm string
+        Metadata             Metadata
+        Groups               Groups
+
+        MetricsEndpoint string
+}
+
+// Metadata for QSFS
+type Metadata struct {
+        Type                string
+        Prefix              string
+        EncryptionAlgorithm string
+        EncryptionKey       string
+        Backends            Backends
+}
+
+// Group is a zos group
+type Group struct {
+        Backends Backends
+}
+
+// Backend is a zos backend
+type Backend zos.ZdbBackend
+
+// Groups is a list of groups
+type Groups []Group
+
+// Backends is a list of backends
+type Backends []Backend
+
+func (g *Group) zosGroup() zos.ZdbGroup <span class="cov8" title="1">{
+        z := zos.ZdbGroup{
+                Backends: make([]zos.ZdbBackend, 0),
+        }
+        for _, b := range g.Backends </span><span class="cov8" title="1">{
+                z.Backends = append(z.Backends, b.zosBackend())
+        }</span>
+        <span class="cov8" title="1">return z</span>
+}
+
+func (gs *Groups) zosGroups() []zos.ZdbGroup <span class="cov8" title="1">{
+        z := make([]zos.ZdbGroup, 0)
+        for _, e := range *gs </span><span class="cov8" title="1">{
+                z = append(z, e.zosGroup())
+        }</span>
+        <span class="cov8" title="1">return z</span>
+}
+
+func (b *Backend) zosBackend() zos.ZdbBackend <span class="cov8" title="1">{
+        return zos.ZdbBackend(*b)
+}</span>
+
+func (bs *Backends) zosBackends() []zos.ZdbBackend <span class="cov8" title="1">{
+        z := make([]zos.ZdbBackend, 0)
+        for _, e := range *bs </span><span class="cov8" title="1">{
+                z = append(z, e.zosBackend())
+        }</span>
+        <span class="cov8" title="1">return z</span>
+}
+
+// BackendsFromZos gets backends from zos
+func BackendsFromZos(bs []zos.ZdbBackend) Backends <span class="cov8" title="1">{
+        z := make(Backends, 0)
+        for _, e := range bs </span><span class="cov8" title="1">{
+                z = append(z, Backend(e))
+        }</span>
+        <span class="cov8" title="1">return z</span>
+}
+
+// GroupsFromZos gets groups from zos
+func GroupsFromZos(gs []zos.ZdbGroup) Groups <span class="cov8" title="1">{
+        z := make(Groups, 0)
+        for _, e := range gs </span><span class="cov8" title="1">{
+                z = append(z, Group{
+                        Backends: BackendsFromZos(e.Backends),
+                })
+        }</span>
+        <span class="cov8" title="1">return z</span>
+}
+
+func getBackends(backendsIf []interface{}) Backends <span class="cov8" title="1">{
+        backends := make([]Backend, 0, len(backendsIf))
+        for _, b := range backendsIf </span><span class="cov8" title="1">{
+                backendMap := b.(map[string]interface{})
+                backends = append(backends, Backend{
+                        Address:   backendMap["address"].(string),
+                        Password:  backendMap["password"].(string),
+                        Namespace: backendMap["namespace"].(string),
+                })
+        }</span>
+        <span class="cov8" title="1">return backends</span>
+}
+
+// Dictify converts a group data to a map
+func (g *Group) Dictify() map[string]interface{} <span class="cov8" title="1">{
+        res := make(map[string]interface{})
+        res["backends"] = g.Backends.Listify()
+        return res
+}</span>
+
+// Dictify converts a backend data to a map
+func (b *Backend) Dictify() map[string]interface{} <span class="cov8" title="1">{
+        res := make(map[string]interface{})
+        res["address"] = b.Address
+        res["namespace"] = b.Namespace
+        res["password"] = b.Password
+        return res
+}</span>
+
+// Listify lists the backends
+func (bs *Backends) Listify() []interface{} <span class="cov8" title="1">{
+        res := make([]interface{}, 0)
+        for _, b := range *bs </span><span class="cov8" title="1">{
+                res = append(res, b.Dictify())
+        }</span>
+        <span class="cov8" title="1">return res</span>
+}
+
+// Listify lists the groups
+func (gs *Groups) Listify() []interface{} <span class="cov8" title="1">{
+        res := make([]interface{}, 0)
+        for _, g := range *gs </span><span class="cov8" title="1">{
+                res = append(res, g.Dictify())
+        }</span>
+        <span class="cov8" title="1">return res</span>
+}
+
+// Dictify converts a metadata to a map
+func (m *Metadata) Dictify() map[string]interface{} <span class="cov8" title="1">{
+        res := make(map[string]interface{})
+        res["type"] = m.Type
+        res["prefix"] = m.Prefix
+        res["encryption_algorithm"] = m.EncryptionAlgorithm
+        res["encryption_key"] = m.EncryptionKey
+        res["backends"] = m.Backends.Listify()
+        return res
+}</span>
+
+// NewQSFSFromSchema generates a new QSFS from a given map of its data
+func NewQSFSFromSchema(qsfs map[string]interface{}) QSFS <span class="cov8" title="1">{
+        metadataIf := qsfs["metadata"].([]interface{})
+        metadataMap := metadataIf[0].(map[string]interface{})
+
+        metadata := Metadata{
+                Type:                metadataMap["type"].(string),
+                Prefix:              metadataMap["prefix"].(string),
+                EncryptionAlgorithm: metadataMap["encryption_algorithm"].(string),
+                EncryptionKey:       metadataMap["encryption_key"].(string),
+                Backends:            getBackends(metadataMap["backends"].([]interface{})),
+        }
+        groupsIf := qsfs["groups"].([]interface{})
+        groups := make([]Group, 0, len(groupsIf))
+        for _, gr := range groupsIf </span><span class="cov8" title="1">{
+                groupMap := gr.(map[string]interface{})
+                groups = append(groups, Group{
+                        Backends: getBackends(groupMap["backends"].([]interface{})),
+                })
+        }</span>
+        <span class="cov8" title="1">return QSFS{
+                Name:                 qsfs["name"].(string),
+                Description:          qsfs["description"].(string),
+                Cache:                qsfs["cache"].(int),
+                MinimalShards:        uint32(qsfs["minimal_shards"].(uint32)),
+                ExpectedShards:       uint32(qsfs["expected_shards"].(uint32)),
+                RedundantGroups:      uint32(qsfs["redundant_groups"].(uint32)),
+                RedundantNodes:       uint32(qsfs["redundant_nodes"].(uint32)),
+                MaxZDBDataDirSize:    uint32(qsfs["max_zdb_data_dir_size"].(uint32)),
+                EncryptionAlgorithm:  qsfs["encryption_algorithm"].(string),
+                EncryptionKey:        qsfs["encryption_key"].(string),
+                CompressionAlgorithm: qsfs["compression_algorithm"].(string),
+                Metadata:             metadata,
+                Groups:               groups,
+        }</span>
+}
+
+// NewQSFSFromWorkload generates a new QSFS from a workload
+func NewQSFSFromWorkload(wl *gridtypes.Workload) (QSFS, error) <span class="cov8" title="1">{
+
+        var data *zos.QuantumSafeFS
+        wd, err := wl.WorkloadData()
+        if err != nil </span><span class="cov0" title="0">{
+                return QSFS{}, err
+        }</span>
+        <span class="cov8" title="1">var res zos.QuatumSafeFSResult
+
+        if !reflect.DeepEqual(wl.Result, gridtypes.Result{}) </span><span class="cov0" title="0">{
+                if err := wl.Result.Unmarshal(&amp;res); err != nil </span><span class="cov0" title="0">{
+                        return QSFS{}, err
+                }</span>
+        }
+
+        <span class="cov8" title="1">log.Printf("wl.Result.unm: %s %s\n", res.MetricsEndpoint, res.Path)
+        data = wd.(*zos.QuantumSafeFS)
+        return QSFS{
+                Name:                 string(wl.Name),
+                Description:          string(wl.Description),
+                Cache:                int(data.Cache) / int(gridtypes.Megabyte),
+                MinimalShards:        data.Config.MinimalShards,
+                ExpectedShards:       data.Config.ExpectedShards,
+                RedundantGroups:      data.Config.RedundantGroups,
+                RedundantNodes:       data.Config.RedundantNodes,
+                MaxZDBDataDirSize:    data.Config.MaxZDBDataDirSize,
+                EncryptionAlgorithm:  string(data.Config.Encryption.Algorithm),
+                EncryptionKey:        hex.EncodeToString(data.Config.Encryption.Key),
+                CompressionAlgorithm: data.Config.Compression.Algorithm,
+                Metadata: Metadata{
+                        Type:                data.Config.Meta.Type,
+                        Prefix:              data.Config.Meta.Config.Prefix,
+                        EncryptionAlgorithm: string(data.Config.Meta.Config.Encryption.Algorithm),
+                        EncryptionKey:       hex.EncodeToString(data.Config.Meta.Config.Encryption.Key),
+                        Backends:            BackendsFromZos(data.Config.Meta.Config.Backends),
+                },
+                Groups:          GroupsFromZos(data.Config.Groups),
+                MetricsEndpoint: res.MetricsEndpoint,
+        }, nil</span>
+}
+
+// ZosWorkload generates a zos workload
+func (q *QSFS) ZosWorkload() (gridtypes.Workload, error) <span class="cov8" title="1">{
+        k, err := hex.DecodeString(q.EncryptionKey)
+        if err != nil </span><span class="cov0" title="0">{
+                return gridtypes.Workload{}, err
+        }</span>
+        <span class="cov8" title="1">mk, err := hex.DecodeString(q.EncryptionKey)
+        if err != nil </span><span class="cov0" title="0">{
+                return gridtypes.Workload{}, err
+        }</span>
+        <span class="cov8" title="1">workload := gridtypes.Workload{
+                Version:     0,
+                Name:        gridtypes.Name(q.Name),
+                Type:        zos.QuantumSafeFSType,
+                Description: q.Description,
+                Data: gridtypes.MustMarshal(zos.QuantumSafeFS{
+                        Cache: gridtypes.Unit(uint64(q.Cache) * uint64(gridtypes.Megabyte)),
+                        Config: zos.QuantumSafeFSConfig{
+                                MinimalShards:     q.MinimalShards,
+                                ExpectedShards:    q.ExpectedShards,
+                                RedundantGroups:   q.RedundantGroups,
+                                RedundantNodes:    q.RedundantNodes,
+                                MaxZDBDataDirSize: q.MaxZDBDataDirSize,
+                                Encryption: zos.Encryption{
+                                        Algorithm: zos.EncryptionAlgorithm(q.EncryptionAlgorithm),
+                                        Key:       zos.EncryptionKey(k),
+                                },
+                                Meta: zos.QuantumSafeMeta{
+                                        Type: q.Metadata.Type,
+                                        Config: zos.QuantumSafeConfig{
+                                                Prefix: q.Metadata.Prefix,
+                                                Encryption: zos.Encryption{
+                                                        Algorithm: zos.EncryptionAlgorithm(q.EncryptionAlgorithm),
+                                                        Key:       zos.EncryptionKey(mk),
+                                                },
+                                                Backends: q.Metadata.Backends.zosBackends(),
+                                        },
+                                },
+                                Groups: q.Groups.zosGroups(),
+                                Compression: zos.QuantumCompression{
+                                        Algorithm: q.CompressionAlgorithm,
+                                },
+                        },
+                }),
+        }
+
+        return workload, nil</span>
+}
+
+// UpdateFromWorkload updates a QSFS from a workload
+// TODO: no updates, should construct itself from the workload
+func (q *QSFS) UpdateFromWorkload(wl *gridtypes.Workload) error <span class="cov8" title="1">{
+        if wl == nil </span><span class="cov0" title="0">{
+                q.MetricsEndpoint = ""
+                return nil
+        }</span>
+        <span class="cov8" title="1">var res zos.QuatumSafeFSResult
+
+        if !reflect.DeepEqual(wl.Result, gridtypes.Result{}) </span><span class="cov0" title="0">{
+                if err := wl.Result.Unmarshal(&amp;res); err != nil </span><span class="cov0" title="0">{
+                        return errors.Wrap(err, "error unmarshalling json")
+
+                }</span>
+        }
+
+        <span class="cov8" title="1">q.MetricsEndpoint = res.MetricsEndpoint
+        return nil</span>
+}
+
+// Dictify converts a QSFS data to a map
+func (q *QSFS) Dictify() map[string]interface{} <span class="cov8" title="1">{
+        res := make(map[string]interface{})
+        res["name"] = q.Name
+        res["description"] = q.Description
+        res["cache"] = q.Cache
+        res["minimal_shards"] = q.MinimalShards
+        res["expected_shards"] = q.ExpectedShards
+        res["redundant_groups"] = q.RedundantGroups
+        res["redundant_nodes"] = q.RedundantNodes
+        res["max_zdb_data_dir_size"] = q.MaxZDBDataDirSize
+        res["encryption_algorithm"] = q.EncryptionAlgorithm
+        res["encryption_key"] = q.EncryptionKey
+        res["compression_algorithm"] = q.CompressionAlgorithm
+        res["metrics_endpoint"] = q.MetricsEndpoint
+        res["metadata"] = []interface{}{q.Metadata.Dictify()}
+        res["groups"] = q.Groups.Listify()
+        return res
+}</span>
+
+// GenerateWorkloads generates a workload from a qsfs
+func (q *QSFS) GenerateWorkloads() ([]gridtypes.Workload, error) <span class="cov8" title="1">{
+        k, err := hex.DecodeString(q.EncryptionKey)
+        if err != nil </span><span class="cov0" title="0">{
+                return []gridtypes.Workload{}, err
+        }</span>
+        <span class="cov8" title="1">mk, err := hex.DecodeString(q.EncryptionKey)
+        if err != nil </span><span class="cov0" title="0">{
+                // return gridtypes.Workload{}, err
+                return []gridtypes.Workload{}, err
+        }</span>
+        <span class="cov8" title="1">return []gridtypes.Workload{
+                {
+                        Version:     0,
+                        Name:        gridtypes.Name(q.Name),
+                        Type:        zos.QuantumSafeFSType,
+                        Description: q.Description,
+                        Data: gridtypes.MustMarshal(zos.QuantumSafeFS{
+                                Cache: gridtypes.Unit(uint64(q.Cache) * uint64(gridtypes.Megabyte)),
+                                Config: zos.QuantumSafeFSConfig{
+                                        MinimalShards:     q.MinimalShards,
+                                        ExpectedShards:    q.ExpectedShards,
+                                        RedundantGroups:   q.RedundantGroups,
+                                        RedundantNodes:    q.RedundantNodes,
+                                        MaxZDBDataDirSize: q.MaxZDBDataDirSize,
+                                        Encryption: zos.Encryption{
+                                                Algorithm: zos.EncryptionAlgorithm(q.EncryptionAlgorithm),
+                                                Key:       zos.EncryptionKey(k),
+                                        },
+                                        Meta: zos.QuantumSafeMeta{
+                                                Type: q.Metadata.Type,
+                                                Config: zos.QuantumSafeConfig{
+                                                        Prefix: q.Metadata.Prefix,
+                                                        Encryption: zos.Encryption{
+                                                                Algorithm: zos.EncryptionAlgorithm(q.EncryptionAlgorithm),
+                                                                Key:       zos.EncryptionKey(mk),
+                                                        },
+                                                        Backends: q.Metadata.Backends.zosBackends(),
+                                                },
+                                        },
+                                        Groups: q.Groups.zosGroups(),
+                                        Compression: zos.QuantumCompression{
+                                                Algorithm: q.CompressionAlgorithm,
+                                        },
+                                },
+                        }),
+                },
+        }, nil</span>
+}
+
+// Stage for staging workloads
+func (q *QSFS) GenerateNodeWorkloadsMap(nodeID uint32) (map[uint32][]gridtypes.Workload, error) <span class="cov8" title="1">{
+        workloadsMap := map[uint32][]gridtypes.Workload{}
+
+        workloads, err := q.GenerateWorkloads()
+        if err != nil </span><span class="cov0" title="0">{
+                return workloadsMap, err
+        }</span>
+
+        <span class="cov8" title="1">workloadsMap[nodeID] = workloads
+        return workloadsMap, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file9" style="display: none">// Package workloads is the terraform provider
+package workloads
+
+// Contains check if a slice contains an element
+func Contains[T comparable](elements []T, element T) bool <span class="cov8" title="1">{
+        for _, e := range elements </span><span class="cov8" title="1">{
+                if element == e </span><span class="cov8" title="1">{
+                        return true
+                }</span>
+        }
+        <span class="cov8" title="1">return false</span>
+}
+</pre>
+		
+		<pre class="file" id="file10" style="display: none">// Package workloads includes workloads types (vm, zdb, qsfs, public IP, gateway name, gateway fqdn, disk)
+package workloads
+
+import (
+        "encoding/json"
+        "fmt"
+        "net"
+        "sort"
+
+        "github.com/pkg/errors"
+        "github.com/threefoldtech/zos/pkg/gridtypes"
+        "github.com/threefoldtech/zos/pkg/gridtypes/zos"
+)
+
+// VM is a virtual machine struct
+type VM struct {
+        Name          string
+        Flist         string
+        FlistChecksum string
+        PublicIP      bool
+        PublicIP6     bool
+        Planetary     bool
+        Corex         bool
+        ComputedIP    string
+        ComputedIP6   string
+        YggIP         string
+        IP            string
+        Description   string
+        CPU           int
+        Memory        int
+        RootfsSize    int
+        Entrypoint    string
+        Mounts        []Mount
+        Zlogs         []Zlog
+        EnvVars       map[string]string
+
+        NetworkName string
+}
+
+// Mount disks struct
+type Mount struct {
+        DiskName   string
+        MountPoint string
+}
+
+// NewVMFromSchema generates a new vm from a map of its data
+func NewVMFromSchema(vm map[string]interface{}) *VM <span class="cov8" title="1">{
+        mounts := make([]Mount, 0)
+        mountPoints := vm["mounts"].([]interface{})
+        for _, mountPoint := range mountPoints </span><span class="cov8" title="1">{
+                point := mountPoint.(map[string]interface{})
+                mount := Mount{DiskName: point["disk_name"].(string), MountPoint: point["mount_point"].(string)}
+                mounts = append(mounts, mount)
+        }</span>
+        <span class="cov8" title="1">envs := vm["env_vars"].(map[string]interface{})
+        envVars := make(map[string]string)
+
+        for k, v := range envs </span><span class="cov8" title="1">{
+                envVars[k] = v.(string)
+        }</span>
+        <span class="cov8" title="1">zlogs := make([]Zlog, 0)
+        for _, v := range vm["zlogs"].([]interface{}) </span><span class="cov8" title="1">{
+                zlogs = append(zlogs, Zlog{
+                        Zmachine: vm["name"].(string),
+                        Output:   v.(string),
+                })
+        }</span>
+
+        <span class="cov8" title="1">return &amp;VM{
+                Name:          vm["name"].(string),
+                PublicIP:      vm["publicip"].(bool),
+                PublicIP6:     vm["publicip6"].(bool),
+                Flist:         vm["flist"].(string),
+                FlistChecksum: vm["flist_checksum"].(string),
+                ComputedIP:    vm["computedip"].(string),
+                ComputedIP6:   vm["computedip6"].(string),
+                YggIP:         vm["ygg_ip"].(string),
+                Planetary:     vm["planetary"].(bool),
+                IP:            vm["ip"].(string),
+                CPU:           vm["cpu"].(int),
+                Memory:        vm["memory"].(int),
+                RootfsSize:    vm["rootfs_size"].(int),
+                Entrypoint:    vm["entrypoint"].(string),
+                Mounts:        mounts,
+                EnvVars:       envVars,
+                Corex:         vm["corex"].(bool),
+                Description:   vm["description"].(string),
+                Zlogs:         zlogs,
+                NetworkName:   vm["network_name"].(string),
+        }</span>
+}
+
+// NewVMFromWorkloads generates a new vm from given workloads and deployment
+func NewVMFromWorkloads(wl *gridtypes.Workload, dl *gridtypes.Deployment) (VM, error) <span class="cov8" title="1">{
+        dataI, err := wl.WorkloadData()
+        if err != nil </span><span class="cov0" title="0">{
+                return VM{}, errors.Wrap(err, "failed to get workload data")
+        }</span>
+
+        <span class="cov8" title="1">data, ok := dataI.(*zos.ZMachine)
+        if !ok </span><span class="cov0" title="0">{
+                return VM{}, errors.New("couldn't cast workload data")
+        }</span>
+
+        <span class="cov8" title="1">var result zos.ZMachineResult
+
+        if len(wl.Result.Data) &gt; 0 </span><span class="cov0" title="0">{
+                if err := json.Unmarshal(wl.Result.Data, &amp;result); err != nil </span><span class="cov0" title="0">{
+                        return VM{}, errors.Wrap(err, "failed to get vm result")
+                }</span>
+        }
+
+        <span class="cov8" title="1">pubIP := pubIP(dl, data.Network.PublicIP)
+        var pubIP4, pubIP6 = "", ""
+        if !pubIP.IP.Nil() </span><span class="cov0" title="0">{
+                pubIP4 = pubIP.IP.String()
+        }</span>
+        <span class="cov8" title="1">if !pubIP.IPv6.Nil() </span><span class="cov0" title="0">{
+                pubIP6 = pubIP.IPv6.String()
+        }</span>
+        <span class="cov8" title="1">return VM{
+                Name:          wl.Name.String(),
+                Description:   wl.Description,
+                Flist:         data.FList,
+                FlistChecksum: "",
+                PublicIP:      !pubIP.IP.Nil(),
+                ComputedIP:    pubIP4,
+                PublicIP6:     !pubIP.IPv6.Nil(),
+                ComputedIP6:   pubIP6,
+                Planetary:     result.YggIP != "",
+                Corex:         data.Corex,
+                YggIP:         result.YggIP,
+                IP:            data.Network.Interfaces[0].IP.String(),
+                CPU:           int(data.ComputeCapacity.CPU),
+                Memory:        int(data.ComputeCapacity.Memory / gridtypes.Megabyte),
+                RootfsSize:    int(data.Size / gridtypes.Megabyte),
+                Entrypoint:    data.Entrypoint,
+                Mounts:        mounts(data.Mounts),
+                Zlogs:         zlogs(dl, wl.Name.String()),
+                EnvVars:       data.Env,
+                NetworkName:   string(data.Network.Interfaces[0].Network),
+        }, nil</span>
+}
+
+func mounts(mounts []zos.MachineMount) []Mount <span class="cov8" title="1">{
+        var res []Mount
+        for _, mount := range mounts </span><span class="cov8" title="1">{
+                res = append(res, Mount{
+                        DiskName:   mount.Name.String(),
+                        MountPoint: mount.Mountpoint,
+                })
+        }</span>
+        <span class="cov8" title="1">return res</span>
+}
+
+func pubIP(dl *gridtypes.Deployment, name gridtypes.Name) zos.PublicIPResult <span class="cov8" title="1">{
+
+        pubIPWl, err := dl.Get(name)
+        if err != nil || !pubIPWl.Workload.Result.State.IsOkay() </span><span class="cov0" title="0">{
+                pubIPWl = nil
+                return zos.PublicIPResult{}
+        }</span>
+        <span class="cov8" title="1">var pubIPResult zos.PublicIPResult
+
+        _ = json.Unmarshal(pubIPWl.Result.Data, &amp;pubIPResult)
+        return pubIPResult</span>
+}
+
+// GenerateVMWorkload generates a vm workloads
+func (vm *VM) GenerateVMWorkload() []gridtypes.Workload <span class="cov8" title="1">{
+        workloads := make([]gridtypes.Workload, 0)
+        publicIPName := ""
+        if vm.PublicIP || vm.PublicIP6 </span><span class="cov8" title="1">{
+                publicIPName = fmt.Sprintf("%sip", vm.Name)
+                workloads = append(workloads, ConstructPublicIPWorkload(publicIPName, vm.PublicIP, vm.PublicIP6))
+        }</span>
+        <span class="cov8" title="1">mounts := make([]zos.MachineMount, 0)
+        for _, mount := range vm.Mounts </span><span class="cov8" title="1">{
+                mounts = append(mounts, zos.MachineMount{Name: gridtypes.Name(mount.DiskName), Mountpoint: mount.MountPoint})
+        }</span>
+        <span class="cov8" title="1">for _, zlog := range vm.Zlogs </span><span class="cov8" title="1">{
+                zlogWorkload, err := zlog.GenerateWorkloads()
+                if err != nil </span><span class="cov0" title="0">{
+                        continue</span>
+                }
+
+                <span class="cov8" title="1">workloads = append(workloads, zlogWorkload...)</span>
+        }
+        <span class="cov8" title="1">workload := gridtypes.Workload{
+                Version: 0,
+                Name:    gridtypes.Name(vm.Name),
+                Type:    zos.ZMachineType,
+                Data: gridtypes.MustMarshal(zos.ZMachine{
+                        FList: vm.Flist,
+                        Network: zos.MachineNetwork{
+                                Interfaces: []zos.MachineInterface{
+                                        {
+                                                Network: gridtypes.Name(vm.NetworkName),
+                                                IP:      net.ParseIP(vm.IP),
+                                        },
+                                },
+                                PublicIP:  gridtypes.Name(publicIPName),
+                                Planetary: vm.Planetary,
+                        },
+                        ComputeCapacity: zos.MachineCapacity{
+                                CPU:    uint8(vm.CPU),
+                                Memory: gridtypes.Unit(uint(vm.Memory)) * gridtypes.Megabyte,
+                        },
+                        Size:       gridtypes.Unit(vm.RootfsSize) * gridtypes.Megabyte,
+                        Entrypoint: vm.Entrypoint,
+                        Corex:      vm.Corex,
+                        Mounts:     mounts,
+                        Env:        vm.EnvVars,
+                }),
+                Description: vm.Description,
+        }
+        workloads = append(workloads, workload)
+
+        return workloads</span>
+}
+
+// Dictify converts vm data to a map (dict)
+func (vm *VM) Dictify() map[string]interface{} <span class="cov8" title="1">{
+        envVars := make(map[string]interface{})
+        for key, value := range vm.EnvVars </span><span class="cov8" title="1">{
+                envVars[key] = value
+        }</span>
+        <span class="cov8" title="1">mounts := make([]interface{}, 0)
+        for _, mountPoint := range vm.Mounts </span><span class="cov8" title="1">{
+                mount := map[string]interface{}{
+                        "disk_name": mountPoint.DiskName, "mount_point": mountPoint.MountPoint,
+                }
+                mounts = append(mounts, mount)
+        }</span>
+        <span class="cov8" title="1">zlogs := make([]interface{}, 0)
+        for _, zlog := range vm.Zlogs </span><span class="cov8" title="1">{
+                zlogs = append(zlogs, zlog.Output)
+        }</span>
+        <span class="cov8" title="1">res := make(map[string]interface{})
+        res["name"] = vm.Name
+        res["description"] = vm.Description
+        res["publicip"] = vm.PublicIP
+        res["publicip6"] = vm.PublicIP6
+        res["planetary"] = vm.Planetary
+        res["corex"] = vm.Corex
+        res["flist"] = vm.Flist
+        res["flist_checksum"] = vm.FlistChecksum
+        res["computedip"] = vm.ComputedIP
+        res["computedip6"] = vm.ComputedIP6
+        res["ygg_ip"] = vm.YggIP
+        res["ip"] = vm.IP
+        res["mounts"] = mounts
+        res["cpu"] = vm.CPU
+        res["memory"] = vm.Memory
+        res["rootfs_size"] = vm.RootfsSize
+        res["env_vars"] = envVars
+        res["entrypoint"] = vm.Entrypoint
+        res["zlogs"] = zlogs
+        res["network_name"] = vm.NetworkName
+        return res</span>
+}
+
+// Validate validates a virtual machine data
+func (vm *VM) Validate() error <span class="cov8" title="1">{
+        if vm.CPU &lt; 1 || vm.CPU &gt; 32 </span><span class="cov0" title="0">{
+                return errors.Wrap(errors.New("Invalid CPU input"), "CPUs must be more than or equal to 1 and less than or equal to 32")
+        }</span>
+
+        <span class="cov8" title="1">if vm.FlistChecksum != "" </span><span class="cov0" title="0">{
+                checksum, err := GetFlistChecksum(vm.Flist)
+                if err != nil </span><span class="cov0" title="0">{
+                        return errors.Wrap(err, "failed to get flist checksum")
+                }</span>
+                <span class="cov0" title="0">if vm.FlistChecksum != checksum </span><span class="cov0" title="0">{
+                        return fmt.Errorf(
+                                "passed checksum %s of %s doesn't match %s returned from %s",
+                                vm.FlistChecksum,
+                                vm.Name,
+                                checksum,
+                                FlistChecksumURL(vm.Flist),
+                        )
+                }</span>
+        }
+        <span class="cov8" title="1">return nil</span>
+}
+
+// WithNetworkName sets network name for vm
+func (vm *VM) WithNetworkName(name string) *VM <span class="cov8" title="1">{
+        vm.NetworkName = name
+        return vm
+}</span>
+
+// Match compares the vm with another given vm
+func (vm *VM) Match(vm2 *VM) <span class="cov8" title="1">{
+        l := len(vm2.Zlogs) + len(vm2.Mounts)
+        names := make(map[string]int)
+        for idx, zlog := range vm2.Zlogs </span><span class="cov8" title="1">{
+                names[zlog.Output] = idx - l
+        }</span>
+        <span class="cov8" title="1">for idx, mount := range vm2.Mounts </span><span class="cov8" title="1">{
+                names[mount.DiskName] = idx - l
+        }</span>
+        <span class="cov8" title="1">sort.Slice(vm.Zlogs, func(i, j int) bool </span><span class="cov0" title="0">{
+                return names[vm.Zlogs[i].Output] &lt; names[vm.Zlogs[j].Output]
+        }</span>)
+        <span class="cov8" title="1">sort.Slice(vm.Mounts, func(i, j int) bool </span><span class="cov0" title="0">{
+                return names[vm.Mounts[i].DiskName] &lt; names[vm.Mounts[j].DiskName]
+        }</span>)
+        <span class="cov8" title="1">vm.FlistChecksum = vm2.FlistChecksum</span>
+}
+
+// GenerateWorkloads generates a workload from a vm
+func (vm *VM) GenerateWorkloads() ([]gridtypes.Workload, error) <span class="cov8" title="1">{
+        workloads := make([]gridtypes.Workload, 0)
+        publicIPName := ""
+        if vm.PublicIP || vm.PublicIP6 </span><span class="cov8" title="1">{
+                publicIPName = fmt.Sprintf("%sip", vm.Name)
+                workloads = append(workloads, ConstructPublicIPWorkload(publicIPName, vm.PublicIP, vm.PublicIP6))
+        }</span>
+        <span class="cov8" title="1">mounts := make([]zos.MachineMount, 0)
+        for _, mount := range vm.Mounts </span><span class="cov8" title="1">{
+                mounts = append(mounts, zos.MachineMount{Name: gridtypes.Name(mount.DiskName), Mountpoint: mount.MountPoint})
+        }</span>
+        <span class="cov8" title="1">for _, zlog := range vm.Zlogs </span><span class="cov8" title="1">{
+                zlogWorkload, err := zlog.GenerateWorkloads()
+                if err != nil </span><span class="cov0" title="0">{
+                        continue</span>
+                }
+
+                <span class="cov8" title="1">workloads = append(workloads, zlogWorkload...)</span>
+        }
+
+        <span class="cov8" title="1">workload := gridtypes.Workload{
+                Version: 0,
+                Name:    gridtypes.Name(vm.Name),
+                Type:    zos.ZMachineType,
+                Data: gridtypes.MustMarshal(zos.ZMachine{
+                        FList: vm.Flist,
+                        Network: zos.MachineNetwork{
+                                Interfaces: []zos.MachineInterface{
+                                        {
+                                                Network: gridtypes.Name(vm.NetworkName),
+                                                IP:      net.ParseIP(vm.IP),
+                                        },
+                                },
+                                PublicIP:  gridtypes.Name(publicIPName),
+                                Planetary: vm.Planetary,
+                        },
+                        ComputeCapacity: zos.MachineCapacity{
+                                CPU:    uint8(vm.CPU),
+                                Memory: gridtypes.Unit(uint(vm.Memory)) * gridtypes.Megabyte,
+                        },
+                        Size:       gridtypes.Unit(vm.RootfsSize) * gridtypes.Megabyte,
+                        Entrypoint: vm.Entrypoint,
+                        Corex:      vm.Corex,
+                        Mounts:     mounts,
+                        Env:        vm.EnvVars,
+                }),
+                Description: vm.Description,
+        }
+        workloads = append(workloads, workload)
+        return workloads, nil</span>
+}
+
+// Stage for staging workloads
+func (vm *VM) GenerateNodeWorkloadsMap(nodeID uint32) (map[uint32][]gridtypes.Workload, error) <span class="cov8" title="1">{
+        workloadsMap := map[uint32][]gridtypes.Workload{}
+
+        workloads, err := vm.GenerateWorkloads()
+        if err != nil </span><span class="cov0" title="0">{
+                return workloadsMap, err
+        }</span>
+
+        <span class="cov8" title="1">workloadsMap[nodeID] = workloads
+        return workloadsMap, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file11" style="display: none">// Package workloads includes workloads types (vm, zdb, qsfs, public IP, gateway name, gateway fqdn, disk)
+package workloads
+
+import (
+        "encoding/json"
+
+        "github.com/pkg/errors"
+        "github.com/threefoldtech/zos/pkg/gridtypes"
+        "github.com/threefoldtech/zos/pkg/gridtypes/zos"
+)
+
+// ZDB workload struct
+type ZDB struct {
+        Name        string
+        Password    string
+        Public      bool
+        Size        int
+        Description string
+        Mode        string
+        IPs         []string
+        Port        uint32
+        Namespace   string
+}
+
+// NewZDBFromSchema converts a map including zdb data to a zdb struct
+func NewZDBFromSchema(zdb map[string]interface{}) ZDB <span class="cov8" title="1">{
+        ips := zdb["ips"].([]string)
+
+        return ZDB{
+                Name:        zdb["name"].(string),
+                Size:        zdb["size"].(int),
+                Description: zdb["description"].(string),
+                Password:    zdb["password"].(string),
+                Public:      zdb["public"].(bool),
+                Mode:        zdb["mode"].(string),
+                IPs:         ips,
+                Port:        uint32(zdb["port"].(int)),
+                Namespace:   zdb["namespace"].(string),
+        }
+}</span>
+
+// NewZDBFromWorkload generates a new zdb from a workload
+func NewZDBFromWorkload(wl *gridtypes.Workload) (ZDB, error) <span class="cov8" title="1">{
+        dataI, err := wl.WorkloadData()
+        if err != nil </span><span class="cov0" title="0">{
+                return ZDB{}, errors.Wrap(err, "failed to get workload data")
+        }</span>
+
+        <span class="cov8" title="1">data, ok := dataI.(*zos.ZDB)
+        if !ok </span><span class="cov0" title="0">{
+                return ZDB{}, errors.New("couldn't cast workload data")
+        }</span>
+
+        <span class="cov8" title="1">var result zos.ZDBResult
+
+        if len(wl.Result.Data) &gt; 0 </span><span class="cov0" title="0">{
+                if err := json.Unmarshal(wl.Result.Data, &amp;result); err != nil </span><span class="cov0" title="0">{
+                        return ZDB{}, errors.Wrap(err, "failed to get zdb result")
+                }</span>
+        }
+
+        <span class="cov8" title="1">return ZDB{
+                Name:        wl.Name.String(),
+                Description: wl.Description,
+                Password:    data.Password,
+                Public:      data.Public,
+                Size:        int(data.Size / gridtypes.Gigabyte),
+                Mode:        data.Mode.String(),
+                IPs:         result.IPs,
+                Port:        uint32(result.Port),
+                Namespace:   result.Namespace,
+        }, nil</span>
+}
+
+// GetName returns zdb name
+func (z *ZDB) GetName() string <span class="cov8" title="1">{
+        return z.Name
+}</span>
+
+// GenerateZDBWorkload generates a zdb workload
+func (z *ZDB) GenerateZDBWorkload() gridtypes.Workload <span class="cov8" title="1">{
+        workload := gridtypes.Workload{
+                Name:        gridtypes.Name(z.Name),
+                Type:        zos.ZDBType,
+                Description: z.Description,
+                Version:     0,
+                Data: gridtypes.MustMarshal(zos.ZDB{
+                        Size:     gridtypes.Unit(z.Size) * gridtypes.Gigabyte,
+                        Mode:     zos.ZDBMode(z.Mode),
+                        Password: z.Password,
+                        Public:   z.Public,
+                }),
+        }
+        return workload
+}</span>
+
+// Dictify converts a zdb to a map(dict) object
+func (z *ZDB) Dictify() map[string]interface{} <span class="cov8" title="1">{
+        res := make(map[string]interface{})
+        res["name"] = z.Name
+        res["description"] = z.Description
+        res["size"] = z.Size
+        res["mode"] = z.Mode
+        res["ips"] = z.IPs
+        res["namespace"] = z.Namespace
+        res["port"] = int(z.Port)
+        res["password"] = z.Password
+        res["public"] = z.Public
+        return res
+}</span>
+
+// GenerateWorkloads generates a workload from a zdb
+func (z *ZDB) GenerateWorkloads() ([]gridtypes.Workload, error) <span class="cov8" title="1">{
+        return []gridtypes.Workload{
+                {
+                        Name:        gridtypes.Name(z.Name),
+                        Type:        zos.ZDBType,
+                        Description: z.Description,
+                        Version:     0,
+                        Data: gridtypes.MustMarshal(zos.ZDB{
+                                Size:     gridtypes.Unit(z.Size) * gridtypes.Gigabyte,
+                                Mode:     zos.ZDBMode(z.Mode),
+                                Password: z.Password,
+                                Public:   z.Public,
+                        }),
+                },
+        }, nil
+}</span>
+
+// Stage for staging workloads
+func (z *ZDB) GenerateNodeWorkloadsMap(nodeID uint32) (map[uint32][]gridtypes.Workload, error) <span class="cov8" title="1">{
+        workloadsMap := map[uint32][]gridtypes.Workload{}
+
+        workloads, err := z.GenerateWorkloads()
+        if err != nil </span><span class="cov0" title="0">{
+                return workloadsMap, err
+        }</span>
+
+        <span class="cov8" title="1">workloadsMap[nodeID] = workloads
+        return workloadsMap, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file12" style="display: none">// Package workloads includes workloads types (vm, zdb, qsfs, public IP, gateway name, gateway fqdn, disk)
+package workloads
+
+import (
+        "crypto/md5"
+        "encoding/hex"
+
+        "github.com/threefoldtech/zos/pkg/gridtypes"
+        "github.com/threefoldtech/zos/pkg/gridtypes/zos"
+)
+
+// Zlog logger struct
+type Zlog struct {
+        Zmachine string
+        Output   string
+}
+
+func zlogs(dl *gridtypes.Deployment, name string) []Zlog <span class="cov8" title="1">{
+        var res []Zlog
+        for _, wl := range dl.ByType(zos.ZLogsType) </span><span class="cov8" title="1">{
+                if !wl.Result.State.IsOkay() </span><span class="cov0" title="0">{
+                        continue</span>
+                }
+
+                <span class="cov8" title="1">dataI, err := wl.WorkloadData()
+                if err != nil </span><span class="cov0" title="0">{
+                        continue</span>
+                }
+
+                <span class="cov8" title="1">data, ok := dataI.(*zos.ZLogs)
+                if !ok </span><span class="cov0" title="0">{
+                        continue</span>
+                }
+
+                <span class="cov8" title="1">if data.ZMachine.String() != name </span><span class="cov0" title="0">{
+                        continue</span>
+                }
+
+                <span class="cov8" title="1">res = append(res, Zlog{
+                        Output:   data.Output,
+                        Zmachine: name,
+                })</span>
+        }
+        <span class="cov8" title="1">return res</span>
+}
+
+// GenerateWorkloads generates a zmachine workload
+func (zlog *Zlog) GenerateWorkloads() ([]gridtypes.Workload, error) <span class="cov8" title="1">{
+        url := []byte(zlog.Output)
+        urlHash := md5.Sum([]byte(url))
+
+        return []gridtypes.Workload{
+                {
+                        Version: 0,
+                        Name:    gridtypes.Name(hex.EncodeToString(urlHash[:])),
+                        Type:    zos.ZLogsType,
+                        Data: gridtypes.MustMarshal(zos.ZLogs{
+                                ZMachine: gridtypes.Name(zlog.Zmachine),
+                                Output:   zlog.Output,
+                        }),
+                },
+        }, nil
+}</span>
+
+// Stage for staging workloads
+func (zlog *Zlog) GenerateNodeWorkloadsMap(nodeID uint32) (map[uint32][]gridtypes.Workload, error) <span class="cov8" title="1">{
+        workloadsMap := map[uint32][]gridtypes.Workload{}
+
+        workloads, err := zlog.GenerateWorkloads()
+        if err != nil </span><span class="cov0" title="0">{
+                return workloadsMap, err
+        }</span>
+
+        <span class="cov8" title="1">workloadsMap[nodeID] = workloads
+
+        return workloadsMap, nil</span>
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>
