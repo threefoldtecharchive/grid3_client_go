@@ -12,8 +12,8 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
-// LoadVMFromGrid loads a vm from a grid
-func LoadVMFromGrid(manager deployer.DeploymentManager, nodeID uint32, name string) (workloads.VM, error) {
+// LoadVmFromGrid loads a vm from a grid
+func LoadVmFromGrid(manager deployer.DeploymentManager, nodeID uint32, name string) (workloads.VM, error) {
 	dl, err := manager.GetDeployment(nodeID)
 	if err != nil {
 		return workloads.VM{}, errors.Wrapf(err, "failed to get deployment with id %d", nodeID)
