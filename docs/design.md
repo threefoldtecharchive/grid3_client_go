@@ -140,7 +140,7 @@ manager = Manager.New(identity, net, Mnemonics ....)
 // Deploy method takes (oldDeployments, newDeployments)
 //oldDeployments as nodeID:deploymentID map
 //newDeployments which is the desired state as {nodeID: deploymentObject}
-currentDeployments = manager.Deploy({}, {nodeId: deploymentObject})
+currentDeployments = manager.Deploy({}, {nodeID: deploymentObject})
 // incase we want to update those created deployments afterwards
 currentDeployments = manager.deploy({nodeID: deploymentId}, {nodeID:deploymentObj})
 //using the loader

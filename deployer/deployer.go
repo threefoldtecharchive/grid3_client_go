@@ -277,7 +277,7 @@ func (d *DeployerImpl) Wait(
 
 		for _, wl := range deploymentChanges {
 			if _, ok := workloadVersions[wl.Name.String()]; ok && wl.Version == workloadVersions[wl.Name.String()] {
-				var errString string = ""
+				var errString string
 				switch wl.Result.State {
 				case gridtypes.StateOk:
 					stateOk++

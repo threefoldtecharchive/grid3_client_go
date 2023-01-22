@@ -17,13 +17,14 @@ func TestDiskDeployment(t *testing.T) {
 		Description: "disk test",
 	}
 	manager, _ := setup()
-	err := disk.Stage(manager, 13)
+	err := manager.Stage(&disk, 13)
 	assert.NoError(t, err)
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 	defer cancel()
 	err = manager.Commit(ctx)
 	assert.NoError(t, err)
-	defer manager.CancelAll()
+	err = manager.CancelAll()
+	assert.NoError(t, err)
 	result, err := loader.LoadDiskFromGrid(manager, 13, "testName")
 	assert.Equal(t, disk, result)
 	assert.NoError(t, err)

@@ -24,13 +24,15 @@ func TestGatewayFQDNDeployment(t *testing.T) {
 		FQDN:           "gatewayn.gridtesting.xyz",
 	}
 
-	err := expected.Stage(manager, 49)
+	err := manager.Stage(&expected, 49)
 	assert.NoError(t, err)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
 
 	err = manager.Commit(ctx)
-	defer manager.CancelAll()
+	assert.NoError(t, err)
+
+	err = manager.CancelAll()
 	assert.NoError(t, err)
 	result, err := loader.LoadGatewayFqdnFromGrid(manager, 49, "tf")
 	assert.NoError(t, err)

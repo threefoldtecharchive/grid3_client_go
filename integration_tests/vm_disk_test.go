@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/threefoldtech/grid3-go/deployer"
 	"github.com/threefoldtech/grid3-go/loader"
 	"github.com/threefoldtech/grid3-go/workloads"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
@@ -18,7 +19,7 @@ import (
 func TestVmDisk(t *testing.T) {
 	manager, apiClient := setup()
 	publicKey := os.Getenv("PUBLICKEY")
-	network := workloads.TargetNetwork{
+	network := workloads.ZNet{
 		Name:        "networkalaa",
 		Description: "network for testing",
 		Nodes:       []uint32{14},
@@ -35,7 +36,7 @@ func TestVmDisk(t *testing.T) {
 	vm := workloads.VM{
 		Name:       "vm",
 		Flist:      "https://hub.grid.tf/tf-official-apps/threefoldtech-ubuntu-20.04.flist",
-		Cpu:        2,
+		CPU:        2,
 		Planetary:  true,
 		Memory:     1024,
 		RootfsSize: 20 * 1024,
@@ -53,18 +54,23 @@ func TestVmDisk(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	_, err := network.Stage(ctx, apiClient)
+	networkManager, err := deployer.NewNetworkDeployer(apiClient.Manager, network)
 	assert.NoError(t, err)
 
-	err = vm.Stage(manager, 14)
+	_, err = networkManager.Stage(ctx, apiClient, network)
 	assert.NoError(t, err)
 
-	err = disk.Stage(manager, 14)
+	err = manager.Stage(&vm, 14)
+	assert.NoError(t, err)
+
+	err = manager.Stage(&disk, 14)
 	assert.NoError(t, err)
 
 	err = manager.Commit(ctx)
 	assert.NoError(t, err)
-	defer manager.CancelAll()
+
+	err = manager.CancelAll()
+	assert.NoError(t, err)
 
 	result, err := loader.LoadVmFromGrid(manager, 14, "vm")
 	assert.NoError(t, err)

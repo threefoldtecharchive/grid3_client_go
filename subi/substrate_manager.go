@@ -17,15 +17,18 @@ type ManagerInterface interface {
 	SubstrateExt() (SubstrateExt, error)
 }
 
+// Manager is substrate manager struct
 type Manager struct {
 	substrate.Manager
 	// versioned subdev.Manager
 }
 
+// NewManager returns a new substrate manager
 func NewManager(url ...string) Manager {
 	return Manager{substrate.NewManager(url...)}
 }
 
+// SubstrateExt returns a substrate implementation to be used
 func (m *Manager) SubstrateExt() (SubstrateExt, error) {
 	sub, err := m.Manager.Substrate()
 	return &SubstrateImpl{sub}, err
@@ -110,7 +113,7 @@ func (s *SubstrateImpl) GetContractIDByNameRegistration(name string) (uint64, er
 	return res, normalizeNotFoundErrors(err)
 }
 
-// CreateNameContract creates a new name contract
+// CreateNodeContract creates a new node contract
 func (s *SubstrateImpl) CreateNodeContract(identity Identity, node uint32, body string, hash string, publicIPs uint32, solutionProviderID *uint64) (uint64, error) {
 	res, err := s.Substrate.CreateNodeContract(identity, node, body, hash, publicIPs, solutionProviderID)
 	return res, normalizeNotFoundErrors(err)

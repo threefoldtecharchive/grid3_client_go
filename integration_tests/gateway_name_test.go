@@ -25,13 +25,14 @@ func TestGatewayNameDeployment(t *testing.T) {
 		FQDN:           "testx.Libra.Tfcloud.us",
 	}
 
-	err := expected.Stage(manager, 49)
+	err := manager.Stage(&expected, 49)
 	assert.NoError(t, err)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	err = manager.Commit(ctx)
 	assert.NoError(t, err)
-	defer manager.CancelAll()
+	err = manager.CancelAll()
+	assert.NoError(t, err)
 	result, err := loader.LoadGatewayNameFromGrid(manager, 49, "testx")
 	assert.NoError(t, err)
 	assert.Equal(t, expected, result)

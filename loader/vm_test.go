@@ -31,7 +31,7 @@ func TestLoadVmFromGrid(t *testing.T) {
 		YggIP:         "203:8b0b:5f3e:b859:c36:efdf:ab6e:50cc",
 		IP:            "1.1.1.1",
 		Description:   "test des",
-		Cpu:           2,
+		CPU:           2,
 		Memory:        2048,
 		RootfsSize:    4096,
 		Entrypoint:    "entrypoint",

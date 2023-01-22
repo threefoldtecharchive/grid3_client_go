@@ -59,7 +59,7 @@ func LoadVmFromGrid(manager deployer.DeploymentManager, nodeID uint32, name stri
 		Corex:         data.Corex,
 		YggIP:         result.YggIP,
 		IP:            data.Network.Interfaces[0].IP.String(),
-		Cpu:           int(data.ComputeCapacity.CPU),
+		CPU:           int(data.ComputeCapacity.CPU),
 		Memory:        int(data.ComputeCapacity.Memory / gridtypes.Megabyte),
 		RootfsSize:    int(data.Size / gridtypes.Megabyte),
 		Entrypoint:    data.Entrypoint,
@@ -100,14 +100,21 @@ func zlogs(dl *gridtypes.Deployment, name string) []workloads.Zlog {
 		if !wl.Result.State.IsOkay() {
 			continue
 		}
+
 		dataI, err := wl.WorkloadData()
 		if err != nil {
 			continue
 		}
-		data := dataI.(*zos.ZLogs)
+
+		data, ok := dataI.(*zos.ZLogs)
+		if !ok {
+			continue
+		}
+
 		if data.ZMachine.String() != name {
 			continue
 		}
+
 		res = append(res, workloads.Zlog{
 			Output: data.Output,
 		})

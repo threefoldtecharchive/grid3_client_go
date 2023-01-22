@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/threefoldtech/grid3-go/deployer"
 	"github.com/threefoldtech/grid3-go/loader"
 	"github.com/threefoldtech/grid3-go/workloads"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
@@ -17,7 +18,7 @@ import (
 func TestTwoVMsSameNetwork(t *testing.T) {
 	manager, apiClient := setup()
 	publicKey := os.Getenv("PUBLICKEY")
-	network := workloads.TargetNetwork{
+	network := workloads.ZNet{
 		Name:        "testingNetwork456",
 		Description: "network for testing",
 		Nodes:       []uint32{14},
@@ -30,7 +31,7 @@ func TestTwoVMsSameNetwork(t *testing.T) {
 	vm1 := workloads.VM{
 		Name:       "vm1",
 		Flist:      "https://hub.grid.tf/tf-official-apps/threefoldtech-ubuntu-20.04.flist",
-		Cpu:        2,
+		CPU:        2,
 		PublicIP6:  true,
 		Planetary:  true,
 		Memory:     1024,
@@ -44,7 +45,7 @@ func TestTwoVMsSameNetwork(t *testing.T) {
 	vm2 := workloads.VM{
 		Name:       "vm2",
 		Flist:      "https://hub.grid.tf/tf-official-apps/threefoldtech-ubuntu-20.04.flist",
-		Cpu:        2,
+		CPU:        2,
 		PublicIP6:  true,
 		Planetary:  true,
 		Memory:     1024,
@@ -55,24 +56,29 @@ func TestTwoVMsSameNetwork(t *testing.T) {
 		IP:          "10.1.0.3",
 		NetworkName: "testingNetwork456",
 	}
+
+	networkManager, err := deployer.NewNetworkDeployer(apiClient.Manager, network)
+	assert.NoError(t, err)
+
 	t.Run("public ipv6 and yggdrasil", func(t *testing.T) {
-		networkCp := network
 		vm1Cp := vm1
 		vm2Cp := vm2
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 		defer cancel()
 
-		_, err := networkCp.Stage(ctx, apiClient)
+		_, err := networkManager.Stage(ctx, apiClient, network)
 		assert.NoError(t, err)
 
 		err = manager.Commit(ctx)
 		assert.NoError(t, err)
-		defer manager.CancelAll()
 
-		err = vm1Cp.Stage(manager, 14)
+		err = manager.CancelAll()
 		assert.NoError(t, err)
 
-		err = vm2Cp.Stage(manager, 14)
+		err = manager.Stage(&vm1Cp, 14)
+		assert.NoError(t, err)
+
+		err = manager.Stage(&vm2Cp, 14)
 		assert.NoError(t, err)
 
 		err = manager.Commit(ctx)
@@ -133,8 +139,7 @@ func TestTwoVMsSameNetwork(t *testing.T) {
 	})
 	t.Run("public IPv4", func(t *testing.T) {
 		t.SkipNow()
-		networkCp := network
-		networkCp.Nodes = []uint32{45}
+		network.Nodes = []uint32{45}
 		vm1Cp := vm1
 		vm1Cp.PublicIP = true
 		vm2Cp := vm2
@@ -143,17 +148,19 @@ func TestTwoVMsSameNetwork(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 		defer cancel()
 
-		_, err := networkCp.Stage(ctx, apiClient)
+		_, err := networkManager.Stage(ctx, apiClient, network)
 		assert.NoError(t, err)
 
 		err = manager.Commit(ctx)
 		assert.NoError(t, err)
-		defer manager.CancelAll()
 
-		err = vm1Cp.Stage(manager, 45)
+		err = manager.CancelAll()
 		assert.NoError(t, err)
 
-		err = vm2Cp.Stage(manager, 45)
+		err = manager.Stage(&vm1Cp, 45)
+		assert.NoError(t, err)
+
+		err = manager.Stage(&vm2Cp, 45)
 		assert.NoError(t, err)
 
 		err = manager.Commit(ctx)

@@ -21,13 +21,16 @@ func TestZDBDeployment(t *testing.T) {
 		Mode:        zos.ZDBModeUser,
 	}
 	manager, _ := setup()
-	err := zdb.Stage(manager, 13)
+	err := manager.Stage(&zdb, 13)
 	assert.NoError(t, err)
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 	defer cancel()
 	err = manager.Commit(ctx)
 	assert.NoError(t, err)
-	defer manager.CancelAll()
+
+	err = manager.CancelAll()
+	assert.NoError(t, err)
+
 	result, err := loader.LoadZdbFromGrid(manager, 13, "testName")
 	assert.NoError(t, err)
 	assert.NotEmpty(t, result.IPs)

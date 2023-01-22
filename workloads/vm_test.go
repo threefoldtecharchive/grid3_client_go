@@ -1,34 +1,35 @@
+// Package workloads includes workloads types (vm, zdb, qsfs, public IP, gateway name, gateway fqdn, disk)
 package workloads
 
 import (
-	"crypto/md5"
-	"encoding/hex"
 	"net"
 	"testing"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	"github.com/threefoldtech/grid3-go/mocks"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
-func TestVMStage(t *testing.T) {
+func TestVMWorkload(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	manager := mocks.NewMockDeploymentManager(ctrl)
+
+	var vmMap map[string]interface{}
+
+	var workloadsFromVM []gridtypes.Workload
 
 	vm := VM{
 		Name:          "test",
 		Flist:         "flist test",
-		FlistChecksum: "flist cs test",
+		FlistChecksum: "",
 		PublicIP:      true,
 		PublicIP6:     false,
 		Planetary:     true,
 		Corex:         false,
 		IP:            "1.1.1.1",
 		Description:   "test des",
-		Cpu:           2,
+		CPU:           2,
 		Memory:        2048,
 		RootfsSize:    4096,
 		Entrypoint:    "entrypoint",
@@ -36,12 +37,13 @@ func TestVMStage(t *testing.T) {
 			{DiskName: "disk", MountPoint: "mount"},
 		},
 		Zlogs: []Zlog{
-			{Output: "output"},
+			{Output: "output", Zmachine: "test"},
 		},
 		EnvVars:     map[string]string{"var1": "val1"},
 		NetworkName: "test network",
 	}
-	pubIPWl := gridtypes.Workload{
+
+	pubIPWorkload := gridtypes.Workload{
 		Version: 0,
 		Name:    gridtypes.Name("testip"),
 		Type:    zos.PublicIPType,
@@ -50,17 +52,8 @@ func TestVMStage(t *testing.T) {
 			V6: false,
 		}),
 	}
-	urlHash := md5.Sum([]byte("output"))
-	zlogWl := gridtypes.Workload{
-		Version: 0,
-		Name:    gridtypes.Name(hex.EncodeToString(urlHash[:])),
-		Type:    zos.ZLogsType,
-		Data: gridtypes.MustMarshal(zos.ZLogs{
-			ZMachine: gridtypes.Name("test"),
-			Output:   "output",
-		}),
-	}
-	vmWl := gridtypes.Workload{
+
+	vmWorkload := gridtypes.Workload{
 		Version: 0,
 		Name:    gridtypes.Name("test"),
 		Type:    zos.ZMachineType,
@@ -90,11 +83,114 @@ func TestVMStage(t *testing.T) {
 		}),
 		Description: "test des",
 	}
-	wlMap := map[uint32][]gridtypes.Workload{}
-	wlMap[1] = append(wlMap[1], pubIPWl)
-	wlMap[1] = append(wlMap[1], zlogWl)
-	wlMap[1] = append(wlMap[1], vmWl)
-	manager.EXPECT().SetWorkloads(gomock.Eq(wlMap)).Return(nil)
-	err := vm.Stage(manager, 1)
-	assert.NoError(t, err)
+
+	pubIPWorkload.Result.State = "ok"
+	deployment := gridtypes.Deployment{
+		Version:   0,
+		TwinID:    1,
+		Workloads: []gridtypes.Workload{vmWorkload, pubIPWorkload},
+		SignatureRequirement: gridtypes.SignatureRequirement{
+			WeightRequired: 1,
+			Requests: []gridtypes.SignatureRequest{
+				{
+					TwinID: 1,
+					Weight: 1,
+				},
+			},
+		},
+	}
+
+	t.Run("test_vm_dictify", func(t *testing.T) {
+		vmMap = vm.ToMap()
+	})
+
+	t.Run("test_vm_from_schema", func(t *testing.T) {
+		vmFromSchema := NewVMFromSchema(vmMap)
+		assert.Equal(t, *vmFromSchema, vm)
+	})
+
+	t.Run("test_vm_from_workload", func(t *testing.T) {
+		vmFromWorkload, err := NewVMFromWorkloads(&vmWorkload, &deployment)
+		assert.NoError(t, err)
+
+		// no result yet so they are set manually
+		vmFromWorkload.Planetary = true
+		vmFromWorkload.PublicIP = true
+		vmFromWorkload.Zlogs = []Zlog{{
+			Zmachine: "test",
+			Output:   "output",
+		}}
+
+		assert.Equal(t, vmFromWorkload, vm)
+	})
+
+	t.Run("test_pubIP_from_deployment", func(t *testing.T) {
+		pubIP := pubIP(&deployment, "testip")
+		assert.Equal(t, pubIP.HasIPv6(), false)
+	})
+
+	t.Run("test_mounts", func(t *testing.T) {
+		dataI, err := vmWorkload.WorkloadData()
+		assert.NoError(t, err)
+
+		zosZmachine, ok := dataI.(*zos.ZMachine)
+		assert.Equal(t, ok, true)
+
+		mountsOfVMWorkload := mounts(zosZmachine.Mounts)
+		assert.Equal(t, mountsOfVMWorkload, vm.Mounts)
+	})
+
+	t.Run("test_workloads_from_vm", func(t *testing.T) {
+		// put state in zero values
+		pubIPWorkload.Result.State = ""
+
+		assert.Equal(t, pubIPWorkload, vm.GenerateVMWorkload()[0])
+		assert.Equal(t, vmWorkload, vm.GenerateVMWorkload()[2])
+	})
+
+	t.Run("test_vm_validate", func(t *testing.T) {
+		assert.NoError(t, vm.Validate())
+	})
+
+	t.Run("test_vm_failed_validate", func(t *testing.T) {
+		vm.CPU = 0
+		assert.ErrorIs(t, vm.Validate(), ErrInvalidInput)
+		vm.CPU = 2
+	})
+
+	t.Run("test_workload_from_vm", func(t *testing.T) {
+		var err error
+
+		workloadsFromVM, err = vm.GenerateWorkloads()
+		assert.NoError(t, err)
+
+		assert.Equal(t, workloadsFromVM[2], vmWorkload)
+		assert.Equal(t, workloadsFromVM[0], pubIPWorkload)
+	})
+
+	t.Run("test_vm_set_network_name", func(t *testing.T) {
+		vmWithNetwork := vm.WithNetworkName("net")
+		assert.Equal(t, vmWithNetwork.NetworkName, "net")
+	})
+
+	t.Run("test_vm_matches_another_vm", func(t *testing.T) {
+		vm2 := vm.WithNetworkName("net")
+		vm.Match(vm2)
+		assert.Equal(t, *vm2, vm)
+
+		// reset network name
+		vm2 = vm.WithNetworkName("test network")
+		vm.Match(vm2)
+		assert.Equal(t, *vm2, vm)
+	})
+
+	t.Run("test_workloads_map", func(t *testing.T) {
+		nodeID := uint32(1)
+		workloadsMap := map[uint32][]gridtypes.Workload{}
+		workloadsMap[nodeID] = append(workloadsMap[nodeID], workloadsFromVM...)
+
+		workloadsMap2, err := vm.BindWorkloadsToNode(nodeID)
+		assert.NoError(t, err)
+		assert.Equal(t, workloadsMap, workloadsMap2)
+	})
 }

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/threefoldtech/grid3-go/deployer"
 	"github.com/threefoldtech/grid3-go/loader"
 	"github.com/threefoldtech/grid3-go/workloads"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
@@ -16,7 +17,7 @@ func TestDeployment(t *testing.T) {
 
 	manager, apiClient := setup()
 
-	network := workloads.TargetNetwork{
+	network := workloads.ZNet{
 		Name:        "net1",
 		Description: "not skynet",
 		Nodes:       []uint32{33, 34},
@@ -26,25 +27,32 @@ func TestDeployment(t *testing.T) {
 		}),
 		AddWGAccess: true,
 	}
+
+	networkManager, err := deployer.NewNetworkDeployer(apiClient.Manager, network)
+	assert.NoError(t, err)
+
 	// vm := workloads.VM{
 	// 	Name: "vm1",
 	// }
 
-	access, err := network.Stage(context.Background(), apiClient)
+	access, err := networkManager.Stage(context.Background(), apiClient, network)
 	assert.Equal(t, nil, err)
 	log.Printf("user access: %+v", access)
 
 	err = manager.Commit(context.Background())
 	assert.Equal(t, nil, err)
-	defer manager.CancelAll()
+
+	err = manager.CancelAll()
+	assert.NoError(t, err)
 
 	ln, err := loader.LoadNetworkFromGrid(manager, "net1")
+	assert.NoError(t, err)
 	log.Printf("current network: %+v", ln)
 	log.Printf("current contracts: %+v", manager.GetContractIDs())
 
 	// network.AddWGAccess = true
 	network.Nodes = []uint32{33, 31}
-	access, err = network.Stage(context.Background(), apiClient)
+	access, err = networkManager.Stage(context.Background(), apiClient, network)
 	assert.Equal(t, nil, err)
 	log.Printf("user access: %+v", access)
 
@@ -52,23 +60,29 @@ func TestDeployment(t *testing.T) {
 	assert.Equal(t, nil, err)
 
 	ln, err = loader.LoadNetworkFromGrid(manager, "net1")
+	assert.NoError(t, err)
 	log.Printf("current network: %+v", ln)
 	log.Printf("current contracts: %+v", manager.GetContractIDs())
 
 	network.AddWGAccess = false
 	network.Nodes = []uint32{33, 31}
-	access, err = network.Stage(context.Background(), apiClient)
+	access, err = networkManager.Stage(context.Background(), apiClient, network)
 	assert.Equal(t, nil, err)
 	log.Printf("user access: %+v", access)
 
 	err = manager.Commit(context.Background())
 	assert.NoError(t, err)
 	ln, err = loader.LoadNetworkFromGrid(manager, "net1")
+	assert.NoError(t, err)
 	log.Printf("current network: %+v", ln)
 	log.Printf("current contracts: %+v", manager.GetContractIDs())
 
 	err = manager.CancelAll()
+	assert.NoError(t, err)
+
 	ln, err = loader.LoadNetworkFromGrid(manager, "net1")
+	assert.NoError(t, err)
+
 	log.Printf("current network: %+v", ln)
 	log.Printf("current contracts: %+v", manager.GetContractIDs())
 }

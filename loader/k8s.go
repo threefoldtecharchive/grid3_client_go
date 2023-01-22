@@ -24,7 +24,7 @@ type LoadedK8sNode struct {
 	ComputedIP6   string
 	YggIP         string
 	IP            string
-	Cpu           int
+	CPU           int
 	Memory        int
 }
 
@@ -166,7 +166,7 @@ func generateK8sNodeData(
 		ComputedIP6: computedIP6,
 		YggIP:       yggIP,
 		IP:          data.Network.Interfaces[0].IP.String(),
-		Cpu:         int(data.ComputeCapacity.CPU),
+		CPU:         int(data.ComputeCapacity.CPU),
 		Memory:      int(data.ComputeCapacity.Memory / gridtypes.Megabyte),
 	}
 }

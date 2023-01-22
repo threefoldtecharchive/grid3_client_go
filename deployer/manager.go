@@ -12,6 +12,7 @@ import (
 	"github.com/pkg/errors"
 	client "github.com/threefoldtech/grid3-go/node"
 	"github.com/threefoldtech/grid3-go/subi"
+	"github.com/threefoldtech/grid3-go/workloads"
 	proxy "github.com/threefoldtech/grid_proxy_server/pkg/client"
 	"github.com/threefoldtech/substrate-client"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
@@ -26,6 +27,7 @@ type DeploymentManager interface {
 	GetWorkload(nodeID uint32, name string) (gridtypes.Workload, error)
 	GetDeployment(nodeID uint32) (gridtypes.Deployment, error)
 	GetContractIDs() map[uint32]uint64
+	Stage(workloadsToNodeBinder workloads.WorkloadsToNodeBinder, nodeID uint32) error
 }
 
 type deploymentManager struct {
@@ -442,7 +444,6 @@ func (d *deploymentManager) GetWorkload(nodeID uint32, name string) (gridtypes.W
 }
 
 func (d *deploymentManager) GetDeployment(nodeID uint32) (gridtypes.Deployment, error) {
-	dl := gridtypes.Deployment{}
 	if dID, ok := d.deploymentIDs[nodeID]; ok {
 		s, err := d.substrate.SubstrateExt()
 		if err != nil {
@@ -453,7 +454,7 @@ func (d *deploymentManager) GetDeployment(nodeID uint32) (gridtypes.Deployment, 
 		if err != nil {
 			return gridtypes.Deployment{}, errors.Wrapf(err, "couldn't get node client: %d", nodeID)
 		}
-		dl, err = nodeClient.DeploymentGet(context.Background(), dID)
+		dl, err := nodeClient.DeploymentGet(context.Background(), dID)
 		if err != nil {
 			return gridtypes.Deployment{}, errors.Wrapf(err, "couldn't get deployment from node %d", nodeID)
 		}
@@ -475,4 +476,15 @@ func (d *deploymentManager) updateDeploymentIDs(committedDeploymentsIDs map[uint
 			delete(d.deploymentIDs, k)
 		}
 	}
+}
+
+// Stage stages workloads with their node IDs
+func (d *deploymentManager) Stage(workloadsToNodeBinder workloads.WorkloadsToNodeBinder, nodeID uint32) error {
+	workloadsNodeMap, err := workloadsToNodeBinder.BindWorkloadsToNode(nodeID)
+	if err != nil {
+		return err
+	}
+
+	err = d.SetWorkloads(workloadsNodeMap)
+	return err
 }

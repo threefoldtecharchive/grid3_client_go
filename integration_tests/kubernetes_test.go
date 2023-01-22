@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/threefoldtech/grid3-go/deployer"
 	"github.com/threefoldtech/grid3-go/loader"
 	"github.com/threefoldtech/grid3-go/workloads"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
@@ -24,7 +25,7 @@ func TestKubernetes(t *testing.T) {
 		DiskSize:  1,
 		PublicIP:  false,
 		Planetary: true,
-		Cpu:       1,
+		CPU:       1,
 		Memory:    2048,
 	}
 	worker1 := master
@@ -41,7 +42,7 @@ func TestKubernetes(t *testing.T) {
 		NetworkName: "skynet",
 	}
 
-	network := workloads.TargetNetwork{
+	network := workloads.ZNet{
 		Name:        "skynet",
 		Description: "not skynet",
 		Nodes:       []uint32{45},
@@ -52,20 +53,25 @@ func TestKubernetes(t *testing.T) {
 		AddWGAccess: false,
 	}
 
+	networkManager, err := deployer.NewNetworkDeployer(apiClient.Manager, network)
+	assert.NoError(t, err)
+
 	t.Run("cluster with 3 nodes", func(t *testing.T) {
 
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 		defer cancel()
 
-		err := cluster.Stage(ctx, manager)
+		err := manager.Stage(&cluster, 0)
 		assert.NoError(t, err)
 
-		_, err = network.Stage(ctx, apiClient)
+		_, err = networkManager.Stage(ctx, apiClient, network)
 		assert.NoError(t, err)
 
 		err = manager.Commit(ctx)
 		assert.NoError(t, err)
-		defer manager.CancelAll()
+
+		err = manager.CancelAll()
+		assert.NoError(t, err)
 
 		masterNode := map[uint32]string{master.Node: master.Name}
 		workerNodes := map[uint32][]string{}
@@ -101,13 +107,10 @@ func TestKubernetes(t *testing.T) {
 	})
 
 	t.Run("nodes with duplicate names", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-		defer cancel()
-
 		cluster.Workers[0].Name = cluster.Master.Name
 
-		err := cluster.Stage(ctx, manager)
-		assert.ErrorIs(t, err, workloads.ErrDuplicateName)
+		err := manager.Stage(&cluster, 0)
+		assert.Error(t, err)
 	})
 
 }
