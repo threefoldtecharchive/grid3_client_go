@@ -63,9 +63,9 @@ func (g *Group) zosGroup() zos.ZdbGroup {
 	return z
 }
 
-func (gs *Groups) zosGroups() []zos.ZdbGroup {
+func (gs Groups) zosGroups() []zos.ZdbGroup {
 	z := make([]zos.ZdbGroup, 0)
-	for _, e := range *gs {
+	for _, e := range gs {
 		z = append(z, e.zosGroup())
 	}
 	return z
@@ -75,9 +75,9 @@ func (b *Backend) zosBackend() zos.ZdbBackend {
 	return zos.ZdbBackend(*b)
 }
 
-func (bs *Backends) zosBackends() []zos.ZdbBackend {
+func (bs Backends) zosBackends() []zos.ZdbBackend {
 	z := make([]zos.ZdbBackend, 0)
-	for _, e := range *bs {
+	for _, e := range bs {
 		z = append(z, e.zosBackend())
 	}
 	return z
@@ -116,15 +116,15 @@ func getBackends(backendsIf []interface{}) Backends {
 	return backends
 }
 
-// Dictify converts a group data to a map
-func (g *Group) Dictify() map[string]interface{} {
+// ToMap converts a group data to a map
+func (g *Group) ToMap() map[string]interface{} {
 	res := make(map[string]interface{})
 	res["backends"] = g.Backends.Listify()
 	return res
 }
 
-// Dictify converts a backend data to a map
-func (b *Backend) Dictify() map[string]interface{} {
+// ToMap converts a backend data to a map
+func (b *Backend) ToMap() map[string]interface{} {
 	res := make(map[string]interface{})
 	res["address"] = b.Address
 	res["namespace"] = b.Namespace
@@ -136,7 +136,7 @@ func (b *Backend) Dictify() map[string]interface{} {
 func (bs *Backends) Listify() []interface{} {
 	res := make([]interface{}, 0)
 	for _, b := range *bs {
-		res = append(res, b.Dictify())
+		res = append(res, b.ToMap())
 	}
 	return res
 }
@@ -145,13 +145,13 @@ func (bs *Backends) Listify() []interface{} {
 func (gs *Groups) Listify() []interface{} {
 	res := make([]interface{}, 0)
 	for _, g := range *gs {
-		res = append(res, g.Dictify())
+		res = append(res, g.ToMap())
 	}
 	return res
 }
 
-// Dictify converts a metadata to a map
-func (m *Metadata) Dictify() map[string]interface{} {
+// ToMap converts a metadata to a map
+func (m *Metadata) ToMap() map[string]interface{} {
 	res := make(map[string]interface{})
 	res["type"] = m.Type
 	res["prefix"] = m.Prefix
@@ -309,8 +309,8 @@ func (q *QSFS) UpdateFromWorkload(wl *gridtypes.Workload) error {
 	return nil
 }
 
-// Dictify converts a QSFS data to a map
-func (q *QSFS) Dictify() map[string]interface{} {
+// ToMap converts a QSFS data to a map
+func (q *QSFS) ToMap() map[string]interface{} {
 	res := make(map[string]interface{})
 	res["name"] = q.Name
 	res["description"] = q.Description
@@ -324,7 +324,7 @@ func (q *QSFS) Dictify() map[string]interface{} {
 	res["encryption_key"] = q.EncryptionKey
 	res["compression_algorithm"] = q.CompressionAlgorithm
 	res["metrics_endpoint"] = q.MetricsEndpoint
-	res["metadata"] = []interface{}{q.Metadata.Dictify()}
+	res["metadata"] = []interface{}{q.Metadata.ToMap()}
 	res["groups"] = q.Groups.Listify()
 	return res
 }
@@ -380,7 +380,7 @@ func (q *QSFS) GenerateWorkloads() ([]gridtypes.Workload, error) {
 }
 
 // Stage for staging workloads
-func (q *QSFS) GenerateNodeWorkloadsMap(nodeID uint32) (map[uint32][]gridtypes.Workload, error) {
+func (q *QSFS) BindWorkloadsToNode(nodeID uint32) (map[uint32][]gridtypes.Workload, error) {
 	workloadsMap := map[uint32][]gridtypes.Workload{}
 
 	workloads, err := q.GenerateWorkloads()

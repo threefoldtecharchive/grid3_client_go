@@ -64,7 +64,7 @@ func TestK8sNodeData(t *testing.T) {
 	}
 
 	t.Run("test_new_k8s_node_data", func(t *testing.T) {
-		k8s = NewK8sNodeData(k8sMap)
+		k8s = NewK8sNodeDataFromSchema(k8sMap)
 
 	})
 
@@ -76,7 +76,7 @@ func TestK8sNodeData(t *testing.T) {
 	})
 
 	t.Run("test_k8s_node_data_dictify", func(t *testing.T) {
-		assert.Equal(t, k8s.Dictify(), k8sMap)
+		assert.Equal(t, k8s.ToMap(), k8sMap)
 	})
 
 	t.Run("test_new_k8s_cluster", func(t *testing.T) {
@@ -119,7 +119,7 @@ func TestK8sNodeData(t *testing.T) {
 		workloadsMap := map[uint32][]gridtypes.Workload{}
 		workloadsMap[cluster.Master.Node] = append(workloadsMap[cluster.Master.Node], k8sWorkloads...)
 
-		workloadsMap2, err := cluster.GenerateNodeWorkloadsMap(0)
+		workloadsMap2, err := cluster.BindWorkloadsToNode(0)
 		assert.NoError(t, err)
 		assert.Equal(t, workloadsMap, workloadsMap2)
 	})

@@ -480,7 +480,7 @@ func (d *deploymentManager) updateDeploymentIDs(committedDeploymentsIDs map[uint
 
 // Stage stages workloads with their node IDs
 func (d *deploymentManager) Stage(workloadGenerator workloads.WorkloadGenerator, nodeID uint32) error {
-	workloadsNodeMap, err := workloadGenerator.GenerateNodeWorkloadsMap(nodeID)
+	workloadsNodeMap, err := workloadGenerator.BindWorkloadsToNode(nodeID)
 	if err != nil {
 		return err
 	}

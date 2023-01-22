@@ -41,9 +41,8 @@ func TestDiskWorkload(t *testing.T) {
 	})
 
 	t.Run("test_disk_functions", func(t *testing.T) {
-		assert.Equal(t, disk.Dictify(), diskMap)
+		assert.Equal(t, disk.ToMap(), diskMap)
 		assert.Equal(t, disk.GetName(), diskName)
-		assert.Equal(t, disk.GenerateDiskWorkload(), diskWorkload)
 	})
 
 	t.Run("test_disk_from_workload", func(t *testing.T) {
@@ -64,7 +63,7 @@ func TestDiskWorkload(t *testing.T) {
 		workloadsMap := map[uint32][]gridtypes.Workload{}
 		workloadsMap[nodeID] = append(workloadsMap[nodeID], diskWorkload)
 
-		workloadsMap2, err := disk.GenerateNodeWorkloadsMap(nodeID)
+		workloadsMap2, err := disk.BindWorkloadsToNode(nodeID)
 		assert.NoError(t, err)
 		assert.Equal(t, workloadsMap, workloadsMap2)
 	})

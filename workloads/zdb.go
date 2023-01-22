@@ -77,25 +77,8 @@ func (z *ZDB) GetName() string {
 	return z.Name
 }
 
-// GenerateZDBWorkload generates a zdb workload
-func (z *ZDB) GenerateZDBWorkload() gridtypes.Workload {
-	workload := gridtypes.Workload{
-		Name:        gridtypes.Name(z.Name),
-		Type:        zos.ZDBType,
-		Description: z.Description,
-		Version:     0,
-		Data: gridtypes.MustMarshal(zos.ZDB{
-			Size:     gridtypes.Unit(z.Size) * gridtypes.Gigabyte,
-			Mode:     zos.ZDBMode(z.Mode),
-			Password: z.Password,
-			Public:   z.Public,
-		}),
-	}
-	return workload
-}
-
-// Dictify converts a zdb to a map(dict) object
-func (z *ZDB) Dictify() map[string]interface{} {
+// ToMap converts a zdb to a map(dict) object
+func (z *ZDB) ToMap() map[string]interface{} {
 	res := make(map[string]interface{})
 	res["name"] = z.Name
 	res["description"] = z.Description
@@ -128,7 +111,7 @@ func (z *ZDB) GenerateWorkloads() ([]gridtypes.Workload, error) {
 }
 
 // Stage for staging workloads
-func (z *ZDB) GenerateNodeWorkloadsMap(nodeID uint32) (map[uint32][]gridtypes.Workload, error) {
+func (z *ZDB) BindWorkloadsToNode(nodeID uint32) (map[uint32][]gridtypes.Workload, error) {
 	workloadsMap := map[uint32][]gridtypes.Workload{}
 
 	workloads, err := z.GenerateWorkloads()

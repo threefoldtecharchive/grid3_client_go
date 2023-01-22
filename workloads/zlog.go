@@ -63,7 +63,7 @@ func (zlog *Zlog) GenerateWorkloads() ([]gridtypes.Workload, error) {
 }
 
 // Stage for staging workloads
-func (zlog *Zlog) GenerateNodeWorkloadsMap(nodeID uint32) (map[uint32][]gridtypes.Workload, error) {
+func (zlog *Zlog) BindWorkloadsToNode(nodeID uint32) (map[uint32][]gridtypes.Workload, error) {
 	workloadsMap := map[uint32][]gridtypes.Workload{}
 
 	workloads, err := zlog.GenerateWorkloads()

@@ -65,7 +65,7 @@ func TestZLog(t *testing.T) {
 		workloadsMap := map[uint32][]gridtypes.Workload{}
 		workloadsMap[nodeID] = append(workloadsMap[nodeID], zlogWorkload)
 
-		workloadsMap2, err := zlog.GenerateNodeWorkloadsMap(nodeID)
+		workloadsMap2, err := zlog.BindWorkloadsToNode(nodeID)
 		assert.NoError(t, err)
 		assert.Equal(t, workloadsMap, workloadsMap2)
 	})

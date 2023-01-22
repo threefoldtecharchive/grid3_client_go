@@ -7,5 +7,5 @@ import (
 
 // WorkloadGenerator generates a grid workload
 type WorkloadGenerator interface {
-	GenerateNodeWorkloadsMap(nodeID uint32) (map[uint32][]gridtypes.Workload, error)
+	BindWorkloadsToNode(nodeID uint32) (map[uint32][]gridtypes.Workload, error)
 }

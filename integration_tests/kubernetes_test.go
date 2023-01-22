@@ -110,7 +110,7 @@ func TestKubernetes(t *testing.T) {
 		cluster.Workers[0].Name = cluster.Master.Name
 
 		err := manager.Stage(&cluster, 0)
-		assert.ErrorIs(t, err, workloads.ErrDuplicateName)
+		assert.Error(t, err)
 	})
 
 }

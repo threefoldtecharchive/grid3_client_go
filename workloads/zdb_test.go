@@ -66,9 +66,8 @@ func TestZDB(t *testing.T) {
 	})
 
 	t.Run("test_zdb_functions", func(t *testing.T) {
-		assert.Equal(t, zdb.Dictify(), zdbMap)
+		assert.Equal(t, zdb.ToMap(), zdbMap)
 		assert.Equal(t, zdb.GetName(), "test")
-		assert.Equal(t, zdb.GenerateZDBWorkload(), zdbWorkload)
 	})
 
 	t.Run("test_workload_from_zdb", func(t *testing.T) {
@@ -82,7 +81,7 @@ func TestZDB(t *testing.T) {
 		workloadsMap := map[uint32][]gridtypes.Workload{}
 		workloadsMap[nodeID] = append(workloadsMap[nodeID], zdbWorkload)
 
-		workloadsMap2, err := zdb.GenerateNodeWorkloadsMap(nodeID)
+		workloadsMap2, err := zdb.BindWorkloadsToNode(nodeID)
 		assert.NoError(t, err)
 		assert.Equal(t, workloadsMap, workloadsMap2)
 	})

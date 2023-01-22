@@ -12,9 +12,6 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
-// ErrDuplicateName error for duplicate names
-var ErrDuplicateName = errors.New("node names are not unique")
-
 // K8sNodeData kubernetes data
 type K8sNodeData struct {
 	Name          string
@@ -43,7 +40,7 @@ type K8sCluster struct {
 }
 
 // NewK8sNodeData generates new k8s node data
-func NewK8sNodeData(m map[string]interface{}) K8sNodeData {
+func NewK8sNodeDataFromSchema(m map[string]interface{}) K8sNodeData {
 	return K8sNodeData{
 		Name:          m["name"].(string),
 		Node:          uint32(m["node"].(int)),
@@ -103,8 +100,8 @@ func NewK8sNodeDataFromWorkload(w gridtypes.Workload, nodeID uint32, diskSize in
 	return k, nil
 }
 
-// Dictify converts k8s data to a map (dict)
-func (k *K8sNodeData) Dictify() map[string]interface{} {
+// ToMap converts k8s data to a map (dict)
+func (k *K8sNodeData) ToMap() map[string]interface{} {
 	res := make(map[string]interface{})
 	res["name"] = k.Name
 	res["node"] = int(k.Node)
@@ -238,8 +235,8 @@ func (k *K8sCluster) GenerateWorkloads() ([]gridtypes.Workload, error) {
 	return k8sWorkloads, nil
 }
 
-// GenerateNodeWorkloadsMap for staging workloads with node ID
-func (k *K8sCluster) GenerateNodeWorkloadsMap(nodeID uint32) (map[uint32][]gridtypes.Workload, error) {
+// BindWorkloadsToNode for staging workloads with node ID
+func (k *K8sCluster) BindWorkloadsToNode(nodeID uint32) (map[uint32][]gridtypes.Workload, error) {
 	workloadsMap := map[uint32][]gridtypes.Workload{}
 
 	err := k.ValidateNames()

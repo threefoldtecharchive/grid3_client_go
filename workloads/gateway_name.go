@@ -84,8 +84,8 @@ func (g *GatewayNameProxy) GenerateWorkloads() ([]gridtypes.Workload, error) {
 	}, nil
 }
 
-// GenerateNodeWorkloadsMap for staging workloads with node ID
-func (g *GatewayNameProxy) GenerateNodeWorkloadsMap(nodeID uint32) (map[uint32][]gridtypes.Workload, error) {
+// BindWorkloadsToNode for staging workloads with node ID
+func (g *GatewayNameProxy) BindWorkloadsToNode(nodeID uint32) (map[uint32][]gridtypes.Workload, error) {
 	workloadsMap := map[uint32][]gridtypes.Workload{}
 
 	workloads, err := g.GenerateWorkloads()

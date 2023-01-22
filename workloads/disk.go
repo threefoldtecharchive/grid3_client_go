@@ -42,28 +42,13 @@ func NewDiskFromWorkload(wl *gridtypes.Workload) (Disk, error) {
 	}, nil
 }
 
-// Dictify converts a disk data to a map
-func (d *Disk) Dictify() map[string]interface{} {
+// ToMap converts a disk data to a map
+func (d *Disk) ToMap() map[string]interface{} {
 	res := make(map[string]interface{})
 	res["name"] = d.Name
 	res["description"] = d.Description
 	res["size"] = d.Size
 	return res
-}
-
-// GenerateDiskWorkload generates a disk workload
-func (d *Disk) GenerateDiskWorkload() gridtypes.Workload {
-	workload := gridtypes.Workload{
-		Name:        gridtypes.Name(d.Name),
-		Version:     0,
-		Type:        zos.ZMountType,
-		Description: d.Description,
-		Data: gridtypes.MustMarshal(zos.ZMount{
-			Size: gridtypes.Unit(d.Size) * gridtypes.Gigabyte,
-		}),
-	}
-
-	return workload
 }
 
 // GetName returns disk name
@@ -86,8 +71,8 @@ func (d *Disk) GenerateWorkloads() ([]gridtypes.Workload, error) {
 	}, nil
 }
 
-// GenerateNodeWorkloadsMap for staging workloads with node ID
-func (d *Disk) GenerateNodeWorkloadsMap(nodeID uint32) (map[uint32][]gridtypes.Workload, error) {
+// BindWorkloadsToNode for staging workloads with node ID
+func (d *Disk) BindWorkloadsToNode(nodeID uint32) (map[uint32][]gridtypes.Workload, error) {
 	workloadsMap := map[uint32][]gridtypes.Workload{}
 
 	workloads, err := d.GenerateWorkloads()

@@ -101,7 +101,7 @@ func TestVMWorkload(t *testing.T) {
 	}
 
 	t.Run("test_vm_dictify", func(t *testing.T) {
-		vmMap = vm.Dictify()
+		vmMap = vm.ToMap()
 	})
 
 	t.Run("test_vm_from_schema", func(t *testing.T) {
@@ -183,7 +183,7 @@ func TestVMWorkload(t *testing.T) {
 		workloadsMap := map[uint32][]gridtypes.Workload{}
 		workloadsMap[nodeID] = append(workloadsMap[nodeID], workloadsFromVM...)
 
-		workloadsMap2, err := vm.GenerateNodeWorkloadsMap(nodeID)
+		workloadsMap2, err := vm.BindWorkloadsToNode(nodeID)
 		assert.NoError(t, err)
 		assert.Equal(t, workloadsMap, workloadsMap2)
 	})

@@ -12,6 +12,8 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
+var errInvalidInput = errors.New("invalid input")
+
 // VM is a virtual machine struct
 type VM struct {
 	Name          string
@@ -111,13 +113,15 @@ func NewVMFromWorkloads(wl *gridtypes.Workload, dl *gridtypes.Deployment) (VM, e
 	}
 
 	pubIP := pubIP(dl, data.Network.PublicIP)
-	var pubIP4, pubIP6 = "", ""
+	var pubIP4, pubIP6 string
+
 	if !pubIP.IP.Nil() {
 		pubIP4 = pubIP.IP.String()
 	}
 	if !pubIP.IPv6.Nil() {
 		pubIP6 = pubIP.IPv6.String()
 	}
+
 	return VM{
 		Name:          wl.Name.String(),
 		Description:   wl.Description,
@@ -219,8 +223,8 @@ func (vm *VM) GenerateVMWorkload() []gridtypes.Workload {
 	return workloads
 }
 
-// Dictify converts vm data to a map (dict)
-func (vm *VM) Dictify() map[string]interface{} {
+// ToMap converts vm data to a map (dict)
+func (vm *VM) ToMap() map[string]interface{} {
 	envVars := make(map[string]interface{})
 	for key, value := range vm.EnvVars {
 		envVars[key] = value
@@ -263,7 +267,7 @@ func (vm *VM) Dictify() map[string]interface{} {
 // Validate validates a virtual machine data
 func (vm *VM) Validate() error {
 	if vm.CPU < 1 || vm.CPU > 32 {
-		return errors.Wrap(errors.New("Invalid CPU input"), "CPUs must be more than or equal to 1 and less than or equal to 32")
+		return errors.Wrap(errInvalidInput, "CPUs must be more than or equal to 1 and less than or equal to 32")
 	}
 
 	if vm.FlistChecksum != "" {
@@ -363,7 +367,7 @@ func (vm *VM) GenerateWorkloads() ([]gridtypes.Workload, error) {
 }
 
 // Stage for staging workloads
-func (vm *VM) GenerateNodeWorkloadsMap(nodeID uint32) (map[uint32][]gridtypes.Workload, error) {
+func (vm *VM) BindWorkloadsToNode(nodeID uint32) (map[uint32][]gridtypes.Workload, error) {
 	workloadsMap := map[uint32][]gridtypes.Workload{}
 
 	workloads, err := vm.GenerateWorkloads()

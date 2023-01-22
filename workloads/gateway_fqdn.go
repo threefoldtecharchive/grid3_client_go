@@ -75,7 +75,7 @@ func (g *GatewayFQDNProxy) GenerateWorkloads() ([]gridtypes.Workload, error) {
 }
 
 // Stage for staging workloads
-func (g *GatewayFQDNProxy) GenerateNodeWorkloadsMap(nodeID uint32) (map[uint32][]gridtypes.Workload, error) {
+func (g *GatewayFQDNProxy) BindWorkloadsToNode(nodeID uint32) (map[uint32][]gridtypes.Workload, error) {
 	workloadsMap := map[uint32][]gridtypes.Workload{}
 
 	workloads, err := g.GenerateWorkloads()

@@ -37,7 +37,7 @@ func TestZdbBackendsAndGroups(t *testing.T) {
 		assert.Equal(t, len(zdbGroup.Backends), 1)
 		assert.Equal(t, zdbGroup.Backends[0], zos.ZdbBackend(backend))
 
-		assert.Equal(t, groupMap, group.Dictify())
+		assert.Equal(t, groupMap, group.ToMap())
 	})
 
 	t.Run("test_zos_groups", func(t *testing.T) {
@@ -56,7 +56,7 @@ func TestZdbBackendsAndGroups(t *testing.T) {
 		zosBackend := backend.zosBackend()
 		assert.Equal(t, zosBackend, zos.ZdbBackend(backend))
 
-		assert.Equal(t, backendMap, backend.Dictify())
+		assert.Equal(t, backendMap, backend.ToMap())
 	})
 
 	t.Run("test_zos_backends", func(t *testing.T) {
@@ -101,7 +101,7 @@ func TestMetaData(t *testing.T) {
 		"backends":             []interface{}{backendMap},
 	}
 
-	assert.Equal(t, metadataMap, metadata.Dictify())
+	assert.Equal(t, metadataMap, metadata.ToMap())
 }
 
 func TestQSFSWorkload(t *testing.T) {
@@ -178,7 +178,7 @@ func TestQSFSWorkload(t *testing.T) {
 	}
 
 	t.Run("test_schema_from_qsfs", func(t *testing.T) {
-		qsfsMap = qsfs.Dictify()
+		qsfsMap = qsfs.ToMap()
 	})
 
 	t.Run("test_new_qsfs_from_schema", func(t *testing.T) {
@@ -214,7 +214,7 @@ func TestQSFSWorkload(t *testing.T) {
 		workloadsMap := map[uint32][]gridtypes.Workload{}
 		workloadsMap[nodeID] = append(workloadsMap[nodeID], qsfsWorkload)
 
-		workloadsMap2, err := qsfs.GenerateNodeWorkloadsMap(nodeID)
+		workloadsMap2, err := qsfs.BindWorkloadsToNode(nodeID)
 		assert.NoError(t, err)
 		assert.Equal(t, workloadsMap, workloadsMap2)
 	})

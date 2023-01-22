@@ -53,7 +53,7 @@ func TestGatewayFQDNProxyWorkload(t *testing.T) {
 		workloadsMap := map[uint32][]gridtypes.Workload{}
 		workloadsMap[nodeID] = append(workloadsMap[nodeID], gatewayWorkload)
 
-		workloadsMap2, err := gateway.GenerateNodeWorkloadsMap(nodeID)
+		workloadsMap2, err := gateway.BindWorkloadsToNode(nodeID)
 		assert.NoError(t, err)
 		assert.Equal(t, workloadsMap, workloadsMap2)
 	})
