@@ -152,6 +152,12 @@ func TestVMWorkload(t *testing.T) {
 		assert.NoError(t, vm.Validate())
 	})
 
+	t.Run("test_vm_failed_validate", func(t *testing.T) {
+		vm.CPU = 0
+		assert.ErrorIs(t, vm.Validate(), ErrInvalidInput)
+		vm.CPU = 2
+	})
+
 	t.Run("test_workload_from_vm", func(t *testing.T) {
 		var err error
 

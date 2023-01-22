@@ -27,7 +27,7 @@ type DeploymentManager interface {
 	GetWorkload(nodeID uint32, name string) (gridtypes.Workload, error)
 	GetDeployment(nodeID uint32) (gridtypes.Deployment, error)
 	GetContractIDs() map[uint32]uint64
-	Stage(workloadGenerator workloads.WorkloadGenerator, nodeID uint32) error
+	Stage(workloadsToNodeBinder workloads.WorkloadsToNodeBinder, nodeID uint32) error
 }
 
 type deploymentManager struct {
@@ -479,8 +479,8 @@ func (d *deploymentManager) updateDeploymentIDs(committedDeploymentsIDs map[uint
 }
 
 // Stage stages workloads with their node IDs
-func (d *deploymentManager) Stage(workloadGenerator workloads.WorkloadGenerator, nodeID uint32) error {
-	workloadsNodeMap, err := workloadGenerator.BindWorkloadsToNode(nodeID)
+func (d *deploymentManager) Stage(workloadsToNodeBinder workloads.WorkloadsToNodeBinder, nodeID uint32) error {
+	workloadsNodeMap, err := workloadsToNodeBinder.BindWorkloadsToNode(nodeID)
 	if err != nil {
 		return err
 	}

@@ -12,7 +12,8 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
-var errInvalidInput = errors.New("invalid input")
+// ErrInvalidInput for invalid inputs
+var ErrInvalidInput = errors.New("invalid input")
 
 // VM is a virtual machine struct
 type VM struct {
@@ -267,7 +268,7 @@ func (vm *VM) ToMap() map[string]interface{} {
 // Validate validates a virtual machine data
 func (vm *VM) Validate() error {
 	if vm.CPU < 1 || vm.CPU > 32 {
-		return errors.Wrap(errInvalidInput, "CPUs must be more than or equal to 1 and less than or equal to 32")
+		return errors.Wrap(ErrInvalidInput, "CPUs must be more than or equal to 1 and less than or equal to 32")
 	}
 
 	if vm.FlistChecksum != "" {
