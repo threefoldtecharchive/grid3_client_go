@@ -217,7 +217,7 @@ func NewQSFSFromWorkload(wl gridtypes.Workload) (QSFS, error) {
 	log.Printf("wl.Result.unm: %s %s\n", res.MetricsEndpoint, res.Path)
 	data, ok := dataI.(*zos.QuantumSafeFS)
 	if !ok {
-		return QSFS{}, errors.New("couldn't cast workload data")
+		return QSFS{}, errors.New("could not create qsfs workload")
 	}
 
 	return QSFS{

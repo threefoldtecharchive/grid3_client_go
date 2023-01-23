@@ -31,7 +31,7 @@ func NewGatewayFQDNProxyFromZosWorkload(wl gridtypes.Workload) (GatewayFQDNProxy
 
 	data, ok := dataI.(*zos.GatewayFQDNProxy)
 	if !ok {
-		return GatewayFQDNProxy{}, errors.New("couldn't cast workload data")
+		return GatewayFQDNProxy{}, errors.New("could not create gateway fqdn proxy workload")
 	}
 
 	return GatewayFQDNProxy{

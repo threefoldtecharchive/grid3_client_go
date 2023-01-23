@@ -48,7 +48,7 @@ func NewZDBFromWorkload(wl gridtypes.Workload) (ZDB, error) {
 
 	data, ok := dataI.(*zos.ZDB)
 	if !ok {
-		return ZDB{}, errors.New("couldn't cast workload data")
+		return ZDB{}, errors.New("could not create zdb workload")
 	}
 
 	var result zos.ZDBResult

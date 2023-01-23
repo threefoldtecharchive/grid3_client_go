@@ -102,7 +102,7 @@ func NewVMFromWorkloads(wl gridtypes.Workload, dl gridtypes.Deployment) (VM, err
 
 	data, ok := dataI.(*zos.ZMachine)
 	if !ok {
-		return VM{}, errors.New("couldn't cast workload data")
+		return VM{}, errors.New("could not create vm workload")
 	}
 
 	var result zos.ZMachineResult

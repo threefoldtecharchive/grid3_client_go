@@ -100,7 +100,7 @@ func NewNetworkDeployer(manager DeploymentManager, network workloads.ZNet) (Netw
 				}
 				data, ok := dataI.(*zos.Network)
 				if !ok {
-					return NetworkDeployer{}, errors.New("couldn't cast workload data")
+					return NetworkDeployer{}, errors.New("could not create network workload")
 				}
 				privateKey, err := wgtypes.ParseKey(data.WGPrivateKey)
 				if err != nil {
@@ -141,7 +141,7 @@ func NewNetworkDeployer(manager DeploymentManager, network workloads.ZNet) (Netw
 			}
 			data, ok := dataI.(*zos.Network)
 			if !ok {
-				return NetworkDeployer{}, errors.New("couldn't cast workload data")
+				return NetworkDeployer{}, errors.New("could not create network workload")
 			}
 			privateKey, err := wgtypes.ParseKey(data.WGPrivateKey)
 			if err != nil {

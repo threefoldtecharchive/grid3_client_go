@@ -32,7 +32,7 @@ func NewDiskFromWorkload(wl gridtypes.Workload) (Disk, error) {
 
 	data, ok := dataI.(*zos.ZMount)
 	if !ok {
-		return Disk{}, errors.New("couldn't cast workload data")
+		return Disk{}, errors.New("could not create disk workload")
 	}
 
 	return Disk{

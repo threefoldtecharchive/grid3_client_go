@@ -44,7 +44,7 @@ func NewNetworkFromWorkload(wl gridtypes.Workload, nodeID uint32, contractID uin
 	}
 	data, ok := dataI.(*zos.Network)
 	if !ok {
-		return ZNet{}, errors.New("couldn't cast workload data")
+		return ZNet{}, errors.New("could not create network workload")
 	}
 
 	return ZNet{
