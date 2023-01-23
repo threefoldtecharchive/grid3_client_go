@@ -9,7 +9,7 @@ require (
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/joho/godotenv v1.4.0
 	github.com/pkg/errors v0.9.1
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.8.1
 	github.com/threefoldtech/go-rmb v0.2.0
 	github.com/threefoldtech/grid_proxy_server v1.5.6
 	github.com/threefoldtech/substrate-client v0.0.0-20230103083438-c6d86a2e6338
@@ -51,7 +51,7 @@ require (
 	golang.org/x/sys v0.4.0 // indirect
 	golang.org/x/term v0.4.0 // indirect
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 replace github.com/centrifuge/go-substrate-rpc-client/v4 v4.0.5 => github.com/threefoldtech/go-substrate-rpc-client/v4 v4.0.3-0.20220629145942-1ef6a654b4b5
