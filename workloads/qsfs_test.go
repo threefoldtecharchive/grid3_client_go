@@ -187,7 +187,7 @@ func TestQSFSWorkload(t *testing.T) {
 	})
 
 	t.Run("test_new_qsfs_from_workload", func(t *testing.T) {
-		qsfsFromWorkload, err := NewQSFSFromWorkload(&qsfsWorkload)
+		qsfsFromWorkload, err := NewQSFSFromWorkload(qsfsWorkload)
 		assert.NoError(t, err)
 		assert.Equal(t, qsfsFromWorkload, qsfs)
 	})

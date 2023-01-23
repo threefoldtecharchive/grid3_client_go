@@ -3,6 +3,7 @@ package integration
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"github.com/goombaio/namegenerator"
+	"github.com/joho/godotenv"
 	"github.com/threefoldtech/grid3-go/deployer"
 	client "github.com/threefoldtech/grid3-go/node"
 	"github.com/threefoldtech/grid3-go/subi"
@@ -38,6 +40,13 @@ var (
 )
 
 func setup() (deployer.DeploymentManager, deployer.APIClient) {
+	if _, err := os.Stat("../.env"); !errors.Is(err, os.ErrNotExist) {
+		err := godotenv.Load("../.env")
+		if err != nil {
+			panic(err)
+		}
+	}
+
 	mnemonics := os.Getenv("MNEMONICS")
 	SSHKeys()
 	identity, err := substrate.NewIdentityFromSr25519Phrase(mnemonics)

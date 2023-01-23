@@ -199,13 +199,13 @@ func NewQSFSFromSchema(qsfs map[string]interface{}) QSFS {
 }
 
 // NewQSFSFromWorkload generates a new QSFS from a workload
-func NewQSFSFromWorkload(wl *gridtypes.Workload) (QSFS, error) {
-
+func NewQSFSFromWorkload(wl gridtypes.Workload) (QSFS, error) {
 	var data *zos.QuantumSafeFS
-	wd, err := wl.WorkloadData()
+	dataI, err := wl.WorkloadData()
 	if err != nil {
 		return QSFS{}, err
 	}
+
 	var res zos.QuatumSafeFSResult
 
 	if !reflect.DeepEqual(wl.Result, gridtypes.Result{}) {
@@ -215,7 +215,11 @@ func NewQSFSFromWorkload(wl *gridtypes.Workload) (QSFS, error) {
 	}
 
 	log.Printf("wl.Result.unm: %s %s\n", res.MetricsEndpoint, res.Path)
-	data = wd.(*zos.QuantumSafeFS)
+	data, ok := dataI.(*zos.QuantumSafeFS)
+	if !ok {
+		return QSFS{}, errors.New("could not create qsfs workload")
+	}
+
 	return QSFS{
 		Name:                 string(wl.Name),
 		Description:          string(wl.Description),

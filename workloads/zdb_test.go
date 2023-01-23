@@ -2,6 +2,7 @@
 package workloads
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -40,6 +41,13 @@ func TestZDB(t *testing.T) {
 		"namespace":   "",
 	}
 
+	res, err := json.Marshal(zos.ZDBResult{
+		Namespace: "",
+		IPs:       ips,
+		Port:      0,
+	})
+	assert.NoError(t, err)
+
 	zdbWorkload := gridtypes.Workload{
 		Name:        gridtypes.Name("test"),
 		Type:        zos.ZDBType,
@@ -51,6 +59,11 @@ func TestZDB(t *testing.T) {
 			Password: "password",
 			Public:   true,
 		}),
+		Result: gridtypes.Result{
+			Created: 1000,
+			State:   gridtypes.StateOk,
+			Data:    res,
+		},
 	}
 
 	t.Run("test_zdb_from_map", func(t *testing.T) {
@@ -60,7 +73,7 @@ func TestZDB(t *testing.T) {
 	})
 
 	t.Run("test_zdb_from_workload", func(t *testing.T) {
-		zdbFromWorkload, err := NewZDBFromWorkload(&zdbWorkload)
+		zdbFromWorkload, err := NewZDBFromWorkload(zdbWorkload)
 		assert.NoError(t, err)
 		assert.Equal(t, zdb, zdbFromWorkload)
 	})
@@ -71,15 +84,21 @@ func TestZDB(t *testing.T) {
 	})
 
 	t.Run("test_workload_from_zdb", func(t *testing.T) {
+		zdbWorkloadCp := zdbWorkload
+		zdbWorkloadCp.Result = gridtypes.Result{}
+
 		workloadFromZDB, err := zdb.GenerateWorkloads()
 		assert.NoError(t, err)
-		assert.Equal(t, workloadFromZDB[0], zdbWorkload)
+		assert.Equal(t, workloadFromZDB[0], zdbWorkloadCp)
 	})
 
 	t.Run("test_workloads_map", func(t *testing.T) {
+		zdbWorkloadCp := zdbWorkload
+		zdbWorkloadCp.Result = gridtypes.Result{}
+
 		nodeID := uint32(1)
 		workloadsMap := map[uint32][]gridtypes.Workload{}
-		workloadsMap[nodeID] = append(workloadsMap[nodeID], zdbWorkload)
+		workloadsMap[nodeID] = append(workloadsMap[nodeID], zdbWorkloadCp)
 
 		workloadsMap2, err := zdb.BindWorkloadsToNode(nodeID)
 		assert.NoError(t, err)

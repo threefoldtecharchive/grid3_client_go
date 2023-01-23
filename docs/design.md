@@ -111,11 +111,6 @@ type DeploymentManager interface{
 }
 ```
 
-- ### **Loader:**
-
-  - Retrieves workload current state from the grid, this is needed to load the old deployments objects by their ids passed in the `Deploy` method this is done internally and can be called by the user to load specific deployments
-  - Convert from grid types to grid3_go types. i.e convert the deployments loaded from the grid to the deployment object used in the code, this to avoid manual conversion in every method
-
 - ### **NodeClient:**
 
   - Uses gridproxy to get information about nodes, farms, and/or twins.
@@ -143,8 +138,8 @@ manager = Manager.New(identity, net, Mnemonics ....)
 currentDeployments = manager.Deploy({}, {nodeID: deploymentObject})
 // incase we want to update those created deployments afterwards
 currentDeployments = manager.deploy({nodeID: deploymentId}, {nodeID:deploymentObj})
-//using the loader
-DeploymentObj = loader.loadDeployment(deploymentId)
+//using the deployer loader
+DeploymentObj = deployer.loadDeployment(deploymentId)
 // this loader should load the deployment as json then convert it to deployment go object with workloads inside it
 
 ```

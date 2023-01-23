@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/threefoldtech/grid3-go/loader"
+	"github.com/threefoldtech/grid3-go/deployer"
 	"github.com/threefoldtech/grid3-go/workloads"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
@@ -67,13 +67,13 @@ func TestQSFSDeployment(t *testing.T) {
 	resDataZDBs := []workloads.ZDB{}
 	resMetaZDBs := []workloads.ZDB{}
 	for i := 1; i <= DataZDBNum; i++ {
-		res, err := loader.LoadZdbFromGrid(manager, 14, "qsfsDataZdb"+strconv.Itoa(i))
+		res, err := deployer.LoadZdbFromGrid(manager, 14, "qsfsDataZdb"+strconv.Itoa(i))
 		assert.NotEmpty(t, res)
 		assert.NoError(t, err)
 		resDataZDBs = append(resDataZDBs, res)
 	}
 	for i := 1; i <= MetaZDBNum; i++ {
-		res, err := loader.LoadZdbFromGrid(manager, 14, "qsfsMetaZdb"+strconv.Itoa(i))
+		res, err := deployer.LoadZdbFromGrid(manager, 14, "qsfsMetaZdb"+strconv.Itoa(i))
 		assert.NotEmpty(t, res)
 		assert.NoError(t, err)
 		resMetaZDBs = append(resMetaZDBs, res)
@@ -120,7 +120,7 @@ func TestQSFSDeployment(t *testing.T) {
 	err = manager.Commit(ctx)
 	assert.NoError(t, err)
 
-	resQSFS, err := loader.LoadQsfsFromGrid(manager, 14, "qsftTest")
+	resQSFS, err := deployer.LoadQsfsFromGrid(manager, 14, "qsftTest")
 	assert.NoError(t, err)
 	assert.NotEmpty(t, resQSFS.MetricsEndpoint)
 	resQSFS.MetricsEndpoint = ""

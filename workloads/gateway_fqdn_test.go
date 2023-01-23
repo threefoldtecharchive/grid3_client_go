@@ -34,7 +34,7 @@ func TestGatewayFQDNProxyWorkload(t *testing.T) {
 	t.Run("test_gateway_from_zos_workload", func(t *testing.T) {
 		var err error
 
-		gateway, err = GatewayFQDNProxyFromZosWorkload(gatewayWorkload)
+		gateway, err = NewGatewayFQDNProxyFromZosWorkload(gatewayWorkload)
 		assert.NoError(t, err)
 	})
 

@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/threefoldtech/grid3-go/loader"
 
+	"github.com/threefoldtech/grid3-go/deployer"
 	"github.com/threefoldtech/grid3-go/workloads"
 
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
@@ -34,13 +34,13 @@ func TestGatewayNameDeployment(t *testing.T) {
 	assert.NoError(t, err)
 	err = manager.CancelAll()
 	assert.NoError(t, err)
-	result, err := loader.LoadGatewayNameFromGrid(manager, 49, "testx")
+	result, err := deployer.LoadGatewayNameFromGrid(manager, 49, "testx")
 	assert.NoError(t, err)
 	assert.Equal(t, expected, result)
 	err = manager.CancelAll()
 	assert.NoError(t, err)
 	expected = workloads.GatewayNameProxy{}
-	wl, err := loader.LoadGatewayNameFromGrid(manager, 49, "testx")
+	wl, err := deployer.LoadGatewayNameFromGrid(manager, 49, "testx")
 	assert.Error(t, err)
 	assert.Equal(t, reflect.DeepEqual(expected, wl), true)
 }

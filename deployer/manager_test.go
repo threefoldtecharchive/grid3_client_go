@@ -3,12 +3,10 @@ package deployer
 
 import (
 	"context"
-	"encoding/json"
 
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/threefoldtech/grid3-go/mocks"
@@ -262,74 +260,4 @@ func TestGetDeployment(t *testing.T) {
 		})
 	_, err := manager.GetDeployment(uint32(10))
 	assert.NoError(t, err)
-}
-
-func LoadZdbFromGrid(manager DeploymentManager, nodeID uint32, name string) (ZDB, error) {
-	wl, err := manager.GetWorkload(nodeID, name)
-	if err != nil {
-		return ZDB{}, errors.Wrapf(err, "couldn't get workload from node %d", nodeID)
-	}
-	dataI, err := wl.WorkloadData()
-	if err != nil {
-		return ZDB{}, errors.Wrap(err, "failed to get workload data")
-	}
-	data, ok := dataI.(*zos.ZDB)
-	if !ok {
-		return ZDB{}, errors.New("couldn't cast workload data")
-	}
-	var result zos.ZDBResult
-	if err := json.Unmarshal(wl.Result.Data, &result); err != nil {
-		return ZDB{}, errors.Wrapf(err, "failed to get zdb result")
-	}
-	return ZDB{
-		Name:        wl.Name.String(),
-		Description: wl.Description,
-		Password:    data.Password,
-		Public:      data.Public,
-		Size:        int(data.Size / gridtypes.Gigabyte),
-		Mode:        data.Mode.String(),
-		IPs:         result.IPs,
-		Port:        uint32(result.Port),
-		Namespace:   result.Namespace,
-	}, nil
-}
-
-func (z *ZDB) GenerateWorkloadFromZDB(zdb ZDB) (gridtypes.Workload, error) {
-	return gridtypes.Workload{
-		Name:        gridtypes.Name(zdb.Name),
-		Type:        zos.ZDBType,
-		Description: zdb.Description,
-		Version:     0,
-		Data: gridtypes.MustMarshal(zos.ZDB{
-			Size:     gridtypes.Unit(zdb.Size) * gridtypes.Gigabyte,
-			Mode:     zos.ZDBMode(zdb.Mode),
-			Password: zdb.Password,
-			Public:   zdb.Public,
-		}),
-	}, nil
-}
-
-func (z *ZDB) Stage(manager DeploymentManager, nodeID uint32) error {
-	workloadsMap := map[uint32][]gridtypes.Workload{}
-	workloads := make([]gridtypes.Workload, 0)
-	workload, err := z.GenerateWorkloadFromZDB(*z)
-	if err != nil {
-		panic(err)
-	}
-	workloads = append(workloads, workload)
-	workloadsMap[nodeID] = workloads
-	err = manager.SetWorkloads(workloadsMap)
-	return err
-}
-
-type ZDB struct {
-	Name        string
-	Password    string
-	Public      bool
-	Size        int
-	Description string
-	Mode        string
-	IPs         []string
-	Port        uint32
-	Namespace   string
 }

@@ -94,7 +94,7 @@ func NewVMFromSchema(vm map[string]interface{}) *VM {
 }
 
 // NewVMFromWorkloads generates a new vm from given workloads and deployment
-func NewVMFromWorkloads(wl *gridtypes.Workload, dl *gridtypes.Deployment) (VM, error) {
+func NewVMFromWorkloads(wl gridtypes.Workload, dl gridtypes.Deployment) (VM, error) {
 	dataI, err := wl.WorkloadData()
 	if err != nil {
 		return VM{}, errors.Wrap(err, "failed to get workload data")
@@ -102,15 +102,13 @@ func NewVMFromWorkloads(wl *gridtypes.Workload, dl *gridtypes.Deployment) (VM, e
 
 	data, ok := dataI.(*zos.ZMachine)
 	if !ok {
-		return VM{}, errors.New("couldn't cast workload data")
+		return VM{}, errors.New("could not create vm workload")
 	}
 
 	var result zos.ZMachineResult
 
-	if len(wl.Result.Data) > 0 {
-		if err := json.Unmarshal(wl.Result.Data, &result); err != nil {
-			return VM{}, errors.Wrap(err, "failed to get vm result")
-		}
+	if err := json.Unmarshal(wl.Result.Data, &result); err != nil {
+		return VM{}, errors.Wrap(err, "failed to get vm result")
 	}
 
 	pubIP := pubIP(dl, data.Network.PublicIP)
@@ -158,7 +156,7 @@ func mounts(mounts []zos.MachineMount) []Mount {
 	return res
 }
 
-func pubIP(dl *gridtypes.Deployment, name gridtypes.Name) zos.PublicIPResult {
+func pubIP(dl gridtypes.Deployment, name gridtypes.Name) zos.PublicIPResult {
 
 	pubIPWl, err := dl.Get(name)
 	if err != nil || !pubIPWl.Workload.Result.State.IsOkay() {
@@ -167,7 +165,11 @@ func pubIP(dl *gridtypes.Deployment, name gridtypes.Name) zos.PublicIPResult {
 	}
 	var pubIPResult zos.PublicIPResult
 
-	_ = json.Unmarshal(pubIPWl.Result.Data, &pubIPResult)
+	err = json.Unmarshal(pubIPWl.Result.Data, &pubIPResult)
+	if err != nil {
+		fmt.Println("error: ", err)
+	}
+
 	return pubIPResult
 }
 

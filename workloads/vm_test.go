@@ -2,6 +2,7 @@
 package workloads
 
 import (
+	"encoding/json"
 	"net"
 	"testing"
 
@@ -53,6 +54,13 @@ func TestVMWorkload(t *testing.T) {
 		}),
 	}
 
+	vmRes, err := json.Marshal(zos.ZMachineResult{
+		ID:    "",
+		IP:    "",
+		YggIP: "",
+	})
+	assert.NoError(t, err)
+
 	vmWorkload := gridtypes.Workload{
 		Version: 0,
 		Name:    gridtypes.Name("test"),
@@ -82,6 +90,11 @@ func TestVMWorkload(t *testing.T) {
 			Env: map[string]string{"var1": "val1"},
 		}),
 		Description: "test des",
+		Result: gridtypes.Result{
+			Created: 5000,
+			State:   gridtypes.StateOk,
+			Data:    vmRes,
+		},
 	}
 
 	pubIPWorkload.Result.State = "ok"
@@ -110,7 +123,7 @@ func TestVMWorkload(t *testing.T) {
 	})
 
 	t.Run("test_vm_from_workload", func(t *testing.T) {
-		vmFromWorkload, err := NewVMFromWorkloads(&vmWorkload, &deployment)
+		vmFromWorkload, err := NewVMFromWorkloads(vmWorkload, deployment)
 		assert.NoError(t, err)
 
 		// no result yet so they are set manually
@@ -125,7 +138,7 @@ func TestVMWorkload(t *testing.T) {
 	})
 
 	t.Run("test_pubIP_from_deployment", func(t *testing.T) {
-		pubIP := pubIP(&deployment, "testip")
+		pubIP := pubIP(deployment, "testip")
 		assert.Equal(t, pubIP.HasIPv6(), false)
 	})
 
@@ -144,8 +157,11 @@ func TestVMWorkload(t *testing.T) {
 		// put state in zero values
 		pubIPWorkload.Result.State = ""
 
+		vmWorkloadCp := vmWorkload
+		vmWorkloadCp.Result = gridtypes.Result{}
+
 		assert.Equal(t, pubIPWorkload, vm.GenerateVMWorkload()[0])
-		assert.Equal(t, vmWorkload, vm.GenerateVMWorkload()[2])
+		assert.Equal(t, vmWorkloadCp, vm.GenerateVMWorkload()[2])
 	})
 
 	t.Run("test_vm_validate", func(t *testing.T) {
@@ -164,7 +180,10 @@ func TestVMWorkload(t *testing.T) {
 		workloadsFromVM, err = vm.GenerateWorkloads()
 		assert.NoError(t, err)
 
-		assert.Equal(t, workloadsFromVM[2], vmWorkload)
+		vmWorkloadCp := vmWorkload
+		vmWorkloadCp.Result = gridtypes.Result{}
+
+		assert.Equal(t, workloadsFromVM[2], vmWorkloadCp)
 		assert.Equal(t, workloadsFromVM[0], pubIPWorkload)
 	})
 

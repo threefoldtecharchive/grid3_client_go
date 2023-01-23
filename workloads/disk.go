@@ -24,7 +24,7 @@ func NewDiskFromSchema(disk map[string]interface{}) Disk {
 }
 
 // NewDiskFromWorkload generates a new disk from a workload
-func NewDiskFromWorkload(wl *gridtypes.Workload) (Disk, error) {
+func NewDiskFromWorkload(wl gridtypes.Workload) (Disk, error) {
 	dataI, err := wl.WorkloadData()
 	if err != nil {
 		return Disk{}, errors.Wrap(err, "failed to get workload data")
@@ -32,7 +32,7 @@ func NewDiskFromWorkload(wl *gridtypes.Workload) (Disk, error) {
 
 	data, ok := dataI.(*zos.ZMount)
 	if !ok {
-		return Disk{}, errors.New("couldn't cast workload data")
+		return Disk{}, errors.New("could not create disk workload")
 	}
 
 	return Disk{

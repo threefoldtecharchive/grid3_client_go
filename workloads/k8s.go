@@ -60,17 +60,17 @@ func NewK8sNodeDataFromSchema(m map[string]interface{}) K8sNodeData {
 }
 
 // NewK8sNodeDataFromWorkload generates a new k8s data from a workload
-func NewK8sNodeDataFromWorkload(w gridtypes.Workload, nodeID uint32, diskSize int, computedIP string, computedIP6 string) (K8sNodeData, error) {
+func NewK8sNodeDataFromWorkload(wl gridtypes.Workload, nodeID uint32, diskSize int, computedIP string, computedIP6 string) (K8sNodeData, error) {
 	var k K8sNodeData
-	data, err := w.WorkloadData()
+	data, err := wl.WorkloadData()
 	if err != nil {
 		return k, err
 	}
 	d := data.(*zos.ZMachine)
 	var result zos.ZMachineResult
 
-	if !reflect.DeepEqual(w.Result, gridtypes.Result{}) {
-		err = w.Result.Unmarshal(&result)
+	if !reflect.DeepEqual(wl.Result, gridtypes.Result{}) {
+		err = wl.Result.Unmarshal(&result)
 		if err != nil {
 			return k, err
 		}
@@ -82,7 +82,7 @@ func NewK8sNodeDataFromWorkload(w gridtypes.Workload, nodeID uint32, diskSize in
 	}
 
 	k = K8sNodeData{
-		Name:          string(w.Name),
+		Name:          string(wl.Name),
 		Node:          nodeID,
 		DiskSize:      diskSize,
 		PublicIP:      computedIP != "",

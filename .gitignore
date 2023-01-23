@@ -15,8 +15,5 @@
 # vendor/
 cmds/
 
-# env
-.env
-
 # coverage
 coverage/

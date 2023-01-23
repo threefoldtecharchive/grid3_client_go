@@ -176,7 +176,7 @@ func getNodeSubnets(d gridtypes.Deployment) (map[string]string, error) {
 		}
 		data, ok := dataI.(*zos.Network)
 		if !ok {
-			return map[string]string{}, errors.New("couldn't cast workload data")
+			return map[string]string{}, errors.New("could not create network workload")
 		}
 		subnets[wl.Name.String()] = data.Subnet.String()
 	}
@@ -195,7 +195,7 @@ func getUsedIPs(d gridtypes.Deployment) (map[string]map[string]bool, error) {
 		}
 		data, ok := dataI.(*zos.ZMachine)
 		if !ok {
-			return map[string]map[string]bool{}, errors.New("couldn't cast workload data")
+			return map[string]map[string]bool{}, errors.New("could not create vm workload")
 		}
 		ip := data.Network.Interfaces[0].IP.String()
 		if ip == "" {
@@ -234,7 +234,7 @@ func (d *deploymentManager) assignVMIPs() error {
 			}
 			data, ok := dataI.(*zos.ZMachine)
 			if !ok {
-				return errors.New("couldn't cast workload data")
+				return errors.New("could not create vm workload")
 			}
 			ip := data.Network.Interfaces[0].IP
 
@@ -288,7 +288,7 @@ func (d *deploymentManager) assignVMIPs() error {
 			}
 			data, ok := dataI.(*zos.ZMachine)
 			if !ok {
-				return errors.New("couldn't cast workload data")
+				return errors.New("could not create vm workload")
 			}
 			if s, ok := data.Env["K3S_URL"]; ok {
 				if s != "" {
@@ -318,6 +318,7 @@ func (d *deploymentManager) Commit(ctx context.Context) error {
 
 	createdNameContracts := map[string]uint64{}
 	err = createNameContracts(createdNameContracts, *d, s)
+
 	if err != nil {
 		// revert changes
 		revErr := cancelNameContracts(createdNameContracts, *d, s)

@@ -24,14 +24,12 @@ type GatewayNameProxy struct {
 	FQDN string
 }
 
-// GatewayNameProxyFromZosWorkload generates a gateway name proxy from a zos workload
-func GatewayNameProxyFromZosWorkload(wl gridtypes.Workload) (GatewayNameProxy, error) {
+// NewGatewayNameProxyFromZosWorkload generates a gateway name proxy from a zos workload
+func NewGatewayNameProxyFromZosWorkload(wl gridtypes.Workload) (GatewayNameProxy, error) {
 	var result zos.GatewayProxyResult
 
-	if len(wl.Result.Data) > 0 {
-		if err := json.Unmarshal(wl.Result.Data, &result); err != nil {
-			return GatewayNameProxy{}, errors.Wrap(err, "error unmarshalling json")
-		}
+	if err := json.Unmarshal(wl.Result.Data, &result); err != nil {
+		return GatewayNameProxy{}, errors.Wrap(err, "error unmarshalling json")
 	}
 
 	dataI, err := wl.WorkloadData()
@@ -41,7 +39,7 @@ func GatewayNameProxyFromZosWorkload(wl gridtypes.Workload) (GatewayNameProxy, e
 
 	data, ok := dataI.(*zos.GatewayNameProxy)
 	if !ok {
-		return GatewayNameProxy{}, errors.New("couldn't cast workload data")
+		return GatewayNameProxy{}, errors.New("could not create gateway name proxy workload")
 	}
 
 	return GatewayNameProxy{

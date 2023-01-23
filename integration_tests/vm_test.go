@@ -12,7 +12,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/threefoldtech/grid3-go/deployer"
-	"github.com/threefoldtech/grid3-go/loader"
 	"github.com/threefoldtech/grid3-go/workloads"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 )
@@ -67,7 +66,7 @@ func TestVMDeployment(t *testing.T) {
 		err = manager.Commit(ctx)
 		assert.NoError(t, err)
 
-		result, err := loader.LoadVmFromGrid(manager, 14, "vm")
+		result, err := deployer.LoadVMFromGrid(manager, 14, "vm")
 		assert.NoError(t, err)
 
 		assert.Equal(t, 20*1024, result.RootfsSize)
@@ -112,7 +111,7 @@ func TestVMDeployment(t *testing.T) {
 		err = manager.Commit(ctx)
 		assert.NoError(t, err)
 
-		result, err := loader.LoadVmFromGrid(manager, 45, "vm")
+		result, err := deployer.LoadVMFromGrid(manager, 45, "vm")
 		assert.NoError(t, err)
 
 		pIP := strings.Split(result.ComputedIP, "/")[0]
