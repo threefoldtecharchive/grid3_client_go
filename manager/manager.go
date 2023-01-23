@@ -1,5 +1,5 @@
-// Package deployer for grid deployer
-package deployer
+// Package manager for grid manager
+package manager
 
 import (
 	"context"
@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/threefoldtech/grid3-go/deployer"
 	client "github.com/threefoldtech/grid3-go/node"
 	"github.com/threefoldtech/grid3-go/subi"
 	"github.com/threefoldtech/grid3-go/workloads"
@@ -309,7 +310,7 @@ func (d *deploymentManager) assignVMIPs() error {
 
 func (d *deploymentManager) Commit(ctx context.Context) error {
 	// generate gridtypes.Deployment from plannedDeployments
-	deployer := NewDeployer(d.identity, d.twinID, d.gridClient, d.ncPool, true)
+	deployer := deployer.NewDeployer(d.identity, d.twinID, d.gridClient, d.ncPool, true, nil, "")
 	s, err := d.substrate.SubstrateExt()
 	if err != nil {
 		return errors.Wrap(err, "couldn't get substrate client")

@@ -11,7 +11,7 @@ import (
 	types "github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	gomock "github.com/golang/mock/gomock"
 	subi "github.com/threefoldtech/grid3-go/subi"
-	substrate "github.com/threefoldtech/substrate-client"
+	"github.com/threefoldtech/substrate-client"
 )
 
 // MockManagerInterface is a mock of ManagerInterface interface.
@@ -133,7 +133,7 @@ func (mr *MockSubstrateMockRecorder) Close() *gomock.Call {
 }
 
 // CreateNodeContract mocks base method.
-func (m *MockSubstrate) CreateNodeContract(identity subi.Identity, node uint32, body string, hash string, publicIPs uint32, solutionProviderID uint64) (uint64, error) {
+func (m *MockSubstrate) CreateNodeContract(identity subi.Identity, node uint32, body, hash string, publicIPs uint32, solutionProviderID *uint64) (uint64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateNodeContract", identity, node, body, hash, publicIPs, solutionProviderID)
 	ret0, _ := ret[0].(uint64)
@@ -142,7 +142,7 @@ func (m *MockSubstrate) CreateNodeContract(identity subi.Identity, node uint32, 
 }
 
 // CreateNodeContract indicates an expected call of CreateNodeContract.
-func (mr *MockSubstrateMockRecorder) CreateNodeContract(identity, node, body, hash, publicIPs interface{}, solutionProviderID interface{}) *gomock.Call {
+func (mr *MockSubstrateMockRecorder) CreateNodeContract(identity, node, body, hash, publicIPs, solutionProviderID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateNodeContract", reflect.TypeOf((*MockSubstrate)(nil).CreateNodeContract), identity, node, body, hash, publicIPs, solutionProviderID)
 }
@@ -163,7 +163,7 @@ func (mr *MockSubstrateMockRecorder) GetTwinByPubKey(pk interface{}) *gomock.Cal
 }
 
 // UpdateNodeContract mocks base method.
-func (m *MockSubstrate) UpdateNodeContract(identity subi.Identity, contract uint64, body []byte, hash string) (uint64, error) {
+func (m *MockSubstrate) UpdateNodeContract(identity subi.Identity, contract uint64, body, hash string) (uint64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateNodeContract", identity, contract, body, hash)
 	ret0, _ := ret[0].(uint64)
@@ -242,7 +242,7 @@ func (mr *MockSubstrateExtMockRecorder) CreateNameContract(identity, name interf
 }
 
 // CreateNodeContract mocks base method.
-func (m *MockSubstrateExt) CreateNodeContract(identity subi.Identity, node uint32, body string, hash string, publicIPs uint32, solutionProviderID *uint64) (uint64, error) {
+func (m *MockSubstrateExt) CreateNodeContract(identity subi.Identity, node uint32, body, hash string, publicIPs uint32, solutionProviderID *uint64) (uint64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateNodeContract", identity, node, body, hash, publicIPs, solutionProviderID)
 	ret0, _ := ret[0].(uint64)
@@ -251,7 +251,7 @@ func (m *MockSubstrateExt) CreateNodeContract(identity subi.Identity, node uint3
 }
 
 // CreateNodeContract indicates an expected call of CreateNodeContract.
-func (mr *MockSubstrateExtMockRecorder) CreateNodeContract(identity, node, body, hash, publicIPs interface{}, solutionProviderID interface{}) *gomock.Call {
+func (mr *MockSubstrateExtMockRecorder) CreateNodeContract(identity, node, body, hash, publicIPs, solutionProviderID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateNodeContract", reflect.TypeOf((*MockSubstrateExt)(nil).CreateNodeContract), identity, node, body, hash, publicIPs, solutionProviderID)
 }
@@ -344,21 +344,6 @@ func (mr *MockSubstrateExtMockRecorder) GetNodeTwin(id interface{}) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNodeTwin", reflect.TypeOf((*MockSubstrateExt)(nil).GetNodeTwin), id)
 }
 
-// GetTwinPK mocks base method.
-func (m *MockSubstrateExt) GetTwinPK(twinID uint32) ([]byte, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetTwinPK", twinID)
-	ret0, _ := ret[0].([]byte)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetTwinPK indicates an expected call of GetTwinPK.
-func (mr *MockSubstrateExtMockRecorder) GetTwinPK(twinID interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTwinPK", reflect.TypeOf((*MockSubstrateExt)(nil).GetTwinPK), twinID)
-}
-
 // GetTwinByPubKey mocks base method.
 func (m *MockSubstrateExt) GetTwinByPubKey(pk []byte) (uint32, error) {
 	m.ctrl.T.Helper()
@@ -387,6 +372,21 @@ func (m *MockSubstrateExt) GetTwinIP(twinID uint32) (string, error) {
 func (mr *MockSubstrateExtMockRecorder) GetTwinIP(twinID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTwinIP", reflect.TypeOf((*MockSubstrateExt)(nil).GetTwinIP), twinID)
+}
+
+// GetTwinPK mocks base method.
+func (m *MockSubstrateExt) GetTwinPK(twinID uint32) ([]byte, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTwinPK", twinID)
+	ret0, _ := ret[0].([]byte)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetTwinPK indicates an expected call of GetTwinPK.
+func (mr *MockSubstrateExtMockRecorder) GetTwinPK(twinID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTwinPK", reflect.TypeOf((*MockSubstrateExt)(nil).GetTwinPK), twinID)
 }
 
 // InvalidateNameContract mocks base method.
@@ -420,7 +420,7 @@ func (mr *MockSubstrateExtMockRecorder) IsValidContract(contractID interface{}) 
 }
 
 // UpdateNodeContract mocks base method.
-func (m *MockSubstrateExt) UpdateNodeContract(identity subi.Identity, contract uint64, body string, hash string) (uint64, error) {
+func (m *MockSubstrateExt) UpdateNodeContract(identity subi.Identity, contract uint64, body, hash string) (uint64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateNodeContract", identity, contract, body, hash)
 	ret0, _ := ret[0].(uint64)

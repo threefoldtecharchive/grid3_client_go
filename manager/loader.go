@@ -1,5 +1,5 @@
-// Package deployer for grid deployer
-package deployer
+// Package manager for grid manager
+package manager
 
 import (
 	"encoding/json"

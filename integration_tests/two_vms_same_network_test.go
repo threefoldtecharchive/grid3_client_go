@@ -10,13 +10,13 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/threefoldtech/grid3-go/deployer"
+	"github.com/threefoldtech/grid3-go/manager"
 	"github.com/threefoldtech/grid3-go/workloads"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 )
 
 func TestTwoVMsSameNetwork(t *testing.T) {
-	manager, apiClient := setup()
+	dlManager, apiClient := setup()
 	publicKey := os.Getenv("PUBLICKEY")
 	network := workloads.ZNet{
 		Name:        "testingNetwork456",
@@ -57,7 +57,7 @@ func TestTwoVMsSameNetwork(t *testing.T) {
 		NetworkName: "testingNetwork456",
 	}
 
-	networkManager, err := deployer.NewNetworkDeployer(apiClient.Manager, network)
+	networkManager, err := manager.NewNetworkDeployer(apiClient.Manager, network)
 	assert.NoError(t, err)
 
 	t.Run("public ipv6 and yggdrasil", func(t *testing.T) {
@@ -69,25 +69,25 @@ func TestTwoVMsSameNetwork(t *testing.T) {
 		_, err := networkManager.Stage(ctx, apiClient, network)
 		assert.NoError(t, err)
 
-		err = manager.Commit(ctx)
+		err = dlManager.Commit(ctx)
 		assert.NoError(t, err)
 
-		err = manager.CancelAll()
+		err = dlManager.CancelAll()
 		assert.NoError(t, err)
 
-		err = manager.Stage(&vm1Cp, 14)
+		err = dlManager.Stage(&vm1Cp, 14)
 		assert.NoError(t, err)
 
-		err = manager.Stage(&vm2Cp, 14)
+		err = dlManager.Stage(&vm2Cp, 14)
 		assert.NoError(t, err)
 
-		err = manager.Commit(ctx)
+		err = dlManager.Commit(ctx)
 		assert.NoError(t, err)
 
-		result1, err := deployer.LoadVMFromGrid(manager, 14, "vm1")
+		result1, err := manager.LoadVMFromGrid(dlManager, 14, "vm1")
 		assert.NoError(t, err)
 
-		result2, err := deployer.LoadVMFromGrid(manager, 14, "vm2")
+		result2, err := manager.LoadVMFromGrid(dlManager, 14, "vm2")
 		assert.NoError(t, err)
 
 		yggIP1 := result1.YggIP
@@ -151,19 +151,19 @@ func TestTwoVMsSameNetwork(t *testing.T) {
 		_, err := networkManager.Stage(ctx, apiClient, network)
 		assert.NoError(t, err)
 
-		err = manager.Commit(ctx)
+		err = dlManager.Commit(ctx)
 		assert.NoError(t, err)
 
-		err = manager.CancelAll()
+		err = dlManager.CancelAll()
 		assert.NoError(t, err)
 
-		err = manager.Stage(&vm1Cp, 45)
+		err = dlManager.Stage(&vm1Cp, 45)
 		assert.NoError(t, err)
 
-		err = manager.Stage(&vm2Cp, 45)
+		err = dlManager.Stage(&vm2Cp, 45)
 		assert.NoError(t, err)
 
-		err = manager.Commit(ctx)
+		err = dlManager.Commit(ctx)
 		assert.NoError(t, err)
 
 		if err != nil {
@@ -171,10 +171,10 @@ func TestTwoVMsSameNetwork(t *testing.T) {
 			t.FailNow()
 		}
 
-		result1, err := deployer.LoadVMFromGrid(manager, 45, "vm1")
+		result1, err := manager.LoadVMFromGrid(dlManager, 45, "vm1")
 		assert.NoError(t, err)
 
-		result2, err := deployer.LoadVMFromGrid(manager, 45, "vm2")
+		result2, err := manager.LoadVMFromGrid(dlManager, 45, "vm2")
 		assert.NoError(t, err)
 
 		yggIP1 := result1.YggIP

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/threefoldtech/grid3-go/deployer"
+	"github.com/threefoldtech/grid3-go/manager"
 	"github.com/threefoldtech/grid3-go/workloads"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
@@ -21,18 +21,18 @@ func TestZDBDeployment(t *testing.T) {
 		Description: "test des",
 		Mode:        zos.ZDBModeUser,
 	}
-	manager, _ := setup()
-	err := manager.Stage(&zdb, 13)
+	dlManager, _ := setup()
+	err := dlManager.Stage(&zdb, 13)
 	assert.NoError(t, err)
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 	defer cancel()
-	err = manager.Commit(ctx)
+	err = dlManager.Commit(ctx)
 	assert.NoError(t, err)
 
-	err = manager.CancelAll()
+	err = dlManager.CancelAll()
 	assert.NoError(t, err)
 
-	result, err := deployer.LoadZdbFromGrid(manager, 13, "testName")
+	result, err := manager.LoadZdbFromGrid(dlManager, 13, "testName")
 	assert.NoError(t, err)
 	assert.NotEmpty(t, result.IPs)
 	assert.NotEmpty(t, result.Namespace)
@@ -41,8 +41,8 @@ func TestZDBDeployment(t *testing.T) {
 	result.Port = 0
 	result.Namespace = ""
 	assert.Equal(t, zdb, result)
-	err = manager.CancelAll()
+	err = dlManager.CancelAll()
 	assert.NoError(t, err)
-	_, err = deployer.LoadZdbFromGrid(manager, 13, "testName")
+	_, err = manager.LoadZdbFromGrid(dlManager, 13, "testName")
 	assert.Error(t, err)
 }

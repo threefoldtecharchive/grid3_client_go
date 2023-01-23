@@ -11,13 +11,13 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/threefoldtech/grid3-go/deployer"
+	"github.com/threefoldtech/grid3-go/manager"
 	"github.com/threefoldtech/grid3-go/workloads"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 )
 
 func TestKubernetes(t *testing.T) {
-	manager, apiClient := setup()
+	dlManager, apiClient := setup()
 	sshPublicKey := os.Getenv("PUBLICKEY")
 	master := workloads.K8sNodeData{
 		Name:      "ms",
@@ -53,7 +53,7 @@ func TestKubernetes(t *testing.T) {
 		AddWGAccess: false,
 	}
 
-	networkManager, err := deployer.NewNetworkDeployer(apiClient.Manager, network)
+	networkManager, err := manager.NewNetworkDeployer(apiClient.Manager, network)
 	assert.NoError(t, err)
 
 	t.Run("cluster with 3 nodes", func(t *testing.T) {
@@ -61,16 +61,16 @@ func TestKubernetes(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 		defer cancel()
 
-		err := manager.Stage(&cluster, 0)
+		err := dlManager.Stage(&cluster, 0)
 		assert.NoError(t, err)
 
 		_, err = networkManager.Stage(ctx, apiClient, network)
 		assert.NoError(t, err)
 
-		err = manager.Commit(ctx)
+		err = dlManager.Commit(ctx)
 		assert.NoError(t, err)
 
-		err = manager.CancelAll()
+		err = dlManager.CancelAll()
 		assert.NoError(t, err)
 
 		masterNode := map[uint32]string{master.Node: master.Name}
@@ -78,7 +78,7 @@ func TestKubernetes(t *testing.T) {
 		for _, worker := range cluster.Workers {
 			workerNodes[worker.Node] = append(workerNodes[worker.Node], worker.Name)
 		}
-		loadedCluster, err := deployer.LoadK8sFromGrid(manager, masterNode, workerNodes)
+		loadedCluster, err := manager.LoadK8sFromGrid(dlManager, masterNode, workerNodes)
 		assert.NoError(t, err)
 
 		log.Printf("loaded Cluster: %+v", loadedCluster)
@@ -109,7 +109,7 @@ func TestKubernetes(t *testing.T) {
 	t.Run("nodes with duplicate names", func(t *testing.T) {
 		cluster.Workers[0].Name = cluster.Master.Name
 
-		err := manager.Stage(&cluster, 0)
+		err := dlManager.Stage(&cluster, 0)
 		assert.Error(t, err)
 	})
 
