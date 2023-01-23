@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/threefoldtech/grid3-go/mocks"
@@ -40,13 +41,15 @@ var (
 )
 
 func setUP() (identity subi.Identity, twinID uint32) {
-	err := godotenv.Load("../.env")
-	if err != nil {
-		panic(err)
+	if _, err := os.Stat("../.env"); !errors.Is(err, os.ErrNotExist) {
+		err := godotenv.Load("../.env")
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	mnemonics := os.Getenv("MNEMONICS")
-	identity, err = substrate.NewIdentityFromSr25519Phrase(mnemonics)
+	identity, err := substrate.NewIdentityFromSr25519Phrase(mnemonics)
 	if err != nil {
 		panic(err)
 	}

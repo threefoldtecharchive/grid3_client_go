@@ -3,6 +3,7 @@ package integration
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -39,9 +40,11 @@ var (
 )
 
 func setup() (deployer.DeploymentManager, deployer.APIClient) {
-	err := godotenv.Load("../.env")
-	if err != nil {
-		panic(err)
+	if _, err := os.Stat("../.env"); !errors.Is(err, os.ErrNotExist) {
+		err := godotenv.Load("../.env")
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	mnemonics := os.Getenv("MNEMONICS")

@@ -318,6 +318,7 @@ func (d *deploymentManager) Commit(ctx context.Context) error {
 
 	createdNameContracts := map[string]uint64{}
 	err = createNameContracts(createdNameContracts, *d, s)
+
 	if err != nil {
 		// revert changes
 		revErr := cancelNameContracts(createdNameContracts, *d, s)

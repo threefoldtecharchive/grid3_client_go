@@ -140,7 +140,7 @@ func (mr *MockDeploymentManagerMockRecorder) SetWorkloads(workloads interface{})
 func (m *MockDeploymentManager) Stage(workloadsToNodeBinder workloads.WorkloadsToNodeBinder, nodeID uint32) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Stage", workloadsToNodeBinder, nodeID)
-	ret0, _ := ret[1].(error)
+	ret0, _ := ret[0].(error)
 	return ret0
 }
 
