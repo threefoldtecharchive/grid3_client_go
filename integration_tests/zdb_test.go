@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/threefoldtech/grid3-go/loader"
+	"github.com/threefoldtech/grid3-go/deployer"
 	"github.com/threefoldtech/grid3-go/workloads"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
@@ -32,7 +32,7 @@ func TestZDBDeployment(t *testing.T) {
 	err = manager.CancelAll()
 	assert.NoError(t, err)
 
-	result, err := loader.LoadZdbFromGrid(manager, 13, "testName")
+	result, err := deployer.LoadZdbFromGrid(manager, 13, "testName")
 	assert.NoError(t, err)
 	assert.NotEmpty(t, result.IPs)
 	assert.NotEmpty(t, result.Namespace)
@@ -43,6 +43,6 @@ func TestZDBDeployment(t *testing.T) {
 	assert.Equal(t, zdb, result)
 	err = manager.CancelAll()
 	assert.NoError(t, err)
-	_, err = loader.LoadZdbFromGrid(manager, 13, "testName")
+	_, err = deployer.LoadZdbFromGrid(manager, 13, "testName")
 	assert.Error(t, err)
 }

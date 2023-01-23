@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/threefoldtech/grid3-go/loader"
 
+	"github.com/threefoldtech/grid3-go/deployer"
 	"github.com/threefoldtech/grid3-go/workloads"
 
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
@@ -35,7 +35,7 @@ func TestGatewayFQDNDeployment(t *testing.T) {
 
 	err = manager.CancelAll()
 	assert.NoError(t, err)
-	result, err := loader.LoadGatewayFqdnFromGrid(manager, 49, "tf")
+	result, err := deployer.LoadGatewayFqdnFromGrid(manager, 49, "tf")
 	assert.NoError(t, err)
 
 	assert.Equal(t, expected, result)
@@ -44,7 +44,7 @@ func TestGatewayFQDNDeployment(t *testing.T) {
 	assert.NoError(t, err)
 	expected = workloads.GatewayFQDNProxy{}
 
-	wl, err := loader.LoadGatewayFqdnFromGrid(manager, 49, "tf")
+	wl, err := deployer.LoadGatewayFqdnFromGrid(manager, 49, "tf")
 	assert.Error(t, err)
 	assert.Equal(t, expected, wl)
 

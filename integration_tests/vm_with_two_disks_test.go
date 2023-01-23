@@ -11,7 +11,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/threefoldtech/grid3-go/deployer"
-	"github.com/threefoldtech/grid3-go/loader"
 	"github.com/threefoldtech/grid3-go/workloads"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 )
@@ -82,7 +81,7 @@ func TestVMWithTwoDisk(t *testing.T) {
 	err = manager.Commit(ctx)
 	assert.NoError(t, err)
 
-	result, err := loader.LoadVMFromGrid(manager, 14, "vm")
+	result, err := deployer.LoadVMFromGrid(manager, 14, "vm")
 	assert.NoError(t, err)
 
 	yggIP := result.YggIP

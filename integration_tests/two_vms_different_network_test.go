@@ -13,7 +13,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/threefoldtech/grid3-go/deployer"
-	"github.com/threefoldtech/grid3-go/loader"
 	"github.com/threefoldtech/grid3-go/workloads"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 )
@@ -104,9 +103,9 @@ func TestTwoVmDifferentNet(t *testing.T) {
 		err = manager.CancelAll()
 		assert.NoError(t, err)
 
-		res1, err := loader.LoadVMFromGrid(manager, 14, "vm1")
+		res1, err := deployer.LoadVMFromGrid(manager, 14, "vm1")
 		assert.NoError(t, err)
-		res2, err := loader.LoadVMFromGrid(manager, 14, "vm2")
+		res2, err := deployer.LoadVMFromGrid(manager, 14, "vm2")
 		assert.NoError(t, err)
 
 		yggIP1 := res1.YggIP
@@ -182,9 +181,9 @@ func TestTwoVmDifferentNet(t *testing.T) {
 		err = manager.Commit(ctx)
 		assert.NoError(t, err)
 
-		res1, err := loader.LoadVMFromGrid(manager, 13, "vm1")
+		res1, err := deployer.LoadVMFromGrid(manager, 13, "vm1")
 		assert.NoError(t, err)
-		res2, err := loader.LoadVMFromGrid(manager, 13, "vm2")
+		res2, err := deployer.LoadVMFromGrid(manager, 13, "vm2")
 		assert.NoError(t, err)
 
 		yggIP1 := res1.YggIP

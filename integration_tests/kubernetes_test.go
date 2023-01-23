@@ -12,7 +12,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/threefoldtech/grid3-go/deployer"
-	"github.com/threefoldtech/grid3-go/loader"
 	"github.com/threefoldtech/grid3-go/workloads"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 )
@@ -79,7 +78,7 @@ func TestKubernetes(t *testing.T) {
 		for _, worker := range cluster.Workers {
 			workerNodes[worker.Node] = append(workerNodes[worker.Node], worker.Name)
 		}
-		loadedCluster, err := loader.LoadK8sFromGrid(manager, masterNode, workerNodes)
+		loadedCluster, err := deployer.LoadK8sFromGrid(manager, masterNode, workerNodes)
 		assert.NoError(t, err)
 
 		log.Printf("loaded Cluster: %+v", loadedCluster)

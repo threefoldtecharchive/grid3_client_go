@@ -11,7 +11,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/threefoldtech/grid3-go/deployer"
-	"github.com/threefoldtech/grid3-go/loader"
 	"github.com/threefoldtech/grid3-go/workloads"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 )
@@ -85,10 +84,10 @@ func TestTwoVMsSameNetwork(t *testing.T) {
 		err = manager.Commit(ctx)
 		assert.NoError(t, err)
 
-		result1, err := loader.LoadVMFromGrid(manager, 14, "vm1")
+		result1, err := deployer.LoadVMFromGrid(manager, 14, "vm1")
 		assert.NoError(t, err)
 
-		result2, err := loader.LoadVMFromGrid(manager, 14, "vm2")
+		result2, err := deployer.LoadVMFromGrid(manager, 14, "vm2")
 		assert.NoError(t, err)
 
 		yggIP1 := result1.YggIP
@@ -172,10 +171,10 @@ func TestTwoVMsSameNetwork(t *testing.T) {
 			t.FailNow()
 		}
 
-		result1, err := loader.LoadVMFromGrid(manager, 45, "vm1")
+		result1, err := deployer.LoadVMFromGrid(manager, 45, "vm1")
 		assert.NoError(t, err)
 
-		result2, err := loader.LoadVMFromGrid(manager, 45, "vm2")
+		result2, err := deployer.LoadVMFromGrid(manager, 45, "vm2")
 		assert.NoError(t, err)
 
 		yggIP1 := result1.YggIP
