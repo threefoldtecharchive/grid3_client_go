@@ -1,3 +1,6 @@
+//go:build integration
+// +build integration
+
 // Package integration for integration tests
 package integration
 

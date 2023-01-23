@@ -1,4 +1,4 @@
-name: Testing
+name: Integration tests
 
 on: [push]
 
@@ -25,4 +25,4 @@ jobs:
         env:
           MNEMONICS: ${{ secrets.MNEMONICS }}
           NETWORK: ${{ secrets.NETWORK }}
-        run: go test -v `go list ./... | grep -v integration_tests`
+        run: go test -v ./integration_tests -tags integration
