@@ -39,8 +39,7 @@ var (
 	}
 )
 
-// Setup identity
-func Setup() (manager.DeploymentManager, manager.APIClient) {
+func setup() (manager.DeploymentManager, manager.APIClient) {
 	if _, err := os.Stat("../.env"); !errors.Is(err, os.ErrNotExist) {
 		err := godotenv.Load("../.env")
 		if err != nil {
