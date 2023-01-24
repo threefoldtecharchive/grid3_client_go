@@ -14,7 +14,7 @@ func TestDeploymentUtils(t *testing.T) {
 	identity, twinID, err := SetUP()
 	assert.NoError(t, err)
 
-	dl := workloads.NewDeployment(twinID)
+	dl := workloads.NewDeployment(twinID, []gridtypes.Workload{})
 
 	dlName, err := deploymentWithNameGateway(identity, twinID, true, 0, backendURLWithTLSPassthrough)
 	assert.NoError(t, err)

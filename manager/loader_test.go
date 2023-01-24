@@ -305,7 +305,6 @@ func TestLoadNetworkFromGrid(t *testing.T) {
 		Nodes:       []uint32{1},
 		IPRange:     ipRange,
 		AddWGAccess: false,
-		ContractID:  1,
 	}
 
 	networkWl := gridtypes.Workload{

@@ -123,7 +123,7 @@ func TestVMWorkload(t *testing.T) {
 	})
 
 	t.Run("test_vm_from_workload", func(t *testing.T) {
-		vmFromWorkload, err := NewVMFromWorkloads(vmWorkload, deployment)
+		vmFromWorkload, err := NewVMFromWorkloads(&vmWorkload, &deployment)
 		assert.NoError(t, err)
 
 		// no result yet so they are set manually
@@ -138,7 +138,7 @@ func TestVMWorkload(t *testing.T) {
 	})
 
 	t.Run("test_pubIP_from_deployment", func(t *testing.T) {
-		pubIP := pubIP(deployment, "testip")
+		pubIP := pubIP(&deployment, "testip")
 		assert.Equal(t, pubIP.HasIPv6(), false)
 	})
 

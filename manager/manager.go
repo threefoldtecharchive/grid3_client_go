@@ -30,21 +30,32 @@ type DeploymentManager interface {
 	GetWorkload(nodeID uint32, name string) (gridtypes.Workload, error)
 	GetDeployment(nodeID uint32) (gridtypes.Deployment, error)
 	GetContractIDs() map[uint32]uint64
+
+	SetDeploymentNetworkHostIDs(network string, nodeID uint32, deploymentID string, ips []byte)
+	GetDeploymentNetworkHostIDs(network string, nodeID uint32, deploymentID string) []byte
+	DeleteDeploymentNetworkHostIDs(network string, nodeID uint32, deploymentID string)
+	GetUsedNetworkHostIDs(network string, nodeID uint32) []byte
+
 	Stage(workloadsToNodeBinder workloads.WorkloadsToNodeBinder, nodeID uint32) error
 }
 
+type deploymentHostIDs map[string][]byte
+type nodeDeploymentHostIDs map[uint32]deploymentHostIDs
+type networkNodeDeploymentHostIDs map[string]nodeDeploymentHostIDs
+
 // DeploymentManager for managing deployments
 type deploymentManager struct {
-	identity             substrate.Identity
-	twinID               uint32
-	deploymentIDs        map[uint32]uint64 //TODO : should include all contracts of user
-	affectedDeployments  map[uint32]uint64
-	plannedDeployments   map[uint32]gridtypes.Deployment
-	nameContracts        map[string]uint64
-	plannedNameContracts []string
-	gridClient           proxy.Client
-	ncPool               client.NodeClientGetter
-	substrate            subi.ManagerInterface
+	identity                     substrate.Identity
+	twinID                       uint32
+	deploymentIDs                map[uint32]uint64 //TODO : should include all contracts of user
+	affectedDeployments          map[uint32]uint64
+	plannedDeployments           map[uint32]gridtypes.Deployment
+	nameContracts                map[string]uint64
+	plannedNameContracts         []string
+	networkNodeDeploymentHostIDs networkNodeDeploymentHostIDs
+	gridClient                   proxy.Client
+	ncPool                       client.NodeClientGetter
+	substrate                    subi.ManagerInterface
 	//connection field
 }
 
@@ -65,6 +76,7 @@ func NewDeploymentManager(
 		make(map[uint32]gridtypes.Deployment), ///2 lines down
 		make(map[string]uint64),
 		make([]string, 0),
+		make(networkNodeDeploymentHostIDs),
 		gridClient,
 		ncPool,
 		sub,
@@ -446,7 +458,6 @@ func (d *deploymentManager) GetWorkload(nodeID uint32, name string) (gridtypes.W
 		return gridtypes.Workload{}, fmt.Errorf("couldn't get workload with name %s", name)
 	}
 	return gridtypes.Workload{}, fmt.Errorf("couldn't get deployment with node ID %d", nodeID)
-
 }
 
 func (d *deploymentManager) GetDeployment(nodeID uint32) (gridtypes.Deployment, error) {
@@ -493,4 +504,42 @@ func (d *deploymentManager) Stage(workloadsToNodeBinder workloads.WorkloadsToNod
 
 	err = d.SetWorkloads(workloadsNodeMap)
 	return err
+}
+
+// GetUsedNetworkHostIDs gets the used host IDs on the overlay network
+func (d *deploymentManager) GetUsedNetworkHostIDs(networkName string, nodeID uint32) []byte {
+	ips := []byte{}
+	for _, v := range d.networkNodeDeploymentHostIDs[networkName][nodeID] {
+		ips = append(ips, v...)
+	}
+	return ips
+}
+
+// GetDeploymentHostIDs gets the private network host IDs relevant to the deployment
+func (d *deploymentManager) GetDeploymentNetworkHostIDs(networkName string, nodeID uint32, deploymentID string) []byte {
+	if _, ok := d.networkNodeDeploymentHostIDs[networkName]; !ok {
+		return []byte{}
+	}
+
+	if _, ok := d.networkNodeDeploymentHostIDs[networkName][nodeID]; !ok {
+		return []byte{}
+	}
+	return d.networkNodeDeploymentHostIDs[networkName][nodeID][deploymentID]
+}
+
+// SetDeploymentHostIDs sets the relevant deployment host IDs
+func (d *deploymentManager) SetDeploymentNetworkHostIDs(networkName string, nodeID uint32, deploymentID string, ips []byte) {
+	if _, ok := d.networkNodeDeploymentHostIDs[networkName]; !ok {
+		d.networkNodeDeploymentHostIDs[networkName] = nodeDeploymentHostIDs{}
+	}
+
+	if _, ok := d.networkNodeDeploymentHostIDs[networkName][nodeID]; !ok {
+		d.networkNodeDeploymentHostIDs[networkName][nodeID] = deploymentHostIDs{}
+	}
+	d.networkNodeDeploymentHostIDs[networkName][nodeID][deploymentID] = ips
+}
+
+// DeleteDeploymentHostIDs deletes a deployment host IDs
+func (d *deploymentManager) DeleteDeploymentNetworkHostIDs(networkName string, nodeID uint32, deploymentID string) {
+	delete(d.networkNodeDeploymentHostIDs[networkName][nodeID], deploymentID)
 }

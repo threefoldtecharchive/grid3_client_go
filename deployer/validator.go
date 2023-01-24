@@ -129,16 +129,16 @@ func (d *ValidatorImpl) Validate(ctx context.Context, sub subi.SubstrateExt, old
 		if HasWorkload(&dl, zos.GatewayNameProxyType) && nodeInfo.PublicConfig.Domain == "" {
 			return fmt.Errorf("node %d can't deploy a gateway name workload as it doesn't have a domain configured", node)
 		}
-		mrus := nodeInfo.Capacity.Total.MRU - nodeInfo.Capacity.Used.MRU
-		hrus := nodeInfo.Capacity.Total.HRU - nodeInfo.Capacity.Used.HRU
-		srus := 2*nodeInfo.Capacity.Total.SRU - nodeInfo.Capacity.Used.SRU
-		if mrus < needed.MRU ||
-			srus < needed.SRU ||
-			hrus < needed.HRU {
+		mru := nodeInfo.Capacity.Total.MRU - nodeInfo.Capacity.Used.MRU
+		hru := nodeInfo.Capacity.Total.HRU - nodeInfo.Capacity.Used.HRU
+		sru := 2*nodeInfo.Capacity.Total.SRU - nodeInfo.Capacity.Used.SRU
+		if mru < needed.MRU ||
+			sru < needed.SRU ||
+			hru < needed.HRU {
 			free := gridtypes.Capacity{
-				HRU: hrus,
-				MRU: mrus,
-				SRU: srus,
+				HRU: hru,
+				MRU: mru,
+				SRU: sru,
 			}
 			return fmt.Errorf("node %d doesn't have enough resources. needed: %v, free: %v", node, capacityPrettyPrint(needed), capacityPrettyPrint(free))
 		}

@@ -40,7 +40,7 @@ func NewZDBFromSchema(zdb map[string]interface{}) ZDB {
 }
 
 // NewZDBFromWorkload generates a new zdb from a workload
-func NewZDBFromWorkload(wl gridtypes.Workload) (ZDB, error) {
+func NewZDBFromWorkload(wl *gridtypes.Workload) (ZDB, error) {
 	dataI, err := wl.WorkloadData()
 	if err != nil {
 		return ZDB{}, errors.Wrap(err, "failed to get workload data")
@@ -91,32 +91,24 @@ func (z *ZDB) ToMap() map[string]interface{} {
 }
 
 // GenerateWorkloads generates a workload from a zdb
-func (z *ZDB) GenerateWorkloads() ([]gridtypes.Workload, error) {
-	return []gridtypes.Workload{
-		{
-			Name:        gridtypes.Name(z.Name),
-			Type:        zos.ZDBType,
-			Description: z.Description,
-			Version:     0,
-			Data: gridtypes.MustMarshal(zos.ZDB{
-				Size:     gridtypes.Unit(z.Size) * gridtypes.Gigabyte,
-				Mode:     zos.ZDBMode(z.Mode),
-				Password: z.Password,
-				Public:   z.Public,
-			}),
-		},
-	}, nil
+func (z *ZDB) GenerateWorkload() gridtypes.Workload {
+	return gridtypes.Workload{
+		Name:        gridtypes.Name(z.Name),
+		Type:        zos.ZDBType,
+		Description: z.Description,
+		Version:     0,
+		Data: gridtypes.MustMarshal(zos.ZDB{
+			Size:     gridtypes.Unit(z.Size) * gridtypes.Gigabyte,
+			Mode:     zos.ZDBMode(z.Mode),
+			Password: z.Password,
+			Public:   z.Public,
+		}),
+	}
 }
 
 // BindWorkloadsToNode for staging workloads to node IDs
 func (z *ZDB) BindWorkloadsToNode(nodeID uint32) (map[uint32][]gridtypes.Workload, error) {
 	workloadsMap := map[uint32][]gridtypes.Workload{}
-
-	workloads, err := z.GenerateWorkloads()
-	if err != nil {
-		return workloadsMap, err
-	}
-
-	workloadsMap[nodeID] = workloads
+	workloadsMap[nodeID] = []gridtypes.Workload{z.GenerateWorkload()}
 	return workloadsMap, nil
 }

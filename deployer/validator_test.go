@@ -27,7 +27,7 @@ func TestValidator(t *testing.T) {
 		gridClient: gridClient,
 	}
 
-	dl1 := workloads.NewDeployment(twinID)
+	dl1 := workloads.NewDeployment(twinID, []gridtypes.Workload{})
 
 	newDls := map[uint32]gridtypes.Deployment{
 		10: dl1,

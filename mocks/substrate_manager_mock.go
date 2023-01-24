@@ -107,7 +107,7 @@ func (m *MockSubstrate) EXPECT() *MockSubstrateMockRecorder {
 }
 
 // CancelContract mocks base method.
-func (m *MockSubstrate) CancelContract(identity subi.Identity, contractID uint64) error {
+func (m *MockSubstrate) CancelContract(identity substrate.Identity, contractID uint64) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CancelContract", identity, contractID)
 	ret0, _ := ret[0].(error)
@@ -133,7 +133,7 @@ func (mr *MockSubstrateMockRecorder) Close() *gomock.Call {
 }
 
 // CreateNodeContract mocks base method.
-func (m *MockSubstrate) CreateNodeContract(identity subi.Identity, node uint32, body, hash string, publicIPs uint32, solutionProviderID *uint64) (uint64, error) {
+func (m *MockSubstrate) CreateNodeContract(identity substrate.Identity, node uint32, body, hash string, publicIPs uint32, solutionProviderID *uint64) (uint64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateNodeContract", identity, node, body, hash, publicIPs, solutionProviderID)
 	ret0, _ := ret[0].(uint64)
@@ -163,7 +163,7 @@ func (mr *MockSubstrateMockRecorder) GetTwinByPubKey(pk interface{}) *gomock.Cal
 }
 
 // UpdateNodeContract mocks base method.
-func (m *MockSubstrate) UpdateNodeContract(identity subi.Identity, contract uint64, body, hash string) (uint64, error) {
+func (m *MockSubstrate) UpdateNodeContract(identity substrate.Identity, contract uint64, body, hash string) (uint64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateNodeContract", identity, contract, body, hash)
 	ret0, _ := ret[0].(uint64)
@@ -201,7 +201,7 @@ func (m *MockSubstrateExt) EXPECT() *MockSubstrateExtMockRecorder {
 }
 
 // CancelContract mocks base method.
-func (m *MockSubstrateExt) CancelContract(identity subi.Identity, contractID uint64) error {
+func (m *MockSubstrateExt) CancelContract(identity substrate.Identity, contractID uint64) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CancelContract", identity, contractID)
 	ret0, _ := ret[0].(error)
@@ -227,7 +227,7 @@ func (mr *MockSubstrateExtMockRecorder) Close() *gomock.Call {
 }
 
 // CreateNameContract mocks base method.
-func (m *MockSubstrateExt) CreateNameContract(identity subi.Identity, name string) (uint64, error) {
+func (m *MockSubstrateExt) CreateNameContract(identity substrate.Identity, name string) (uint64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateNameContract", identity, name)
 	ret0, _ := ret[0].(uint64)
@@ -242,7 +242,7 @@ func (mr *MockSubstrateExtMockRecorder) CreateNameContract(identity, name interf
 }
 
 // CreateNodeContract mocks base method.
-func (m *MockSubstrateExt) CreateNodeContract(identity subi.Identity, node uint32, body, hash string, publicIPs uint32, solutionProviderID *uint64) (uint64, error) {
+func (m *MockSubstrateExt) CreateNodeContract(identity substrate.Identity, node uint32, body, hash string, publicIPs uint32, solutionProviderID *uint64) (uint64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateNodeContract", identity, node, body, hash, publicIPs, solutionProviderID)
 	ret0, _ := ret[0].(uint64)
@@ -271,7 +271,7 @@ func (mr *MockSubstrateExtMockRecorder) DeleteInvalidContracts(contracts interfa
 }
 
 // EnsureContractCanceled mocks base method.
-func (m *MockSubstrateExt) EnsureContractCanceled(identity subi.Identity, contractID uint64) error {
+func (m *MockSubstrateExt) EnsureContractCanceled(identity substrate.Identity, contractID uint64) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "EnsureContractCanceled", identity, contractID)
 	ret0, _ := ret[0].(error)
@@ -285,7 +285,7 @@ func (mr *MockSubstrateExtMockRecorder) EnsureContractCanceled(identity, contrac
 }
 
 // GetAccount mocks base method.
-func (m *MockSubstrateExt) GetAccount(identity subi.Identity) (types.AccountInfo, error) {
+func (m *MockSubstrateExt) GetAccount(identity substrate.Identity) (types.AccountInfo, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAccount", identity)
 	ret0, _ := ret[0].(types.AccountInfo)
@@ -390,7 +390,7 @@ func (mr *MockSubstrateExtMockRecorder) GetTwinPK(twinID interface{}) *gomock.Ca
 }
 
 // InvalidateNameContract mocks base method.
-func (m *MockSubstrateExt) InvalidateNameContract(ctx context.Context, identity subi.Identity, contractID uint64, name string) (uint64, error) {
+func (m *MockSubstrateExt) InvalidateNameContract(ctx context.Context, identity substrate.Identity, contractID uint64, name string) (uint64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "InvalidateNameContract", ctx, identity, contractID, name)
 	ret0, _ := ret[0].(uint64)
@@ -420,7 +420,7 @@ func (mr *MockSubstrateExtMockRecorder) IsValidContract(contractID interface{}) 
 }
 
 // UpdateNodeContract mocks base method.
-func (m *MockSubstrateExt) UpdateNodeContract(identity subi.Identity, contract uint64, body, hash string) (uint64, error) {
+func (m *MockSubstrateExt) UpdateNodeContract(identity substrate.Identity, contract uint64, body, hash string) (uint64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateNodeContract", identity, contract, body, hash)
 	ret0, _ := ret[0].(uint64)

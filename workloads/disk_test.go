@@ -46,16 +46,15 @@ func TestDiskWorkload(t *testing.T) {
 	})
 
 	t.Run("test_disk_from_workload", func(t *testing.T) {
-		diskFromWorkload, err := NewDiskFromWorkload(diskWorkload)
+		diskFromWorkload, err := NewDiskFromWorkload(&diskWorkload)
 		assert.NoError(t, err)
 
 		assert.Equal(t, disk, diskFromWorkload)
 	})
 
 	t.Run("test_workload_from_disk", func(t *testing.T) {
-		workloadFromDisk, err := disk.GenerateWorkloads()
-		assert.NoError(t, err)
-		assert.Equal(t, diskWorkload, workloadFromDisk[0])
+		workloadFromDisk := disk.GenerateWorkload()
+		assert.Equal(t, diskWorkload, workloadFromDisk)
 	})
 
 	t.Run("test_workloads_map", func(t *testing.T) {

@@ -20,14 +20,14 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 )
 
-// Deployer interface to be used for any deployer
-type Deployer interface {
+// DeployerInterface to be used for any deployer
+type DeployerInterface interface {
 	Deploy(ctx context.Context, sub subi.SubstrateExt, oldDeployments map[uint32]uint64, newDeployments map[uint32]gridtypes.Deployment) (map[uint32]uint64, error)
 	GetDeployments(ctx context.Context, sub subi.SubstrateExt, dls map[uint32]uint64) (map[uint32]gridtypes.Deployment, error)
 }
 
-// DeployerImpl struct
-type DeployerImpl struct {
+// Deployer to be used for any deployer
+type Deployer struct {
 	identity         substrate.Identity
 	twinID           uint32
 	validator        Validator
@@ -47,7 +47,7 @@ func NewDeployer(
 	solutionProvider *uint64,
 	deploymentData string,
 ) Deployer {
-	return &DeployerImpl{
+	return Deployer{
 		identity,
 		twinID,
 		&ValidatorImpl{gridClient: gridClient},
@@ -59,7 +59,7 @@ func NewDeployer(
 }
 
 // Deploy deploys a new deployment given the old deployments' IDs
-func (d *DeployerImpl) Deploy(ctx context.Context, sub subi.SubstrateExt, oldDeploymentIDs map[uint32]uint64, newDeployments map[uint32]gridtypes.Deployment) (map[uint32]uint64, error) {
+func (d *Deployer) Deploy(ctx context.Context, sub subi.SubstrateExt, oldDeploymentIDs map[uint32]uint64, newDeployments map[uint32]gridtypes.Deployment) (map[uint32]uint64, error) {
 	oldDeployments, oldErr := d.GetDeployments(ctx, sub, oldDeploymentIDs)
 	if oldErr == nil {
 		// check resources only when old deployments are readable
@@ -85,7 +85,7 @@ func (d *DeployerImpl) Deploy(ctx context.Context, sub subi.SubstrateExt, oldDep
 	return currentDeployments, err
 }
 
-func (d *DeployerImpl) deploy(
+func (d *Deployer) deploy(
 	ctx context.Context,
 	sub subi.SubstrateExt,
 	oldDeployments map[uint32]uint64,
@@ -260,7 +260,7 @@ func (d *DeployerImpl) deploy(
 }
 
 // GetDeployments returns deployments from a map of nodes IDs and deployments IDs
-func (d *DeployerImpl) GetDeployments(ctx context.Context, sub subi.SubstrateExt, dls map[uint32]uint64) (map[uint32]gridtypes.Deployment, error) {
+func (d *Deployer) GetDeployments(ctx context.Context, sub subi.SubstrateExt, dls map[uint32]uint64) (map[uint32]gridtypes.Deployment, error) {
 	res := make(map[uint32]gridtypes.Deployment)
 
 	var wg sync.WaitGroup
@@ -318,7 +318,7 @@ func getExponentialBackoff(initialInterval time.Duration, multiplier float64, ma
 }
 
 // Wait waits for a deployment to be deployed on node
-func (d *DeployerImpl) Wait(
+func (d *Deployer) Wait(
 	ctx context.Context,
 	nodeClient *client.NodeClient,
 	deploymentID uint64,

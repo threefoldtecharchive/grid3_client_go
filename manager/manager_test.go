@@ -21,18 +21,9 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
-var (
-	SubstrateURLs = map[string]string{
-		"dev":  "wss://tfchain.dev.grid.tf/ws",
-		"test": "wss://tfchain.test.grid.tf/ws",
-		"qa":   "wss://tfchain.qa.grid.tf/ws",
-		"main": "wss://tfchain.grid.tf/ws",
-	}
-)
-
 var backendURLWithoutTLSPassthrough = "http://1.1.1.1:10"
 
-func SetUP() (identity subi.Identity, twinID uint32, err error) {
+func SetUP() (identity substrate.Identity, twinID uint32, err error) {
 	if _, err = os.Stat("../.env"); !errors.Is(err, os.ErrNotExist) {
 		err = godotenv.Load("../.env")
 		if err != nil {

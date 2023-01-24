@@ -20,7 +20,7 @@ func LoadDiskFromGrid(manager DeploymentManager, nodeID uint32, name string) (wo
 		return workloads.Disk{}, errors.Wrapf(err, "couldn't get workload from node %d", nodeID)
 	}
 
-	return workloads.NewDiskFromWorkload(wl)
+	return workloads.NewDiskFromWorkload(&wl)
 }
 
 // LoadGatewayFqdnFromGrid loads a gateway FQDN proxy from grid
@@ -40,7 +40,7 @@ func LoadQsfsFromGrid(manager DeploymentManager, nodeID uint32, name string) (wo
 		return workloads.QSFS{}, errors.Wrapf(err, "couldn't get workload from node %d", nodeID)
 	}
 
-	return workloads.NewQSFSFromWorkload(wl)
+	return workloads.NewQSFSFromWorkload(&wl)
 }
 
 // LoadGatewayNameFromGrid loads a gateway name proxy from grid
@@ -60,7 +60,7 @@ func LoadZdbFromGrid(manager DeploymentManager, nodeID uint32, name string) (wor
 		return workloads.ZDB{}, errors.Wrapf(err, "couldn't get workload from node %d", nodeID)
 	}
 
-	return workloads.NewZDBFromWorkload(wl)
+	return workloads.NewZDBFromWorkload(&wl)
 }
 
 // LoadVMFromGrid loads a vm from a grid
@@ -75,7 +75,7 @@ func LoadVMFromGrid(manager DeploymentManager, nodeID uint32, name string) (work
 		return workloads.VM{}, errors.Wrapf(err, "couldn't get workload from node %d", nodeID)
 	}
 
-	return workloads.NewVMFromWorkloads(wl, dl)
+	return workloads.NewVMFromWorkloads(&wl, &dl)
 }
 
 // LoadK8sFromGrid loads k8s from grid
@@ -173,7 +173,7 @@ func LoadK8sFromGrid(manager DeploymentManager, masterNode map[uint32]string, wo
 func LoadNetworkFromGrid(manager DeploymentManager, name string) (workloads.ZNet, error) {
 	znet := workloads.ZNet{}
 
-	for nodeID, contractID := range manager.GetContractIDs() {
+	for nodeID := range manager.GetContractIDs() {
 		dl, err := manager.GetDeployment(nodeID)
 		if err != nil {
 			return znet, errors.Wrapf(err, "failed to get deployment with id %d", nodeID)
@@ -181,7 +181,7 @@ func LoadNetworkFromGrid(manager DeploymentManager, name string) (workloads.ZNet
 
 		for _, wl := range dl.Workloads {
 			if wl.Type == zos.NetworkType && wl.Name == gridtypes.Name(name) {
-				znet, err = workloads.NewNetworkFromWorkload(wl, nodeID, contractID)
+				znet, err = workloads.NewNetworkFromWorkload(wl, nodeID)
 				if err != nil {
 					return workloads.ZNet{}, errors.Wrapf(err, "failed to get network from workload %s", name)
 				}

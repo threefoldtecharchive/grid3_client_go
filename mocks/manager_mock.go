@@ -149,3 +149,58 @@ func (mr *MockDeploymentManagerMockRecorder) Stage(workloadsToNodeBinder, nodeID
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Stage", reflect.TypeOf((*MockDeploymentManager)(nil).Stage), workloadsToNodeBinder, nodeID)
 }
+
+
+// SetDeploymentNetworkHostIDs mocks base method.
+func (m *MockDeploymentManager) SetDeploymentNetworkHostIDs(network string, nodeID uint32, deploymentID string, ips []byte) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "SetDeploymentNetworkHostIDs", network, nodeID, deploymentID, ips)
+}
+
+// SetDeploymentNetworkHostIDs indicates an expected call of SetDeploymentNetworkHostIDs.
+func (mr *MockDeploymentManagerMockRecorder) SetDeploymentNetworkHostIDs(network string, nodeID uint32, deploymentID string, ips []byte) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetDeploymentNetworkHostIDs", reflect.TypeOf((*MockDeploymentManager)(nil).SetDeploymentNetworkHostIDs), network, nodeID, deploymentID, ips)
+}
+
+// GetDeploymentNetworkHostIDs mocks base method.
+func (m *MockDeploymentManager) GetDeploymentNetworkHostIDs(network string, nodeID uint32, deploymentID string) []byte {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetDeploymentNetworkHostIDs", network, nodeID, deploymentID)
+	ret0, _ := ret[0].([]byte)
+	return ret0
+}
+
+// GetDeploymentNetworkHostIDs indicates an expected call of GetDeploymentNetworkHostIDs.
+func (mr *MockDeploymentManagerMockRecorder) GetDeploymentNetworkHostIDs(network string, nodeID uint32, deploymentID string) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDeploymentNetworkHostIDs", reflect.TypeOf((*MockDeploymentManager)(nil).GetDeploymentNetworkHostIDs), network, nodeID, deploymentID)
+}
+
+
+// GetUsedNetworkHostIDs mocks base method.
+func (m *MockDeploymentManager) GetUsedNetworkHostIDs(network string, nodeID uint32) []byte {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUsedNetworkHostIDs", network, nodeID)
+	ret0, _ := ret[0].([]byte)
+	return ret0
+}
+
+// GetUsedNetworkHostIDs indicates an expected call of GetUsedNetworkHostIDs.
+func (mr *MockDeploymentManagerMockRecorder) GetUsedNetworkHostIDs(network string, nodeID uint32) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUsedNetworkHostIDs", reflect.TypeOf((*MockDeploymentManager)(nil).GetUsedNetworkHostIDs), network, nodeID)
+}
+
+
+// DeleteDeploymentNetworkHostIDs mocks base method.
+func (m *MockDeploymentManager) DeleteDeploymentNetworkHostIDs(network string, nodeID uint32, deploymentID string) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "DeleteDeploymentNetworkHostIDs", network, nodeID, deploymentID)
+}
+
+// DeleteDeploymentNetworkHostIDs indicates an expected call of DeleteDeploymentNetworkHostIDs.
+func (mr *MockDeploymentManagerMockRecorder) DeleteDeploymentNetworkHostIDs(network string, nodeID uint32, deploymentID string) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteDeploymentNetworkHostIDs", reflect.TypeOf((*MockDeploymentManager)(nil).DeleteDeploymentNetworkHostIDs), network, nodeID, deploymentID)
+}

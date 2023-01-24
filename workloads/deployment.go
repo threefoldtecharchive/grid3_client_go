@@ -6,13 +6,26 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 )
 
+// Deployment struct
+type Deployment struct {
+	Name             string
+	NodeID           uint32
+	SolutionType     string
+	SolutionProvider *uint64
+	NetworkName      string
+	Disks            []Disk
+	Zdbs             []ZDB
+	Vms              []VM
+	Qsfs             []QSFS
+}
+
 // NewDeployment generates a new deployment
-func NewDeployment(twin uint32) gridtypes.Deployment {
+func NewDeployment(twin uint32, workloads []gridtypes.Workload) gridtypes.Deployment {
 	return gridtypes.Deployment{
 		Version: 0,
 		TwinID:  twin, //LocalTwin,
 		// this contract id must match the one on substrate
-		Workloads: []gridtypes.Workload{},
+		Workloads: workloads,
 		SignatureRequirement: gridtypes.SignatureRequirement{
 			WeightRequired: 1,
 			Requests: []gridtypes.SignatureRequest{
@@ -32,7 +45,7 @@ type GatewayWorkloadGenerator interface {
 
 // NewDeploymentWithGateway generates a new deployment with a gateway workload
 func NewDeploymentWithGateway(identity substrate.Identity, twinID uint32, version uint32, gw GatewayWorkloadGenerator) (gridtypes.Deployment, error) {
-	dl := NewDeployment(twinID)
+	dl := NewDeployment(twinID, []gridtypes.Workload{})
 	dl.Version = version
 
 	dl.Workloads = append(dl.Workloads, gw.ZosWorkload())

@@ -15,7 +15,7 @@ type Zlog struct {
 	Output   string
 }
 
-func zlogs(dl gridtypes.Deployment, name string) []Zlog {
+func zlogs(dl *gridtypes.Deployment, name string) []Zlog {
 	var res []Zlog
 	for _, wl := range dl.ByType(zos.ZLogsType) {
 		if !wl.Result.State.IsOkay() {

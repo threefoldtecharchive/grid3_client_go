@@ -35,7 +35,7 @@ var (
 	}
 )
 
-func SetUP() (identity subi.Identity, twinID uint32, err error) {
+func SetUP() (identity substrate.Identity, twinID uint32, err error) {
 	if _, err = os.Stat("../.env"); !errors.Is(err, os.ErrNotExist) {
 		err = godotenv.Load("../.env")
 		if err != nil {
@@ -206,7 +206,7 @@ func TestCreate(t *testing.T) {
 			return nil
 		})
 
-	deployer.(*DeployerImpl).validator = &EmptyValidator{}
+	deployer.validator = &EmptyValidator{}
 
 	contracts, err := deployer.Deploy(context.Background(), sub, nil, newDls)
 	assert.NoError(t, err)
@@ -288,7 +288,7 @@ func TestUpdate(t *testing.T) {
 			return nil
 		}).AnyTimes()
 
-	deployer.(*DeployerImpl).validator = &EmptyValidator{}
+	deployer.validator = &EmptyValidator{}
 
 	contracts, err := deployer.Deploy(context.Background(), sub, map[uint32]uint64{10: 100}, newDls)
 	assert.NoError(t, err)
@@ -343,7 +343,7 @@ func TestCancel(t *testing.T) {
 			return nil
 		})
 
-	deployer.(*DeployerImpl).validator = &EmptyValidator{}
+	deployer.validator = &EmptyValidator{}
 
 	contracts, err := deployer.Deploy(context.Background(), sub, map[uint32]uint64{10: 100}, nil)
 	assert.NoError(t, err)
@@ -538,7 +538,7 @@ func TestCocktail(t *testing.T) {
 			return nil
 		})
 
-	deployer.(*DeployerImpl).validator = &EmptyValidator{}
+	deployer.validator = &EmptyValidator{}
 
 	contracts, err := deployer.Deploy(context.Background(), sub, oldDls, newDls)
 	assert.NoError(t, err)
