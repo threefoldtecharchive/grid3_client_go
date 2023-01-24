@@ -5,7 +5,7 @@ all: verifiers test
 
 test: 
 	@echo "Running Tests"
-	go test -v ./...
+	go test -v `go list ./... | grep -v integration_tests`
 
 coverage: clean 
 	mkdir coverage
