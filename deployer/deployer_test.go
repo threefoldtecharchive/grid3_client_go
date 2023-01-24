@@ -91,13 +91,13 @@ func deploymentWithFQDN(identity substrate.Identity, twinID uint32, version uint
 	return workloads.NewDeploymentWithGateway(identity, twinID, version, &gw)
 }
 
-func hash(dl *gridtypes.Deployment) string {
+func hash(dl *gridtypes.Deployment) (string, error) {
 	hash, err := dl.ChallengeHash()
 	if err != nil {
-		panic(err)
+		return "", err
 	}
 	hashHex := hex.EncodeToString(hash)
-	return hashHex
+	return hashHex, nil
 }
 
 type EmptyValidator struct{}
@@ -141,12 +141,17 @@ func TestCreate(t *testing.T) {
 	dl1.ContractID = 100
 	dl2.ContractID = 200
 
+	dl1Hash, err := hash(&dl1)
+	assert.NoError(t, err)
+	dl2Hash, err := hash(&dl2)
+	assert.NoError(t, err)
+
 	sub.EXPECT().
 		CreateNodeContract(
 			identity,
 			uint32(10),
 			"",
-			hash(&dl1),
+			dl1Hash,
 			uint32(0),
 			nil,
 		).Return(uint64(100), nil)
@@ -156,7 +161,7 @@ func TestCreate(t *testing.T) {
 			identity,
 			uint32(20),
 			"",
-			hash(&dl2),
+			dl2Hash,
 			uint32(0),
 			nil,
 		).Return(uint64(200), nil)
@@ -242,12 +247,15 @@ func TestUpdate(t *testing.T) {
 	dl1.ContractID = 100
 	dl2.ContractID = 100
 
+	dl2Hash, err := hash(&dl2)
+	assert.NoError(t, err)
+
 	sub.EXPECT().
 		UpdateNodeContract(
 			identity,
 			uint64(100),
 			"",
-			hash(&dl2),
+			dl2Hash,
 		).Return(uint64(100), nil)
 
 	ncPool.EXPECT().
@@ -389,6 +397,11 @@ func TestCocktail(t *testing.T) {
 	dl3.ContractID = 200
 	dl4.ContractID = 300
 
+	dl3Hash, err := hash(&dl3)
+	assert.NoError(t, err)
+	dl4Hash, err := hash(&dl4)
+	assert.NoError(t, err)
+
 	oldDls := map[uint32]uint64{
 		10: 100,
 		20: 200,
@@ -405,7 +418,7 @@ func TestCocktail(t *testing.T) {
 			identity,
 			uint32(30),
 			"",
-			hash(&dl4),
+			dl4Hash,
 			uint32(0),
 			nil,
 		).Return(uint64(300), nil)
@@ -415,7 +428,7 @@ func TestCocktail(t *testing.T) {
 			identity,
 			uint64(200),
 			"",
-			hash(&dl3),
+			dl3Hash,
 		).Return(uint64(200), nil)
 
 	sub.EXPECT().
