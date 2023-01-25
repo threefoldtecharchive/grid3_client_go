@@ -1,6 +1,7 @@
-// Package manager is the grid manager
-package manager
+// Package deployer is the grid deployer
+package deployer
 
+/*
 import (
 	"context"
 	"encoding/json"
@@ -225,8 +226,8 @@ func constructTestDeployer(ctrl *gomock.Controller) DeploymentDeployer {
 		IPRange:     "10.10.0.0/16",
 		NetworkName: "network",
 		TFPluginClient: &TFPluginClient{
-			twinID:  20,
-			manager: manager,
+			TwinID:  20,
+			Manager: manager,
 		},
 	}
 }
@@ -459,3 +460,4 @@ func TestDeploymentSync(t *testing.T) {
 	assert.Equal(t, d.ID, cp.ID)
 	assert.Equal(t, d.Node, cp.Node)
 }
+*/

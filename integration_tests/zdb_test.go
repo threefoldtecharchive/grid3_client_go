@@ -1,6 +1,3 @@
-//go:build integration
-// +build integration
-
 // Package integration for integration tests
 package integration
 
@@ -16,6 +13,9 @@ import (
 )
 
 func TestZDBDeployment(t *testing.T) {
+	tfPluginClient, err := setup()
+	assert.NoError(t, err)
+
 	zdb := workloads.ZDB{
 		Name:        "testName",
 		Password:    "password",
@@ -24,18 +24,18 @@ func TestZDBDeployment(t *testing.T) {
 		Description: "test des",
 		Mode:        zos.ZDBModeUser,
 	}
-	dlManager, _ := setup()
-	err := dlManager.Stage(&zdb, 13)
+
+	err = tfPluginClient.Manager.Stage(&zdb, 13)
 	assert.NoError(t, err)
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 	defer cancel()
-	err = dlManager.Commit(ctx)
+	err = tfPluginClient.Manager.Commit(ctx)
 	assert.NoError(t, err)
 
-	err = dlManager.CancelAll()
+	err = tfPluginClient.Manager.CancelAll()
 	assert.NoError(t, err)
 
-	result, err := manager.LoadZdbFromGrid(dlManager, 13, "testName")
+	result, err := manager.LoadZdbFromGrid(tfPluginClient.Manager, 13, "testName")
 	assert.NoError(t, err)
 	assert.NotEmpty(t, result.IPs)
 	assert.NotEmpty(t, result.Namespace)
@@ -44,8 +44,8 @@ func TestZDBDeployment(t *testing.T) {
 	result.Port = 0
 	result.Namespace = ""
 	assert.Equal(t, zdb, result)
-	err = dlManager.CancelAll()
+	err = tfPluginClient.Manager.CancelAll()
 	assert.NoError(t, err)
-	_, err = manager.LoadZdbFromGrid(dlManager, 13, "testName")
+	_, err = manager.LoadZdbFromGrid(tfPluginClient.Manager, 13, "testName")
 	assert.Error(t, err)
 }

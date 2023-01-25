@@ -11,7 +11,7 @@ import (
 func TestNewDeployment(t *testing.T) {
 	var twinID uint32 = 11
 
-	d := NewDeployment(twinID, []gridtypes.Workload{})
+	d := NewGridDeployment(twinID, []gridtypes.Workload{})
 
 	assert.Equal(t, d.Version, uint32(0))
 	assert.Equal(t, d.TwinID, twinID)

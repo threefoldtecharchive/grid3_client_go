@@ -1,6 +1,3 @@
-//go:build integration
-// +build integration
-
 // Package integration for integration tests
 package integration
 
@@ -20,7 +17,9 @@ import (
 )
 
 func TestVmDisk(t *testing.T) {
-	dlManager, apiClient := setup()
+	tfPluginClient, err := setup()
+	assert.NoError(t, err)
+
 	publicKey := os.Getenv("PUBLICKEY")
 	network := workloads.ZNet{
 		Name:        "networkalaa",
@@ -57,28 +56,28 @@ func TestVmDisk(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	networkManager, err := manager.NewNetworkDeployer(apiClient.Manager, network)
+	networkManager, err := manager.NewNetworkDeployer(ctx, network, "", &tfPluginClient)
 	assert.NoError(t, err)
 
-	_, err = networkManager.Stage(ctx, apiClient, network)
+	err = networkManager.Stage(ctx)
 	assert.NoError(t, err)
 
-	err = dlManager.Stage(&vm, 14)
+	err = tfPluginClient.Manager.Stage(&vm, 14)
 	assert.NoError(t, err)
 
-	err = dlManager.Stage(&disk, 14)
+	err = tfPluginClient.Manager.Stage(&disk, 14)
 	assert.NoError(t, err)
 
-	err = dlManager.Commit(ctx)
+	err = tfPluginClient.Manager.Commit(ctx)
 	assert.NoError(t, err)
 
-	err = dlManager.CancelAll()
+	err = tfPluginClient.Manager.CancelAll()
 	assert.NoError(t, err)
 
-	result, err := manager.LoadVMFromGrid(dlManager, 14, "vm")
+	result, err := manager.LoadVMFromGrid(tfPluginClient.Manager, 14, "vm")
 	assert.NoError(t, err)
 
-	resDisk, err := manager.LoadDiskFromGrid(dlManager, 14, "testdisk")
+	resDisk, err := manager.LoadDiskFromGrid(tfPluginClient.Manager, 14, "testdisk")
 	assert.NoError(t, err)
 	assert.Equal(t, disk, resDisk)
 

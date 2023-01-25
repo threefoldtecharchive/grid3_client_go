@@ -1,6 +1,3 @@
-//go:build integration
-// +build integration
-
 // Package integration for integration tests
 package integration
 
@@ -23,6 +20,9 @@ const (
 )
 
 func TestQSFSDeployment(t *testing.T) {
+	tfPluginClient, err := setup()
+	assert.NoError(t, err)
+
 	dataZDBs := []workloads.ZDB{}
 	metaZDBs := []workloads.ZDB{}
 	for i := 1; i <= DataZDBNum; i++ {
@@ -48,35 +48,33 @@ func TestQSFSDeployment(t *testing.T) {
 		metaZDBs = append(metaZDBs, zdb)
 	}
 
-	dlManager, _ := setup()
-	var err error
 	for i := 0; i < DataZDBNum; i++ {
-		err = dlManager.Stage(&dataZDBs[i], 14)
+		err = tfPluginClient.Manager.Stage(&dataZDBs[i], 14)
 		assert.NoError(t, err)
 	}
 	for i := 0; i < MetaZDBNum; i++ {
-		err = dlManager.Stage(&metaZDBs[i], 14)
+		err = tfPluginClient.Manager.Stage(&metaZDBs[i], 14)
 		assert.NoError(t, err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 	defer cancel()
-	err = dlManager.Commit(ctx)
+	err = tfPluginClient.Manager.Commit(ctx)
 	assert.NoError(t, err)
 
-	err = dlManager.CancelAll()
+	err = tfPluginClient.Manager.CancelAll()
 	assert.NoError(t, err)
 
 	resDataZDBs := []workloads.ZDB{}
 	resMetaZDBs := []workloads.ZDB{}
 	for i := 1; i <= DataZDBNum; i++ {
-		res, err := manager.LoadZdbFromGrid(dlManager, 14, "qsfsDataZdb"+strconv.Itoa(i))
+		res, err := manager.LoadZdbFromGrid(tfPluginClient.Manager, 14, "qsfsDataZdb"+strconv.Itoa(i))
 		assert.NotEmpty(t, res)
 		assert.NoError(t, err)
 		resDataZDBs = append(resDataZDBs, res)
 	}
 	for i := 1; i <= MetaZDBNum; i++ {
-		res, err := manager.LoadZdbFromGrid(dlManager, 14, "qsfsMetaZdb"+strconv.Itoa(i))
+		res, err := manager.LoadZdbFromGrid(tfPluginClient.Manager, 14, "qsfsMetaZdb"+strconv.Itoa(i))
 		assert.NotEmpty(t, res)
 		assert.NoError(t, err)
 		resMetaZDBs = append(resMetaZDBs, res)
@@ -118,12 +116,12 @@ func TestQSFSDeployment(t *testing.T) {
 			Backends:            metaBackends,
 		},
 	}
-	err = dlManager.Stage(&qsfs, 14)
+	err = tfPluginClient.Manager.Stage(&qsfs, 14)
 	assert.NoError(t, err)
-	err = dlManager.Commit(ctx)
+	err = tfPluginClient.Manager.Commit(ctx)
 	assert.NoError(t, err)
 
-	resQSFS, err := manager.LoadQsfsFromGrid(dlManager, 14, "qsftTest")
+	resQSFS, err := manager.LoadQsfsFromGrid(tfPluginClient.Manager, 14, "qsftTest")
 	assert.NoError(t, err)
 	assert.NotEmpty(t, resQSFS.MetricsEndpoint)
 	resQSFS.MetricsEndpoint = ""

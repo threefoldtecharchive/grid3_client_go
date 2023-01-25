@@ -4,6 +4,7 @@ package deployer
 import (
 	"context"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
@@ -15,51 +16,69 @@ import (
 	"github.com/pkg/errors"
 	client "github.com/threefoldtech/grid3-go/node"
 	"github.com/threefoldtech/grid3-go/subi"
-	proxy "github.com/threefoldtech/grid_proxy_server/pkg/client"
 	"github.com/threefoldtech/substrate-client"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 )
 
+/*
 // DeployerInterface to be used for any deployer
 type DeployerInterface interface {
 	Deploy(ctx context.Context, sub subi.SubstrateExt, oldDeployments map[uint32]uint64, newDeployments map[uint32]gridtypes.Deployment) (map[uint32]uint64, error)
 	GetDeployments(ctx context.Context, sub subi.SubstrateExt, dls map[uint32]uint64) (map[uint32]gridtypes.Deployment, error)
+	Wait(
+		ctx context.Context,
+		nodeClient *client.NodeClient,
+		deploymentID uint64,
+		workloadVersions map[string]uint32,
+	) error
+}
+*/
+
+// DeploymentData for deployments meta data
+type DeploymentData struct {
+	Type        string `json:"type"`
+	Name        string `json:"name"`
+	ProjectName string `json:"projectName"`
 }
 
 // Deployer to be used for any deployer
 type Deployer struct {
-	identity         substrate.Identity
-	twinID           uint32
-	validator        Validator
-	ncPool           client.NodeClientGetter
-	revertOnFailure  bool
-	solutionProvider *uint64
-	deploymentData   string
+	identity        substrate.Identity
+	twinID          uint32
+	validator       Validator
+	ncPool          client.NodeClientGetter
+	revertOnFailure bool
+	//solutionProvider *uint64
+
+	stateLoader StateLoader
 }
 
 // NewDeployer returns a new deployer
 func NewDeployer(
-	identity substrate.Identity,
-	twinID uint32,
-	gridClient proxy.Client,
-	ncPool client.NodeClientGetter,
+	tfPluginClient TFPluginClient,
 	revertOnFailure bool,
-	solutionProvider *uint64,
-	deploymentData string,
 ) Deployer {
+	stateLoader := NewStateLoader(tfPluginClient.NcPool, tfPluginClient.SubstrateConn)
+
 	return Deployer{
-		identity,
-		twinID,
-		&ValidatorImpl{gridClient: gridClient},
-		ncPool,
+		tfPluginClient.Identity,
+		tfPluginClient.TwinID,
+		&ValidatorImpl{gridClient: tfPluginClient.GridProxyClient},
+		tfPluginClient.NcPool,
 		revertOnFailure,
-		solutionProvider,
-		deploymentData,
+		stateLoader,
 	}
 }
 
+// TODO: newDeployments should support more than 1 deployment per node ID
 // Deploy deploys a new deployment given the old deployments' IDs
-func (d *Deployer) Deploy(ctx context.Context, sub subi.SubstrateExt, oldDeploymentIDs map[uint32]uint64, newDeployments map[uint32]gridtypes.Deployment) (map[uint32]uint64, error) {
+func (d *Deployer) Deploy(ctx context.Context,
+	sub subi.SubstrateExt,
+	oldDeploymentIDs map[uint32]uint64,
+	newDeployments map[uint32]gridtypes.Deployment,
+	newDeploymentsData map[uint32]DeploymentData,
+	newDeploymentSolutionProvider map[uint32]*uint64,
+) (map[uint32]uint64, error) {
 	oldDeployments, oldErr := d.GetDeployments(ctx, sub, oldDeploymentIDs)
 	if oldErr == nil {
 		// check resources only when old deployments are readable
@@ -70,13 +89,13 @@ func (d *Deployer) Deploy(ctx context.Context, sub subi.SubstrateExt, oldDeploym
 		}
 	}
 	// ignore oldErr until we need oldDeployments
-	currentDeployments, err := d.deploy(ctx, sub, oldDeploymentIDs, newDeployments, d.revertOnFailure)
+	currentDeployments, err := d.deploy(ctx, sub, oldDeploymentIDs, newDeployments, newDeploymentsData, newDeploymentSolutionProvider, d.revertOnFailure)
 	if err != nil && d.revertOnFailure {
 		if oldErr != nil {
 			return currentDeployments, fmt.Errorf("failed to deploy deployments: %w; failed to fetch deployment objects to revert deployments: %s; try again", err, oldErr)
 		}
 
-		currentDls, rerr := d.deploy(ctx, sub, currentDeployments, oldDeployments, false)
+		currentDls, rerr := d.deploy(ctx, sub, currentDeployments, oldDeployments, newDeploymentsData, newDeploymentSolutionProvider, false)
 		if rerr != nil {
 			return currentDls, fmt.Errorf("failed to deploy deployments: %w; failed to revert deployments: %s; try again", err, rerr)
 		}
@@ -90,6 +109,8 @@ func (d *Deployer) deploy(
 	sub subi.SubstrateExt,
 	oldDeployments map[uint32]uint64,
 	newDeployments map[uint32]gridtypes.Deployment,
+	newDeploymentsData map[uint32]DeploymentData,
+	newDeploymentSolutionProvider map[uint32]*uint64,
 	revertOnFailure bool,
 ) (currentDeployments map[uint32]uint64, err error) {
 	currentDeployments = make(map[uint32]uint64)
@@ -137,7 +158,12 @@ func (d *Deployer) deploy(
 			}
 			log.Printf("Number of public ips: %d\n", publicIPCount)
 
-			contractID, err := sub.CreateNodeContract(d.identity, node, d.deploymentData, hashHex, publicIPCount, d.solutionProvider)
+			deploymentDataBytes, err := json.Marshal(newDeploymentsData[node])
+			if err != nil {
+				log.Printf("error parsing deployment data: %s", err.Error())
+			}
+
+			contractID, err := sub.CreateNodeContract(d.identity, node, string(deploymentDataBytes), hashHex, publicIPCount, newDeploymentSolutionProvider[node])
 			log.Printf("CreateNodeContract returned id: %d\n", contractID)
 			if err != nil {
 				return currentDeployments, errors.Wrap(err, "failed to create contract")
@@ -350,7 +376,7 @@ func (d *Deployer) Wait(
 				case gridtypes.StatePaused:
 					errString = fmt.Sprintf("workload %s state within deployment %d is paused: %s", wl.Name, deploymentID, wl.Result.Error)
 				case gridtypes.StateUnChanged:
-					errString = fmt.Sprintf("worklaod %s within deployment %d was not updated: %s", wl.Name, deploymentID, wl.Result.Error)
+					errString = fmt.Sprintf("workload %s within deployment %d was not updated: %s", wl.Name, deploymentID, wl.Result.Error)
 				}
 				if errString != "" {
 					return backoff.Permanent(errors.New(errString))

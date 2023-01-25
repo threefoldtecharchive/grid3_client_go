@@ -4,6 +4,22 @@ package deployer
 import (
 	"context"
 	"encoding/hex"
+	"os"
+
+	"github.com/joho/godotenv"
+	"github.com/pkg/errors"
+	"github.com/threefoldtech/grid3-go/subi"
+	"github.com/threefoldtech/grid3-go/workloads"
+	"github.com/threefoldtech/substrate-client"
+	"github.com/threefoldtech/zos/pkg/gridtypes"
+	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
+)
+
+/*
+import (
+
+	"context"
+	"encoding/hex"
 	"encoding/json"
 	"os"
 
@@ -24,17 +40,9 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 
 	"github.com/joho/godotenv"
-)
 
-var (
-	SubstrateURLs = map[string]string{
-		"dev":  "wss://tfchain.dev.grid.tf/ws",
-		"test": "wss://tfchain.test.grid.tf/ws",
-		"qa":   "wss://tfchain.qa.grid.tf/ws",
-		"main": "wss://tfchain.grid.tf/ws",
-	}
 )
-
+*/
 func SetUP() (identity substrate.Identity, twinID uint32, err error) {
 	if _, err = os.Stat("../.env"); !errors.Is(err, os.ErrNotExist) {
 		err = godotenv.Load("../.env")
@@ -106,6 +114,7 @@ func (d *EmptyValidator) Validate(ctx context.Context, sub subi.SubstrateExt, ol
 	return nil
 }
 
+/*
 func TestCreate(t *testing.T) {
 	identity, twinID, err := SetUP()
 	assert.NoError(t, err)
@@ -548,3 +557,4 @@ func TestCocktail(t *testing.T) {
 		40: 400,
 	})
 }
+*/

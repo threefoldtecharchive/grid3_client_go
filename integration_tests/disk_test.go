@@ -19,24 +19,26 @@ func TestDiskDeployment(t *testing.T) {
 		Size:        20,
 		Description: "disk test",
 	}
-	deploymentManager, _ := setup()
-	err := deploymentManager.Stage(&disk, nodeID)
+	tfPluginClient, err := setup()
+	assert.NoError(t, err)
+
+	err = tfPluginClient.Manager.Stage(&disk, nodeID)
 	assert.NoError(t, err)
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 	defer cancel()
 
-	err = deploymentManager.Commit(ctx)
+	err = tfPluginClient.Manager.Commit(ctx)
 	assert.NoError(t, err)
 
-	err = deploymentManager.CancelAll()
+	err = tfPluginClient.Manager.CancelAll()
 	assert.NoError(t, err)
 
-	result, err := manager.LoadDiskFromGrid(deploymentManager, 13, "testName")
+	result, err := manager.LoadDiskFromGrid(tfPluginClient.Manager, 13, "testName")
 	assert.Equal(t, disk, result)
 	assert.NoError(t, err)
-	err = deploymentManager.CancelAll()
+	err = tfPluginClient.Manager.CancelAll()
 	assert.NoError(t, err)
-	_, err = manager.LoadDiskFromGrid(deploymentManager, 13, "testName")
+	_, err = manager.LoadDiskFromGrid(tfPluginClient.Manager, 13, "testName")
 	assert.Error(t, err)
 
 }

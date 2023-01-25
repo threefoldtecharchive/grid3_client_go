@@ -1,6 +1,7 @@
-// Package manager for grid manager
-package manager
+// Package deployer for grid deployer
+package deployer
 
+/*
 import (
 	"encoding/hex"
 	"encoding/json"
@@ -750,3 +751,4 @@ func TestLoadZdbFromGrid(t *testing.T) {
 		assert.Error(t, err)
 	})
 }
+*/

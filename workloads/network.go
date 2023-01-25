@@ -15,6 +15,7 @@ import (
 	proxyTypes "github.com/threefoldtech/grid_proxy_server/pkg/types"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
+	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
 // UserAccess struct
@@ -33,6 +34,15 @@ type ZNet struct {
 	Nodes       []uint32
 	IPRange     gridtypes.IPNet
 	AddWGAccess bool
+
+	// computed
+	SolutionType     string
+	AccessWGConfig   string
+	ExternalIP       *gridtypes.IPNet
+	ExternalSK       wgtypes.Key
+	PublicNodeID     uint32
+	NodesIPRange     map[uint32]gridtypes.IPNet
+	NodeDeploymentID map[uint32]uint64
 }
 
 // NewNetworkFromWorkload generates a new znet from a workload
@@ -49,6 +59,16 @@ func NewNetworkFromWorkload(wl gridtypes.Workload, nodeID uint32) (ZNet, error) 
 		IPRange:     data.NetworkIPRange,
 		AddWGAccess: data.WGPrivateKey != "",
 	}, nil
+}
+
+// Validate validates a network
+func (znet *ZNet) Validate() error {
+	mask := znet.IPRange.Mask
+	if ones, _ := mask.Size(); ones != 16 {
+		return fmt.Errorf("subnet in ip range %s should be 16", znet.IPRange.String())
+	}
+
+	return nil
 }
 
 // GetZNetWorkloadData retrieves network workload data

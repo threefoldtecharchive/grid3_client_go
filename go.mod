@@ -12,7 +12,7 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/threefoldtech/go-rmb v0.2.0
 	github.com/threefoldtech/grid_proxy_server v1.5.6
-	github.com/threefoldtech/substrate-client v0.0.0-20230103083438-c6d86a2e6338
+	github.com/threefoldtech/substrate-client v0.0.0-20230111172347-137127470b5d
 	github.com/threefoldtech/zos v0.5.6-0.20230103093557-d9c7fe2b92e7
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20200609130330-bd2cb7843e1b
 )
@@ -31,7 +31,7 @@ require (
 	github.com/go-redis/redis/v8 v8.11.1 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/golang/mock v1.6.0
-	github.com/gomodule/redigo v2.0.0+incompatible // indirect
+	github.com/gomodule/redigo v2.0.0+incompatible
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect

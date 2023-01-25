@@ -9,6 +9,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
+	client "github.com/threefoldtech/grid3-go/node"
 	subi "github.com/threefoldtech/grid3-go/subi"
 	gridtypes "github.com/threefoldtech/zos/pkg/gridtypes"
 )
@@ -64,4 +65,28 @@ func (m *MockDeployer) GetDeployments(ctx context.Context, sub subi.SubstrateExt
 func (mr *MockDeployerMockRecorder) GetDeployments(ctx, sub, dls interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDeployments", reflect.TypeOf((*MockDeployer)(nil).GetDeployments), ctx, sub, dls)
+}
+
+// Wait mocks base method.
+func (m *MockDeployer) Wait(
+	ctx context.Context,
+	nodeClient *client.NodeClient,
+	deploymentID uint64,
+	workloadVersions map[string]uint32,
+) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Wait", ctx, nodeClient, deploymentID, workloadVersions)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Wait indicates an expected call of Wait.
+func (mr *MockDeployerMockRecorder) Wait(
+	ctx context.Context,
+	nodeClient *client.NodeClient,
+	deploymentID uint64,
+	workloadVersions map[string]uint32,
+) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Wait", reflect.TypeOf((*MockDeployer)(nil).Wait), ctx, nodeClient, deploymentID, workloadVersions)
 }

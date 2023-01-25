@@ -1,5 +1,5 @@
-// Package manager for grid manager
-package manager
+// Package deployer for grid deployer
+package deployer
 
 import (
 	"fmt"
@@ -18,14 +18,14 @@ import (
 
 // validateAccount checks the mnemonics is associated with an account with key type ed25519
 func validateAccount(tfPluginClient *TFPluginClient, sub subi.SubstrateExt) error {
-	_, err := sub.GetAccount(tfPluginClient.identity)
+	_, err := sub.GetAccount(tfPluginClient.Identity)
 	if err != nil && !errors.Is(err, substrate.ErrAccountNotFound) {
 		return errors.Wrap(err, "failed to get account with the given mnemonics")
 	}
 	if err != nil { // Account not found
 		funcs := map[string]func(string) (substrate.Identity, error){"ed25519": substrate.NewIdentityFromEd25519Phrase, "sr25519": substrate.NewIdentityFromSr25519Phrase}
 		for keyType, f := range funcs {
-			ident, err2 := f(tfPluginClient.mnemonics)
+			ident, err2 := f(tfPluginClient.Mnemonics)
 			if err2 != nil { // shouldn't happen, return original error
 				log.Printf("couldn't convert the mnemonics to %s key: %s", keyType, err2.Error())
 				return err
@@ -42,8 +42,8 @@ func validateAccount(tfPluginClient *TFPluginClient, sub subi.SubstrateExt) erro
 }
 
 func validateRedis(tfPluginClient *TFPluginClient) error {
-	errMsg := fmt.Sprintf("redis error. make sure rmb_redis_url is correct and there's a redis server listening there. rmb_redis_url: %s", tfPluginClient.rmbRedisURL)
-	cl, err := newRedisPool(tfPluginClient.rmbRedisURL)
+	errMsg := fmt.Sprintf("redis error. make sure rmb_redis_url is correct and there's a redis server listening there. rmb_redis_url: %s", tfPluginClient.RMBRedisURL)
+	cl, err := newRedisPool(tfPluginClient.RMBRedisURL)
 	if err != nil {
 		return errors.Wrap(err, errMsg)
 	}
@@ -56,9 +56,9 @@ func validateRedis(tfPluginClient *TFPluginClient) error {
 }
 
 func validateYggdrasil(tfPluginClient *TFPluginClient, sub subi.SubstrateExt) error {
-	yggIP, err := sub.GetTwinIP(tfPluginClient.twinID)
+	yggIP, err := sub.GetTwinIP(tfPluginClient.TwinID)
 	if err != nil {
-		return errors.Wrapf(err, "could not get twin %d from substrate", tfPluginClient.twinID)
+		return errors.Wrapf(err, "could not get twin %d from substrate", tfPluginClient.TwinID)
 	}
 	ip := net.ParseIP(yggIP)
 	listenIP := yggIP
@@ -69,7 +69,7 @@ func validateYggdrasil(tfPluginClient *TFPluginClient, sub subi.SubstrateExt) er
 	}
 	s, err := net.Listen("tcp", fmt.Sprintf("%s:0", listenIP))
 	if err != nil {
-		return errors.Wrapf(err, "couldn't listen on port. make sure the twin id is associated with a valid yggdrasil ip, twin id: %d, ygg ip: %s, err", tfPluginClient.twinID, yggIP)
+		return errors.Wrapf(err, "couldn't listen on port. make sure the twin id is associated with a valid yggdrasil ip, twin id: %d, ygg ip: %s, err", tfPluginClient.TwinID, yggIP)
 	}
 	defer s.Close()
 	port := s.Addr().(*net.TCPAddr).Port
@@ -87,11 +87,11 @@ func validateYggdrasil(tfPluginClient *TFPluginClient, sub subi.SubstrateExt) er
 	}()
 	c, err := net.Dial("tcp", fmt.Sprintf("%s:%d", listenIP, port))
 	if err != nil {
-		return errors.Wrapf(err, "failed to connect to ip. make sure the twin id is associated with a valid yggdrasil ip, twin id: %d, ygg ip: %s, err", tfPluginClient.twinID, yggIP)
+		return errors.Wrapf(err, "failed to connect to ip. make sure the twin id is associated with a valid yggdrasil ip, twin id: %d, ygg ip: %s, err", tfPluginClient.TwinID, yggIP)
 	}
 	c.Close()
 	if !arrived {
-		return errors.Wrapf(err, "sent request but didn't arrive to me. make sure the twin id is associated with a valid yggdrasil ip, twin id: %d, ygg ip: %s, err", tfPluginClient.twinID, yggIP)
+		return errors.Wrapf(err, "sent request but didn't arrive to me. make sure the twin id is associated with a valid yggdrasil ip, twin id: %d, ygg ip: %s, err", tfPluginClient.TwinID, yggIP)
 	}
 	return nil
 }
@@ -105,7 +105,7 @@ func validateRMB(tfPluginClient *TFPluginClient, sub subi.SubstrateExt) error {
 }
 
 func validateRMBProxyServer(tfPluginClient *TFPluginClient) error {
-	return tfPluginClient.gridProxyClient.Ping()
+	return tfPluginClient.GridProxyClient.Ping()
 }
 
 func validateMnemonics(mnemonics string) error {
@@ -113,7 +113,7 @@ func validateMnemonics(mnemonics string) error {
 		return errors.New("mnemonics required")
 	}
 
-	alphaOnly := regexp.MustCompile(`^[A-Za-z]+$`)
+	alphaOnly := regexp.MustCompile(`^[a-zA-Z\s]+$`)
 	if !alphaOnly.MatchString(mnemonics) {
 		return errors.New("mnemonics are can only be composed of a non-alphanumeric character or a whitespace")
 	}
@@ -148,7 +148,7 @@ func validateProxyURL(url string) error {
 }
 
 func validateClientRMB(tfPluginClient *TFPluginClient, sub subi.SubstrateExt) error {
-	if tfPluginClient.useRmbProxy {
+	if tfPluginClient.UseRmbProxy {
 		return validateRMBProxyServer(tfPluginClient)
 	}
 

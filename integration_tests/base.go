@@ -15,10 +15,6 @@ import (
 	"github.com/goombaio/namegenerator"
 	"github.com/joho/godotenv"
 	"github.com/threefoldtech/grid3-go/manager"
-	client "github.com/threefoldtech/grid3-go/node"
-	"github.com/threefoldtech/grid3-go/subi"
-	proxy "github.com/threefoldtech/grid_proxy_server/pkg/client"
-	"github.com/threefoldtech/substrate-client"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -39,55 +35,23 @@ var (
 	}
 )
 
-func setup() (manager.DeploymentManager, manager.APIClient) {
+func setup() (manager.TFPluginClient, error) {
 	if _, err := os.Stat("../.env"); !errors.Is(err, os.ErrNotExist) {
 		err := godotenv.Load("../.env")
 		if err != nil {
-			panic(err)
+			return manager.TFPluginClient{}, err
 		}
 	}
 
 	mnemonics := os.Getenv("MNEMONICS")
-	SSHKeys()
-	identity, err := substrate.NewIdentityFromSr25519Phrase(mnemonics)
-	if err != nil {
-		panic(err)
-	}
-	sk, err := identity.KeyPair()
-	if err != nil {
-		panic(err)
-	}
+	log.Printf("mnemonics: %s", mnemonics)
+
 	network := os.Getenv("NETWORK")
 	log.Printf("network: %s", network)
-	sub := subi.NewManager(SubstrateURLs[network])
-	pub := sk.Public()
-	subext, err := sub.SubstrateExt()
-	if err != nil {
-		panic(err)
-	}
-	// defer subext.Close()
-	twin, err := subext.GetTwinByPubKey(pub)
-	if err != nil {
-		panic(err)
-	}
-	cl, err := client.NewProxyBus(RMBProxyURLs[network], twin, subext, identity, true)
-	if err != nil {
-		panic(err)
-	}
-	gridClient := proxy.NewRetryingClient(proxy.NewClient(RMBProxyURLs[network]))
-	ncPool := client.NewNodeClientPool(cl)
-	dlManager := manager.NewDeploymentManager(identity, twin, map[uint32]uint64{}, gridClient, ncPool, &sub)
-	apiClient := manager.APIClient{
-		SubstrateExt: subext,
-		NCPool:       ncPool,
-		ProxyClient:  gridClient,
-		Manager:      dlManager,
-		Identity:     identity,
-	}
-	log.Printf("api client: %+v", apiClient.NCPool)
-	log.Printf("api client: %+v", apiClient.SubstrateExt)
 
-	return dlManager, apiClient
+	SSHKeys()
+
+	return manager.NewTFPluginClient(mnemonics, "sr25519", network, "", "", true, "", true)
 }
 
 // UpWg used for up wireguard

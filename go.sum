@@ -1026,6 +1026,8 @@ github.com/threefoldtech/substrate-client v0.0.0-20220224131248-f56a2e9fa1d4/go.
 github.com/threefoldtech/substrate-client v0.0.0-20220629072807-544d41e5b81a/go.mod h1:c84405+EkHv4YAAdMGyQuc0U29zmaVxzfFr7Cma1JEo=
 github.com/threefoldtech/substrate-client v0.0.0-20230103083438-c6d86a2e6338 h1:944udPn3N1Nwx0qYWeZJTlvurPMuKyhcCRXJcRA8/pE=
 github.com/threefoldtech/substrate-client v0.0.0-20230103083438-c6d86a2e6338/go.mod h1:ys/GJLeLmNX8E36UFMeR0yZC5Lo4PufYtfwsVX8H/AM=
+github.com/threefoldtech/substrate-client v0.0.0-20230111172347-137127470b5d h1:l5qGKf9dzMOuNfuhVgNTrlO98BGgPMxCnd21CjSxRUQ=
+github.com/threefoldtech/substrate-client v0.0.0-20230111172347-137127470b5d/go.mod h1:ys/GJLeLmNX8E36UFMeR0yZC5Lo4PufYtfwsVX8H/AM=
 github.com/threefoldtech/zbus v1.0.0/go.mod h1:E/v/xEvG/l6z/Oj0aDkuSUXFm/1RVJkhKBwDTAIdsHo=
 github.com/threefoldtech/zos v0.5.6-0.20230103093557-d9c7fe2b92e7 h1:wGArjIhGbiMK55jCbj08/sxvzKHjxyphglvPCfOtWGE=
 github.com/threefoldtech/zos v0.5.6-0.20230103093557-d9c7fe2b92e7/go.mod h1:BhZ2qsjBpl0LZPirBOWtPFF013HPmN/BN6PivDyK6zo=

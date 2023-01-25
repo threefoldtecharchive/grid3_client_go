@@ -27,36 +27,24 @@ type DeploymentManager interface {
 	Commit(ctx context.Context) error
 	SetWorkloads(workloads map[uint32][]gridtypes.Workload) error
 	CancelWorkloads(workloads map[uint32]map[string]bool) error
-	GetWorkload(nodeID uint32, name string) (gridtypes.Workload, error)
-	GetDeployment(nodeID uint32) (gridtypes.Deployment, error)
-	GetContractIDs() map[uint32]uint64
-
-	SetDeploymentNetworkHostIDs(network string, nodeID uint32, deploymentID string, ips []byte)
-	GetDeploymentNetworkHostIDs(network string, nodeID uint32, deploymentID string) []byte
-	DeleteDeploymentNetworkHostIDs(network string, nodeID uint32, deploymentID string)
-	GetUsedNetworkHostIDs(network string, nodeID uint32) []byte
 
 	Stage(workloadsToNodeBinder workloads.WorkloadsToNodeBinder, nodeID uint32) error
 }
 
-type deploymentHostIDs map[string][]byte
-type nodeDeploymentHostIDs map[uint32]deploymentHostIDs
-type networkNodeDeploymentHostIDs map[string]nodeDeploymentHostIDs
-
 // DeploymentManager for managing deployments
 type deploymentManager struct {
-	identity                     substrate.Identity
-	twinID                       uint32
-	deploymentIDs                map[uint32]uint64 //TODO : should include all contracts of user
-	affectedDeployments          map[uint32]uint64
-	plannedDeployments           map[uint32]gridtypes.Deployment
-	nameContracts                map[string]uint64
-	plannedNameContracts         []string
-	networkNodeDeploymentHostIDs networkNodeDeploymentHostIDs
-	gridClient                   proxy.Client
-	ncPool                       client.NodeClientGetter
-	substrate                    subi.ManagerInterface
-	//connection field
+	identity substrate.Identity
+	twinID   uint32
+
+	deploymentIDs        map[uint32]uint64 //TODO : should include all contracts of user
+	affectedDeployments  map[uint32]uint64
+	plannedDeployments   map[uint32]gridtypes.Deployment
+	nameContracts        map[string]uint64
+	plannedNameContracts []string
+
+	gridProxyClient proxy.Client
+	ncPool          client.NodeClientGetter
+	substrate       subi.SubstrateExt
 }
 
 // NewDeploymentManager generates a new deployment manager
@@ -66,7 +54,7 @@ func NewDeploymentManager(
 	deploymentIDs map[uint32]uint64,
 	gridClient proxy.Client,
 	ncPool client.NodeClientGetter,
-	sub subi.ManagerInterface) DeploymentManager {
+	sub subi.SubstrateExt) DeploymentManager {
 
 	return &deploymentManager{
 		identity,
@@ -84,11 +72,10 @@ func NewDeploymentManager(
 }
 
 func (d *deploymentManager) CancelAll() error { //TODO
-	sub, err := d.substrate.SubstrateExt()
-	if err != nil {
-		return errors.Wrapf(err, "couldn't get substrate ")
-	}
-	err = cancelNameContracts(d.nameContracts, *d, sub)
+	sub := d.substrate
+	defer sub.Close()
+
+	err := cancelNameContracts(d.nameContracts, *d, sub)
 	if err != nil {
 		return errors.Wrapf(err, "couldn't cancel contract name")
 	}
@@ -322,19 +309,16 @@ func (d *deploymentManager) assignVMIPs() error {
 
 func (d *deploymentManager) Commit(ctx context.Context) error {
 	// generate gridtypes.Deployment from plannedDeployments
-	deployer := deployer.NewDeployer(d.identity, d.twinID, d.gridClient, d.ncPool, true, nil, "")
-	s, err := d.substrate.SubstrateExt()
-	if err != nil {
-		return errors.Wrap(err, "couldn't get substrate client")
-	}
-	defer s.Close()
+	deployer := deployer.NewDeployer(d.identity, d.twinID, d.gridProxyClient, d.ncPool, true, nil, "")
+	sub := d.substrate
+	defer sub.Close()
 
 	createdNameContracts := map[string]uint64{}
-	err = createNameContracts(createdNameContracts, *d, s)
+	err := createNameContracts(createdNameContracts, *d, sub)
 
 	if err != nil {
 		// revert changes
-		revErr := cancelNameContracts(createdNameContracts, *d, s)
+		revErr := cancelNameContracts(createdNameContracts, *d, sub)
 		if revErr != nil {
 			return errors.Wrapf(revErr, "couldn't revert changes")
 		}
@@ -348,7 +332,7 @@ func (d *deploymentManager) Commit(ctx context.Context) error {
 		return err
 	}
 
-	committedDeploymentsIDs, err := deployer.Deploy(ctx, s, d.affectedDeployments, d.plannedDeployments)
+	committedDeploymentsIDs, err := deployer.Deploy(ctx, sub, d.affectedDeployments, d.plannedDeployments)
 	if err != nil {
 		return err
 	}
@@ -389,12 +373,10 @@ func (d *deploymentManager) SetWorkloads(workloads map[uint32][]gridtypes.Worklo
 		if pdCopy, ok := planned[nodeID]; ok {
 			dl = pdCopy
 		} else if dID, ok := d.deploymentIDs[nodeID]; ok {
-			s, err := d.substrate.SubstrateExt()
-			if err != nil {
-				return errors.Wrap(err, "couldn't get substrate client")
-			}
-			defer s.Close()
-			nodeClient, err := d.ncPool.GetNodeClient(s, nodeID)
+			sub := d.substrate
+			defer sub.Close()
+
+			nodeClient, err := d.ncPool.GetNodeClient(sub, nodeID)
 			if err != nil {
 				return errors.Wrapf(err, "couldn't get node client: %d", nodeID)
 			}
@@ -432,56 +414,6 @@ func (d *deploymentManager) SetWorkloads(workloads map[uint32][]gridtypes.Worklo
 	d.affectedDeployments = affected
 
 	return nil
-}
-
-func (d *deploymentManager) GetWorkload(nodeID uint32, name string) (gridtypes.Workload, error) {
-	if deployment, ok := d.deploymentIDs[nodeID]; ok {
-		s, err := d.substrate.SubstrateExt()
-		if err != nil {
-			return gridtypes.Workload{}, errors.Wrap(err, "couldn't get substrate client")
-		}
-		defer s.Close()
-		nodeClient, err := d.ncPool.GetNodeClient(s, nodeID)
-		if err != nil {
-			return gridtypes.Workload{}, errors.Wrapf(err, "couldn't get node client: %d", nodeID)
-		}
-		dl, err := nodeClient.DeploymentGet(context.Background(), deployment)
-		if err != nil {
-			return gridtypes.Workload{}, errors.Wrapf(err, "couldn't get deployment from node %d", nodeID)
-		}
-
-		for _, workload := range dl.Workloads {
-			if workload.Name == gridtypes.Name(name) {
-				return workload, nil
-			}
-		}
-		return gridtypes.Workload{}, fmt.Errorf("couldn't get workload with name %s", name)
-	}
-	return gridtypes.Workload{}, fmt.Errorf("couldn't get deployment with node ID %d", nodeID)
-}
-
-func (d *deploymentManager) GetDeployment(nodeID uint32) (gridtypes.Deployment, error) {
-	if dID, ok := d.deploymentIDs[nodeID]; ok {
-		s, err := d.substrate.SubstrateExt()
-		if err != nil {
-			return gridtypes.Deployment{}, errors.Wrap(err, "couldn't get substrate client")
-		}
-		defer s.Close()
-		nodeClient, err := d.ncPool.GetNodeClient(s, nodeID)
-		if err != nil {
-			return gridtypes.Deployment{}, errors.Wrapf(err, "couldn't get node client: %d", nodeID)
-		}
-		dl, err := nodeClient.DeploymentGet(context.Background(), dID)
-		if err != nil {
-			return gridtypes.Deployment{}, errors.Wrapf(err, "couldn't get deployment from node %d", nodeID)
-		}
-		return dl, nil
-	}
-	return gridtypes.Deployment{}, fmt.Errorf("couldn't get deployment with node ID %d", nodeID)
-}
-
-func (d *deploymentManager) GetContractIDs() map[uint32]uint64 {
-	return d.deploymentIDs
 }
 
 func (d *deploymentManager) updateDeploymentIDs(committedDeploymentsIDs map[uint32]uint64) {

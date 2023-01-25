@@ -73,7 +73,6 @@ func TestCancelAll(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	sub := mocks.NewMockSubstrateExt(ctrl)
-	subi := mocks.NewMockManagerInterface(ctrl)
 	gridClient := mocks.NewMockClient(ctrl)
 	ncPool := mocks.NewMockNodeClientGetter(ctrl)
 	dl1, err := deploymentWithNameGateway(identity, twinID, false, 0, backendURLWithoutTLSPassthrough)
@@ -89,11 +88,8 @@ func TestCancelAll(t *testing.T) {
 		dMap,
 		gridClient,
 		ncPool,
-		subi,
+		sub,
 	)
-	subi.EXPECT().
-		SubstrateExt().
-		Return(sub, nil)
 	sub.EXPECT().
 		CancelContract(
 			identity,
@@ -110,7 +106,6 @@ func TestCommit(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	sub := mocks.NewMockSubstrateExt(ctrl)
-	subi := mocks.NewMockManagerInterface(ctrl)
 	gridClient := mocks.NewMockClient(ctrl)
 	ncPool := mocks.NewMockNodeClientGetter(ctrl)
 	dl1, err := deploymentWithNameGateway(identity, twinID, false, 0, backendURLWithoutTLSPassthrough)
@@ -123,11 +118,8 @@ func TestCommit(t *testing.T) {
 		map[uint32]uint64{10: 100},
 		gridClient,
 		ncPool,
-		subi,
+		sub,
 	)
-	subi.EXPECT().
-		SubstrateExt().
-		Return(sub, nil)
 	sub.EXPECT().Close()
 	err = manager.Commit(context.Background())
 	assert.NoError(t, err)
@@ -140,7 +132,6 @@ func TestSetWorkload(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	sub := mocks.NewMockSubstrateExt(ctrl)
-	subi := mocks.NewMockManagerInterface(ctrl)
 	ncPool := mocks.NewMockNodeClientGetter(ctrl)
 	cl := mocks.NewRMBMockClient(ctrl)
 	gridClient := mocks.NewMockClient(ctrl)
@@ -171,7 +162,7 @@ func TestSetWorkload(t *testing.T) {
 		dMap,
 		gridClient,
 		ncPool,
-		subi,
+		sub,
 	)
 	ncPool.EXPECT().
 		GetNodeClient(
@@ -197,7 +188,6 @@ func TestCancelWorkloads(t *testing.T) {
 	defer ctrl.Finish()
 	sub := mocks.NewMockSubstrateExt(ctrl)
 	cl := mocks.NewRMBMockClient(ctrl)
-	subi := mocks.NewMockManagerInterface(ctrl)
 	ncPool := mocks.NewMockNodeClientGetter(ctrl)
 	gridClient := mocks.NewMockClient(ctrl)
 
@@ -216,11 +206,8 @@ func TestCancelWorkloads(t *testing.T) {
 		map[uint32]uint64{10: 100},
 		gridClient,
 		ncPool,
-		subi,
+		sub,
 	)
-	subi.EXPECT().
-		SubstrateExt().
-		Return(sub, nil)
 	sub.EXPECT().Close()
 	ncPool.EXPECT().
 		GetNodeClient(
@@ -245,7 +232,6 @@ func TestGetWorkload(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	sub := mocks.NewMockSubstrateExt(ctrl)
-	subi := mocks.NewMockManagerInterface(ctrl)
 	ncPool := mocks.NewMockNodeClientGetter(ctrl)
 	cl := mocks.NewRMBMockClient(ctrl)
 	gridClient := mocks.NewMockClient(ctrl)
@@ -267,11 +253,8 @@ func TestGetWorkload(t *testing.T) {
 		map[uint32]uint64{10: 100},
 		gridClient,
 		ncPool,
-		subi,
+		sub,
 	)
-	subi.EXPECT().
-		SubstrateExt().
-		Return(sub, nil)
 	sub.EXPECT().Close()
 	ncPool.EXPECT().
 		GetNodeClient(
@@ -297,7 +280,6 @@ func TestGetDeployment(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	sub := mocks.NewMockSubstrateExt(ctrl)
-	subi := mocks.NewMockManagerInterface(ctrl)
 	ncPool := mocks.NewMockNodeClientGetter(ctrl)
 	cl := mocks.NewRMBMockClient(ctrl)
 	gridClient := mocks.NewMockClient(ctrl)
@@ -315,11 +297,8 @@ func TestGetDeployment(t *testing.T) {
 		dMap,
 		gridClient,
 		ncPool,
-		subi,
+		sub,
 	)
-	subi.EXPECT().
-		SubstrateExt().
-		Return(sub, nil)
 	sub.EXPECT().Close()
 	ncPool.EXPECT().
 		GetNodeClient(

@@ -1,6 +1,3 @@
-//go:build integration
-// +build integration
-
 // Package integration for integration tests
 package integration
 
@@ -20,7 +17,9 @@ import (
 )
 
 func TestGatewayNameDeployment(t *testing.T) {
-	dlManager, _ := setup()
+	tfPluginClient, err := setup()
+	assert.NoError(t, err)
+
 	backend := "http://162.205.240.240"
 	expected := workloads.GatewayNameProxy{
 		Name:           "testx",
@@ -29,21 +28,21 @@ func TestGatewayNameDeployment(t *testing.T) {
 		FQDN:           "testx.Libra.Tfcloud.us",
 	}
 
-	err := dlManager.Stage(&expected, 49)
+	err = tfPluginClient.Manager.Stage(&expected, 49)
 	assert.NoError(t, err)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	err = dlManager.Commit(ctx)
+	err = tfPluginClient.Manager.Commit(ctx)
 	assert.NoError(t, err)
-	err = dlManager.CancelAll()
+	err = tfPluginClient.Manager.CancelAll()
 	assert.NoError(t, err)
-	result, err := manager.LoadGatewayNameFromGrid(dlManager, 49, "testx")
+	result, err := manager.LoadGatewayNameFromGrid(tfPluginClient.Manager, 49, "testx")
 	assert.NoError(t, err)
 	assert.Equal(t, expected, result)
-	err = dlManager.CancelAll()
+	err = tfPluginClient.Manager.CancelAll()
 	assert.NoError(t, err)
 	expected = workloads.GatewayNameProxy{}
-	wl, err := manager.LoadGatewayNameFromGrid(dlManager, 49, "testx")
+	wl, err := manager.LoadGatewayNameFromGrid(tfPluginClient.Manager, 49, "testx")
 	assert.Error(t, err)
 	assert.Equal(t, reflect.DeepEqual(expected, wl), true)
 }

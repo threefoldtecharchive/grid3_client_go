@@ -1,6 +1,3 @@
-//go:build integration
-// +build integration
-
 // Package integration for integration tests
 package integration
 
@@ -20,10 +17,13 @@ import (
 )
 
 func TestVMDeployment(t *testing.T) {
-	dlManager, apiClient := setup()
+	tfPluginClient, err := setup()
+	assert.NoError(t, err)
+
 	publicKey := os.Getenv("PUBLICKEY")
+
 	network := workloads.ZNet{
-		Name:        "testingNetwork123",
+		Name:        "testingNetwork",
 		Description: "network for testing",
 		Nodes:       []uint32{14},
 		IPRange: gridtypes.NewIPNet(net.IPNet{
@@ -32,6 +32,7 @@ func TestVMDeployment(t *testing.T) {
 		}),
 		AddWGAccess: false,
 	}
+
 	vm := workloads.VM{
 		Name:       "vm",
 		Flist:      "https://hub.grid.tf/tf-official-apps/threefoldtech-ubuntu-20.04.flist",
@@ -45,31 +46,32 @@ func TestVMDeployment(t *testing.T) {
 			"TEST_VAR": "this value for test",
 		},
 		IP:          "10.1.0.2",
-		NetworkName: "testingNetwork123",
+		NetworkName: "testingNetwork",
 	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	networkManager, err := manager.NewNetworkDeployer(apiClient.Manager, network)
+	networkManager, err := manager.NewNetworkDeployer(ctx, network, "", &tfPluginClient)
 	assert.NoError(t, err)
 
 	t.Run("check VM configuration is correct", func(t *testing.T) {
 		vmCp := vm
 
-		_, err := networkManager.Stage(ctx, apiClient, network)
+		err := networkManager.Stage(ctx)
 		assert.NoError(t, err)
-		err = dlManager.Commit(ctx)
-		assert.NoError(t, err)
-
-		err = dlManager.CancelAll()
+		err = tfPluginClient.Manager.Commit(ctx)
 		assert.NoError(t, err)
 
-		err = dlManager.Stage(&vmCp, 14)
-		assert.NoError(t, err)
-		err = dlManager.Commit(ctx)
+		err = tfPluginClient.Manager.CancelAll()
 		assert.NoError(t, err)
 
-		result, err := manager.LoadVMFromGrid(dlManager, 14, "vm")
+		err = tfPluginClient.Manager.Stage(&vmCp, 14)
+		assert.NoError(t, err)
+		err = tfPluginClient.Manager.Commit(ctx)
+		assert.NoError(t, err)
+
+		result, err := manager.LoadVMFromGrid(tfPluginClient.Manager, 14, "vm")
 		assert.NoError(t, err)
 
 		assert.Equal(t, 20*1024, result.RootfsSize)
@@ -101,20 +103,20 @@ func TestVMDeployment(t *testing.T) {
 		vmCp := vm
 		vmCp.PublicIP = true
 
-		_, err := networkManager.Stage(ctx, apiClient, network)
+		err := networkManager.Stage(ctx)
 		assert.NoError(t, err)
-		err = dlManager.Commit(ctx)
-		assert.NoError(t, err)
-
-		err = dlManager.CancelAll()
+		err = tfPluginClient.Manager.Commit(ctx)
 		assert.NoError(t, err)
 
-		err = dlManager.Stage(&vmCp, 45)
-		assert.NoError(t, err)
-		err = dlManager.Commit(ctx)
+		err = tfPluginClient.Manager.CancelAll()
 		assert.NoError(t, err)
 
-		result, err := manager.LoadVMFromGrid(dlManager, 45, "vm")
+		err = tfPluginClient.Manager.Stage(&vmCp, 45)
+		assert.NoError(t, err)
+		err = tfPluginClient.Manager.Commit(ctx)
+		assert.NoError(t, err)
+
+		result, err := manager.LoadVMFromGrid(tfPluginClient.Manager, 45, "vm")
 		assert.NoError(t, err)
 
 		pIP := strings.Split(result.ComputedIP, "/")[0]

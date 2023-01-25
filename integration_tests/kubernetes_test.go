@@ -1,6 +1,3 @@
-//go:build integration
-// +build integration
-
 // Package integration for integration tests
 package integration
 
@@ -20,7 +17,9 @@ import (
 )
 
 func TestKubernetes(t *testing.T) {
-	dlManager, apiClient := setup()
+	tfPluginClient, err := setup()
+	assert.NoError(t, err)
+
 	sshPublicKey := os.Getenv("PUBLICKEY")
 	master := workloads.K8sNodeData{
 		Name:      "ms",
@@ -56,24 +55,23 @@ func TestKubernetes(t *testing.T) {
 		AddWGAccess: false,
 	}
 
-	networkManager, err := manager.NewNetworkDeployer(apiClient.Manager, network)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	defer cancel()
+
+	networkManager, err := manager.NewNetworkDeployer(ctx, network, "", &tfPluginClient)
 	assert.NoError(t, err)
 
 	t.Run("cluster with 3 nodes", func(t *testing.T) {
-
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
-		defer cancel()
-
-		err := dlManager.Stage(&cluster, 0)
+		err := tfPluginClient.Manager.Stage(&cluster, 0)
 		assert.NoError(t, err)
 
-		_, err = networkManager.Stage(ctx, apiClient, network)
+		err = networkManager.Stage(ctx)
 		assert.NoError(t, err)
 
-		err = dlManager.Commit(ctx)
+		err = tfPluginClient.Manager.Commit(ctx)
 		assert.NoError(t, err)
 
-		err = dlManager.CancelAll()
+		err = tfPluginClient.Manager.CancelAll()
 		assert.NoError(t, err)
 
 		masterNode := map[uint32]string{master.Node: master.Name}
@@ -81,7 +79,7 @@ func TestKubernetes(t *testing.T) {
 		for _, worker := range cluster.Workers {
 			workerNodes[worker.Node] = append(workerNodes[worker.Node], worker.Name)
 		}
-		loadedCluster, err := manager.LoadK8sFromGrid(dlManager, masterNode, workerNodes)
+		loadedCluster, err := manager.LoadK8sFromGrid(tfPluginClient.Manager, masterNode, workerNodes)
 		assert.NoError(t, err)
 
 		log.Printf("loaded Cluster: %+v", loadedCluster)
@@ -112,7 +110,7 @@ func TestKubernetes(t *testing.T) {
 	t.Run("nodes with duplicate names", func(t *testing.T) {
 		cluster.Workers[0].Name = cluster.Master.Name
 
-		err := dlManager.Stage(&cluster, 0)
+		err := tfPluginClient.Manager.Stage(&cluster, 0)
 		assert.Error(t, err)
 	})
 

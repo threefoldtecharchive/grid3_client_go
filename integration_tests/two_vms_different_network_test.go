@@ -1,6 +1,3 @@
-//go:build integration
-// +build integration
-
 // Package integration for integration tests
 package integration
 
@@ -21,7 +18,9 @@ import (
 )
 
 func TestTwoVmDifferentNet(t *testing.T) {
-	dlManager, apiClient := setup()
+	tfPluginClient, err := setup()
+	assert.NoError(t, err)
+
 	publicKey := os.Getenv("PUBLICKEY")
 	network1 := workloads.ZNet{
 		Name:        "Network1",
@@ -77,38 +76,38 @@ func TestTwoVmDifferentNet(t *testing.T) {
 		PublicIP6:   true,
 	}
 
-	networkManager1, err := manager.NewNetworkDeployer(apiClient.Manager, network1)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+
+	networkManager1, err := manager.NewNetworkDeployer(ctx, network1, "", &tfPluginClient)
 	assert.NoError(t, err)
 
-	networkManager2, err := manager.NewNetworkDeployer(apiClient.Manager, network2)
+	networkManager2, err := manager.NewNetworkDeployer(ctx, network2, "", &tfPluginClient)
 	assert.NoError(t, err)
 
 	t.Run("check public ipv6 and yggdrasil", func(t *testing.T) {
 
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-		defer cancel()
-
-		_, err := networkManager1.Stage(ctx, apiClient, network1)
+		err := networkManager1.Stage(ctx)
 		assert.NoError(t, err)
 
-		_, err = networkManager2.Stage(ctx, apiClient, network2)
+		err = networkManager2.Stage(ctx)
 		assert.NoError(t, err)
 
-		err = dlManager.Stage(&vm1, 14)
+		err = tfPluginClient.Manager.Stage(&vm1, 14)
 		assert.NoError(t, err)
 
-		err = dlManager.Stage(&vm2, 14)
+		err = tfPluginClient.Manager.Stage(&vm2, 14)
 		assert.NoError(t, err)
 
-		err = dlManager.Commit(ctx)
+		err = tfPluginClient.Manager.Commit(ctx)
 		assert.NoError(t, err)
 
-		err = dlManager.CancelAll()
+		err = tfPluginClient.Manager.CancelAll()
 		assert.NoError(t, err)
 
-		res1, err := manager.LoadVMFromGrid(dlManager, 14, "vm1")
+		res1, err := manager.LoadVMFromGrid(tfPluginClient.Manager, 14, "vm1")
 		assert.NoError(t, err)
-		res2, err := manager.LoadVMFromGrid(dlManager, 14, "vm2")
+		res2, err := manager.LoadVMFromGrid(tfPluginClient.Manager, 14, "vm2")
 		assert.NoError(t, err)
 
 		yggIP1 := res1.YggIP
@@ -163,30 +162,30 @@ func TestTwoVmDifferentNet(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 		defer cancel()
 
-		_, err := networkManager1.Stage(ctx, apiClient, network1)
+		err := networkManager1.Stage(ctx)
 		assert.NoError(t, err)
 
-		_, err = networkManager2.Stage(ctx, apiClient, network2)
+		err = networkManager2.Stage(ctx)
 		assert.NoError(t, err)
 
-		err = dlManager.Commit(ctx)
+		err = tfPluginClient.Manager.Commit(ctx)
 		assert.NoError(t, err)
 
-		err = dlManager.CancelAll()
+		err = tfPluginClient.Manager.CancelAll()
 		assert.NoError(t, err)
 
-		err = dlManager.Stage(&vm1, 13)
+		err = tfPluginClient.Manager.Stage(&vm1, 13)
 		assert.NoError(t, err)
 
-		err = dlManager.Stage(&vm2, 13)
+		err = tfPluginClient.Manager.Stage(&vm2, 13)
 		assert.NoError(t, err)
 
-		err = dlManager.Commit(ctx)
+		err = tfPluginClient.Manager.Commit(ctx)
 		assert.NoError(t, err)
 
-		res1, err := manager.LoadVMFromGrid(dlManager, 13, "vm1")
+		res1, err := manager.LoadVMFromGrid(tfPluginClient.Manager, 13, "vm1")
 		assert.NoError(t, err)
-		res2, err := manager.LoadVMFromGrid(dlManager, 13, "vm2")
+		res2, err := manager.LoadVMFromGrid(tfPluginClient.Manager, 13, "vm2")
 		assert.NoError(t, err)
 
 		yggIP1 := res1.YggIP
