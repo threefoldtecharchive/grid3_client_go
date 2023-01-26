@@ -44,9 +44,9 @@ type TFPluginClient struct {
 	NcPool   client.NodeClientGetter
 	Identity substrate.Identity
 
-	DeploymentDeployer DeploymentDeployer
-	NetworkDeployer    NetworkDeployer
-	//gatewayFQDNDeployer GatewayFQDNDeployer
+	DeploymentDeployer  DeploymentDeployer
+	NetworkDeployer     NetworkDeployer
+	gatewayFQDNDeployer GatewayFQDNDeployer
 	//gatewayNameDeployer GatewayNameDeployer
 	//k8sDeployer k8sDeployer
 }

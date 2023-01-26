@@ -377,8 +377,14 @@ func (k *NetworkDeployer) GenerateVersionlessDeploymentsAndWorkloads(ctx context
 // Deploy deploys the network deployments using the deployer
 func (k *NetworkDeployer) Deploy(ctx context.Context, znet *workloads.ZNet) error {
 	sub := k.TFPluginClient.SubstrateConn
+	znet, err := k.GenerateComputedZNet(ctx, k.TFPluginClient, znet, "")
+	if err != nil {
+		return errors.Wrapf(err, "couldn't generate Computed Znet")
+	}
 
 	newDeployments, _, err := k.GenerateVersionlessDeploymentsAndWorkloads(ctx, znet)
+	fmt.Printf("newDeployments: %v\n", newDeployments)
+
 	if err != nil {
 		return errors.Wrap(err, "couldn't generate deployments data")
 	}
@@ -388,17 +394,23 @@ func (k *NetworkDeployer) Deploy(ctx context.Context, znet *workloads.ZNet) erro
 	if err != nil {
 		return errors.Wrap(err, "couldn't print deployments data")
 	}
+	fmt.Printf("newDeployments: %v\n", newDeployments)
 
 	deploymentData := DeploymentData{
 		Name:        znet.Name,
 		Type:        "network",
 		ProjectName: znet.SolutionType,
 	}
-	// deployment data
-	newDeploymentsData := map[uint32]DeploymentData{znet.PublicNodeID: deploymentData}
 
-	// solution providers
-	newDeploymentsSolutionProvider := map[uint32]*uint64{znet.PublicNodeID: nil}
+	newDeploymentsData := make(map[uint32]DeploymentData)
+	newDeploymentsSolutionProvider := make(map[uint32]*uint64)
+
+	for _, node := range znet.Nodes {
+		// deployment data
+		newDeploymentsData[node] = deploymentData
+		// solution providers
+		newDeploymentsSolutionProvider[node] = nil
+	}
 
 	currentDeployments, err := k.deployer.Deploy(ctx, sub, znet.NodeDeploymentID, newDeployments, newDeploymentsData, newDeploymentsSolutionProvider)
 
@@ -413,18 +425,33 @@ func (k *NetworkDeployer) Deploy(ctx context.Context, znet *workloads.ZNet) erro
 
 // Cancel cancels all the deployments
 func (k *NetworkDeployer) Cancel(ctx context.Context, sub subi.SubstrateExt, znet *workloads.ZNet) error {
-	newDeployments := map[uint32]gridtypes.Deployment{znet.PublicNodeID: {}}
 
+	znet, err := k.GenerateComputedZNet(ctx, k.TFPluginClient, znet, "")
+	if err != nil {
+		return errors.Wrapf(err, "couldn't generate Computed Znet")
+	}
+
+	newDeployments := map[uint32]gridtypes.Deployment{znet.PublicNodeID: {}}
 	deploymentData := DeploymentData{
 		Name:        znet.Name,
 		Type:        "network",
 		ProjectName: znet.SolutionType,
 	}
-	// deployment data
-	newDeploymentsData := map[uint32]DeploymentData{znet.PublicNodeID: deploymentData}
 
-	// solution providers
-	newDeploymentsSolutionProvider := map[uint32]*uint64{znet.PublicNodeID: nil}
+	newDeploymentsData := make(map[uint32]DeploymentData)
+	newDeploymentsSolutionProvider := make(map[uint32]*uint64)
+
+	for _, node := range znet.Nodes {
+		// deployment data
+		newDeploymentsData[node] = deploymentData
+		// solution providers
+		newDeploymentsSolutionProvider[node] = nil
+	}
+	// // deployment data
+	// newDeploymentsData := map[uint32]DeploymentData{znet.PublicNodeID: deploymentData}
+
+	// // solution providers
+	// newDeploymentsSolutionProvider := map[uint32]*uint64{znet.PublicNodeID: nil}
 
 	currentDeployments, err := k.deployer.Deploy(ctx, sub, znet.NodeDeploymentID, newDeployments, newDeploymentsData, newDeploymentsSolutionProvider)
 

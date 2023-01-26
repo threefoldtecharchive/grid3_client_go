@@ -159,11 +159,26 @@ func (d *Deployer) deploy(
 			log.Printf("Number of public ips: %d\n", publicIPCount)
 
 			deploymentDataBytes, err := json.Marshal(newDeploymentsData[node])
+			fmt.Printf("newDeploymentsData: %v\n", newDeploymentsData)
 			if err != nil {
-				log.Printf("error parsing deployment data: %s", err.Error())
+				return currentDeployments, err
+				// log.Printf("error parsing deployment data: %s", err.Error())
 			}
+			mgr := substrate.NewManager("wss://tfchain.dev.grid.tf")
+			sub1, err := mgr.Substrate()
+			if err != nil {
+				return nil, err
+			}
+			identity, err := substrate.NewIdentityFromSr25519Phrase("secret add bag cluster deposit beach illness letter crouch position rain arctic")
+			if err != nil {
+				return nil, err
+				// println(err)
+			}
+			// mgr = NewManager("wss://tfchain.dev.grid.tf")
+			// CreateNodeContract(identity, 14, `{"type":"","name":"","projectName":""}`, "f482ef493234fd1040cf9f96c3a0dbe1", 0, nil)
+			contractID, err := sub1.CreateNodeContract(d.identity, node, string(deploymentDataBytes), hashHex, publicIPCount, newDeploymentSolutionProvider[node])
 
-			contractID, err := sub.CreateNodeContract(d.identity, node, string(deploymentDataBytes), hashHex, publicIPCount, newDeploymentSolutionProvider[node])
+			println(identity, 14, string(deploymentDataBytes), hashHex, publicIPCount, newDeploymentSolutionProvider[node])
 			log.Printf("CreateNodeContract returned id: %d\n", contractID)
 			if err != nil {
 				return currentDeployments, errors.Wrap(err, "failed to create contract")
