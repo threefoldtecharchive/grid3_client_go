@@ -1,3 +1,6 @@
+//go:build integration
+// +build integration
+
 // Package integration for integration tests
 package integration
 
@@ -9,7 +12,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/threefoldtech/grid3-go/deployer"
+	"github.com/threefoldtech/grid3-go/manager"
 	"github.com/threefoldtech/grid3-go/workloads"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
@@ -45,35 +48,35 @@ func TestQSFSDeployment(t *testing.T) {
 		metaZDBs = append(metaZDBs, zdb)
 	}
 
-	manager, _ := setup()
+	dlManager, _ := setup()
 	var err error
 	for i := 0; i < DataZDBNum; i++ {
-		err = manager.Stage(&dataZDBs[i], 14)
+		err = dlManager.Stage(&dataZDBs[i], 14)
 		assert.NoError(t, err)
 	}
 	for i := 0; i < MetaZDBNum; i++ {
-		err = manager.Stage(&metaZDBs[i], 14)
+		err = dlManager.Stage(&metaZDBs[i], 14)
 		assert.NoError(t, err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 	defer cancel()
-	err = manager.Commit(ctx)
+	err = dlManager.Commit(ctx)
 	assert.NoError(t, err)
 
-	err = manager.CancelAll()
+	err = dlManager.CancelAll()
 	assert.NoError(t, err)
 
 	resDataZDBs := []workloads.ZDB{}
 	resMetaZDBs := []workloads.ZDB{}
 	for i := 1; i <= DataZDBNum; i++ {
-		res, err := deployer.LoadZdbFromGrid(manager, 14, "qsfsDataZdb"+strconv.Itoa(i))
+		res, err := manager.LoadZdbFromGrid(dlManager, 14, "qsfsDataZdb"+strconv.Itoa(i))
 		assert.NotEmpty(t, res)
 		assert.NoError(t, err)
 		resDataZDBs = append(resDataZDBs, res)
 	}
 	for i := 1; i <= MetaZDBNum; i++ {
-		res, err := deployer.LoadZdbFromGrid(manager, 14, "qsfsMetaZdb"+strconv.Itoa(i))
+		res, err := manager.LoadZdbFromGrid(dlManager, 14, "qsfsMetaZdb"+strconv.Itoa(i))
 		assert.NotEmpty(t, res)
 		assert.NoError(t, err)
 		resMetaZDBs = append(resMetaZDBs, res)
@@ -115,12 +118,12 @@ func TestQSFSDeployment(t *testing.T) {
 			Backends:            metaBackends,
 		},
 	}
-	err = manager.Stage(&qsfs, 14)
+	err = dlManager.Stage(&qsfs, 14)
 	assert.NoError(t, err)
-	err = manager.Commit(ctx)
+	err = dlManager.Commit(ctx)
 	assert.NoError(t, err)
 
-	resQSFS, err := deployer.LoadQsfsFromGrid(manager, 14, "qsftTest")
+	resQSFS, err := manager.LoadQsfsFromGrid(dlManager, 14, "qsftTest")
 	assert.NoError(t, err)
 	assert.NotEmpty(t, resQSFS.MetricsEndpoint)
 	resQSFS.MetricsEndpoint = ""

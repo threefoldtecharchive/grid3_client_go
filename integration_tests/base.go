@@ -14,7 +14,7 @@ import (
 
 	"github.com/goombaio/namegenerator"
 	"github.com/joho/godotenv"
-	"github.com/threefoldtech/grid3-go/deployer"
+	"github.com/threefoldtech/grid3-go/manager"
 	client "github.com/threefoldtech/grid3-go/node"
 	"github.com/threefoldtech/grid3-go/subi"
 	proxy "github.com/threefoldtech/grid_proxy_server/pkg/client"
@@ -39,7 +39,7 @@ var (
 	}
 )
 
-func setup() (deployer.DeploymentManager, deployer.APIClient) {
+func setup() (manager.DeploymentManager, manager.APIClient) {
 	if _, err := os.Stat("../.env"); !errors.Is(err, os.ErrNotExist) {
 		err := godotenv.Load("../.env")
 		if err != nil {
@@ -76,18 +76,18 @@ func setup() (deployer.DeploymentManager, deployer.APIClient) {
 	}
 	gridClient := proxy.NewRetryingClient(proxy.NewClient(RMBProxyURLs[network]))
 	ncPool := client.NewNodeClientPool(cl)
-	manager := deployer.NewDeploymentManager(identity, twin, map[uint32]uint64{}, gridClient, ncPool, &sub)
-	apiClient := deployer.APIClient{
+	dlManager := manager.NewDeploymentManager(identity, twin, map[uint32]uint64{}, gridClient, ncPool, &sub)
+	apiClient := manager.APIClient{
 		SubstrateExt: subext,
 		NCPool:       ncPool,
 		ProxyClient:  gridClient,
-		Manager:      manager,
+		Manager:      dlManager,
 		Identity:     identity,
 	}
 	log.Printf("api client: %+v", apiClient.NCPool)
 	log.Printf("api client: %+v", apiClient.SubstrateExt)
 
-	return manager, apiClient
+	return dlManager, apiClient
 }
 
 // UpWg used for up wireguard

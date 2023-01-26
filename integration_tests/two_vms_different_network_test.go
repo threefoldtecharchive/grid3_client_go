@@ -1,3 +1,6 @@
+//go:build integration
+// +build integration
+
 // Package integration for integration tests
 package integration
 
@@ -12,13 +15,13 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/threefoldtech/grid3-go/deployer"
+	"github.com/threefoldtech/grid3-go/manager"
 	"github.com/threefoldtech/grid3-go/workloads"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 )
 
 func TestTwoVmDifferentNet(t *testing.T) {
-	manager, apiClient := setup()
+	dlManager, apiClient := setup()
 	publicKey := os.Getenv("PUBLICKEY")
 	network1 := workloads.ZNet{
 		Name:        "Network1",
@@ -74,10 +77,10 @@ func TestTwoVmDifferentNet(t *testing.T) {
 		PublicIP6:   true,
 	}
 
-	networkManager1, err := deployer.NewNetworkDeployer(apiClient.Manager, network1)
+	networkManager1, err := manager.NewNetworkDeployer(apiClient.Manager, network1)
 	assert.NoError(t, err)
 
-	networkManager2, err := deployer.NewNetworkDeployer(apiClient.Manager, network2)
+	networkManager2, err := manager.NewNetworkDeployer(apiClient.Manager, network2)
 	assert.NoError(t, err)
 
 	t.Run("check public ipv6 and yggdrasil", func(t *testing.T) {
@@ -91,21 +94,21 @@ func TestTwoVmDifferentNet(t *testing.T) {
 		_, err = networkManager2.Stage(ctx, apiClient, network2)
 		assert.NoError(t, err)
 
-		err = manager.Stage(&vm1, 14)
+		err = dlManager.Stage(&vm1, 14)
 		assert.NoError(t, err)
 
-		err = manager.Stage(&vm2, 14)
+		err = dlManager.Stage(&vm2, 14)
 		assert.NoError(t, err)
 
-		err = manager.Commit(ctx)
+		err = dlManager.Commit(ctx)
 		assert.NoError(t, err)
 
-		err = manager.CancelAll()
+		err = dlManager.CancelAll()
 		assert.NoError(t, err)
 
-		res1, err := deployer.LoadVMFromGrid(manager, 14, "vm1")
+		res1, err := manager.LoadVMFromGrid(dlManager, 14, "vm1")
 		assert.NoError(t, err)
-		res2, err := deployer.LoadVMFromGrid(manager, 14, "vm2")
+		res2, err := manager.LoadVMFromGrid(dlManager, 14, "vm2")
 		assert.NoError(t, err)
 
 		yggIP1 := res1.YggIP
@@ -166,24 +169,24 @@ func TestTwoVmDifferentNet(t *testing.T) {
 		_, err = networkManager2.Stage(ctx, apiClient, network2)
 		assert.NoError(t, err)
 
-		err = manager.Commit(ctx)
+		err = dlManager.Commit(ctx)
 		assert.NoError(t, err)
 
-		err = manager.CancelAll()
+		err = dlManager.CancelAll()
 		assert.NoError(t, err)
 
-		err = manager.Stage(&vm1, 13)
+		err = dlManager.Stage(&vm1, 13)
 		assert.NoError(t, err)
 
-		err = manager.Stage(&vm2, 13)
+		err = dlManager.Stage(&vm2, 13)
 		assert.NoError(t, err)
 
-		err = manager.Commit(ctx)
+		err = dlManager.Commit(ctx)
 		assert.NoError(t, err)
 
-		res1, err := deployer.LoadVMFromGrid(manager, 13, "vm1")
+		res1, err := manager.LoadVMFromGrid(dlManager, 13, "vm1")
 		assert.NoError(t, err)
-		res2, err := deployer.LoadVMFromGrid(manager, 13, "vm2")
+		res2, err := manager.LoadVMFromGrid(dlManager, 13, "vm2")
 		assert.NoError(t, err)
 
 		yggIP1 := res1.YggIP

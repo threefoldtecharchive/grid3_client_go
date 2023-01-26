@@ -1,3 +1,6 @@
+//go:build integration
+// +build integration
+
 // Package integration for integration tests
 package integration
 
@@ -11,13 +14,13 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/threefoldtech/grid3-go/deployer"
+	"github.com/threefoldtech/grid3-go/manager"
 	"github.com/threefoldtech/grid3-go/workloads"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 )
 
 func TestVMDeployment(t *testing.T) {
-	manager, apiClient := setup()
+	dlManager, apiClient := setup()
 	publicKey := os.Getenv("PUBLICKEY")
 	network := workloads.ZNet{
 		Name:        "testingNetwork123",
@@ -47,7 +50,7 @@ func TestVMDeployment(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	networkManager, err := deployer.NewNetworkDeployer(apiClient.Manager, network)
+	networkManager, err := manager.NewNetworkDeployer(apiClient.Manager, network)
 	assert.NoError(t, err)
 
 	t.Run("check VM configuration is correct", func(t *testing.T) {
@@ -55,18 +58,18 @@ func TestVMDeployment(t *testing.T) {
 
 		_, err := networkManager.Stage(ctx, apiClient, network)
 		assert.NoError(t, err)
-		err = manager.Commit(ctx)
+		err = dlManager.Commit(ctx)
 		assert.NoError(t, err)
 
-		err = manager.CancelAll()
+		err = dlManager.CancelAll()
 		assert.NoError(t, err)
 
-		err = manager.Stage(&vmCp, 14)
+		err = dlManager.Stage(&vmCp, 14)
 		assert.NoError(t, err)
-		err = manager.Commit(ctx)
+		err = dlManager.Commit(ctx)
 		assert.NoError(t, err)
 
-		result, err := deployer.LoadVMFromGrid(manager, 14, "vm")
+		result, err := manager.LoadVMFromGrid(dlManager, 14, "vm")
 		assert.NoError(t, err)
 
 		assert.Equal(t, 20*1024, result.RootfsSize)
@@ -100,18 +103,18 @@ func TestVMDeployment(t *testing.T) {
 
 		_, err := networkManager.Stage(ctx, apiClient, network)
 		assert.NoError(t, err)
-		err = manager.Commit(ctx)
+		err = dlManager.Commit(ctx)
 		assert.NoError(t, err)
 
-		err = manager.CancelAll()
+		err = dlManager.CancelAll()
 		assert.NoError(t, err)
 
-		err = manager.Stage(&vmCp, 45)
+		err = dlManager.Stage(&vmCp, 45)
 		assert.NoError(t, err)
-		err = manager.Commit(ctx)
+		err = dlManager.Commit(ctx)
 		assert.NoError(t, err)
 
-		result, err := deployer.LoadVMFromGrid(manager, 45, "vm")
+		result, err := manager.LoadVMFromGrid(dlManager, 45, "vm")
 		assert.NoError(t, err)
 
 		pIP := strings.Split(result.ComputedIP, "/")[0]

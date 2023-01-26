@@ -2,6 +2,7 @@
 package workloads
 
 import (
+	"github.com/threefoldtech/substrate-client"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 )
 
@@ -22,4 +23,25 @@ func NewDeployment(twin uint32) gridtypes.Deployment {
 			},
 		},
 	}
+}
+
+// GatewayWorkloadGenerator is an interface for a gateway workload generator
+type GatewayWorkloadGenerator interface {
+	ZosWorkload() gridtypes.Workload
+}
+
+// NewDeploymentWithGateway generates a new deployment with a gateway workload
+func NewDeploymentWithGateway(identity substrate.Identity, twinID uint32, version uint32, gw GatewayWorkloadGenerator) (gridtypes.Deployment, error) {
+	dl := NewDeployment(twinID)
+	dl.Version = version
+
+	dl.Workloads = append(dl.Workloads, gw.ZosWorkload())
+	dl.Workloads[0].Version = version
+
+	err := dl.Sign(twinID, identity)
+	if err != nil {
+		return gridtypes.Deployment{}, err
+	}
+
+	return dl, nil
 }

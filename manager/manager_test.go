@@ -1,36 +1,100 @@
-// Package deployer for grid deployer
-package deployer
+// Package manager for grid manager
+package manager
 
 import (
 	"context"
+	"os"
 
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	"github.com/joho/godotenv"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/threefoldtech/grid3-go/mocks"
 	client "github.com/threefoldtech/grid3-go/node"
+	"github.com/threefoldtech/grid3-go/subi"
+	"github.com/threefoldtech/grid3-go/workloads"
+	"github.com/threefoldtech/substrate-client"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
+var (
+	SubstrateURLs = map[string]string{
+		"dev":  "wss://tfchain.dev.grid.tf/ws",
+		"test": "wss://tfchain.test.grid.tf/ws",
+		"qa":   "wss://tfchain.qa.grid.tf/ws",
+		"main": "wss://tfchain.grid.tf/ws",
+	}
+)
+
+var backendURLWithoutTLSPassthrough = "http://1.1.1.1:10"
+
+func SetUP() (identity subi.Identity, twinID uint32, err error) {
+	if _, err = os.Stat("../.env"); !errors.Is(err, os.ErrNotExist) {
+		err = godotenv.Load("../.env")
+		if err != nil {
+			return
+		}
+	}
+
+	mnemonics := os.Getenv("MNEMONICS")
+	identity, err = substrate.NewIdentityFromSr25519Phrase(mnemonics)
+	if err != nil {
+		return
+	}
+
+	keyPair, err := identity.KeyPair()
+	if err != nil {
+		return
+	}
+
+	network := os.Getenv("NETWORK")
+	pub := keyPair.Public()
+	sub := subi.NewManager(SubstrateURLs[network])
+	subext, err := sub.SubstrateExt()
+	if err != nil {
+		return
+	}
+	twin, err := subext.GetTwinByPubKey(pub)
+	if err != nil {
+		return
+	}
+	return identity, twin, nil
+}
+
+func deploymentWithNameGateway(identity substrate.Identity, twinID uint32, TLSPassthrough bool, version uint32, backendURL string) (gridtypes.Deployment, error) {
+	gw := workloads.GatewayNameProxy{
+		Name:           "name",
+		TLSPassthrough: TLSPassthrough,
+		Backends:       []zos.Backend{zos.Backend(backendURL)},
+	}
+
+	return workloads.NewDeploymentWithGateway(identity, twinID, version, &gw)
+}
+
 func TestCancelAll(t *testing.T) {
-	identity, nodeID := setUP()
+	identity, twinID, err := SetUP()
+	assert.NoError(t, err)
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	sub := mocks.NewMockSubstrateExt(ctrl)
 	subi := mocks.NewMockManagerInterface(ctrl)
 	gridClient := mocks.NewMockClient(ctrl)
 	ncPool := mocks.NewMockNodeClientGetter(ctrl)
-	dl1 := deployment1(identity, false, 0, backendURLWithoutTLSPassthrough)
+	dl1, err := deploymentWithNameGateway(identity, twinID, false, 0, backendURLWithoutTLSPassthrough)
+	assert.NoError(t, err)
+
 	dl1.ContractID = 100
 	dMap := map[uint32]uint64{
 		10: 100,
 	}
 	manager := NewDeploymentManager(
 		identity,
-		nodeID,
+		twinID,
 		dMap,
 		gridClient,
 		ncPool,
@@ -44,23 +108,27 @@ func TestCancelAll(t *testing.T) {
 			identity,
 			uint64(100),
 		).Return(nil)
-	err := manager.CancelAll()
+	err = manager.CancelAll()
 	assert.NoError(t, err)
 }
 
 func TestCommit(t *testing.T) {
-	identity, nodeID := setUP()
+	identity, twinID, err := SetUP()
+	assert.NoError(t, err)
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	sub := mocks.NewMockSubstrateExt(ctrl)
 	subi := mocks.NewMockManagerInterface(ctrl)
 	gridClient := mocks.NewMockClient(ctrl)
 	ncPool := mocks.NewMockNodeClientGetter(ctrl)
-	dl1 := deployment1(identity, false, 0, backendURLWithoutTLSPassthrough)
+	dl1, err := deploymentWithNameGateway(identity, twinID, false, 0, backendURLWithoutTLSPassthrough)
+	assert.NoError(t, err)
+
 	dl1.ContractID = 100
 	manager := NewDeploymentManager(
 		identity,
-		nodeID,
+		twinID,
 		map[uint32]uint64{10: 100},
 		gridClient,
 		ncPool,
@@ -70,12 +138,14 @@ func TestCommit(t *testing.T) {
 		SubstrateExt().
 		Return(sub, nil)
 	sub.EXPECT().Close()
-	err := manager.Commit(context.Background())
+	err = manager.Commit(context.Background())
 	assert.NoError(t, err)
 }
 
 func TestSetWorkload(t *testing.T) {
-	identity, nodeID := setUP()
+	identity, twinID, err := SetUP()
+	assert.NoError(t, err)
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	sub := mocks.NewMockSubstrateExt(ctrl)
@@ -97,14 +167,16 @@ func TestSetWorkload(t *testing.T) {
 	}
 	wlMap := map[uint32][]gridtypes.Workload{}
 	wlMap[1] = append(wlMap[1], zdbWl)
-	dl1 := deployment1(identity, false, 0, backendURLWithoutTLSPassthrough)
+	dl1, err := deploymentWithNameGateway(identity, twinID, false, 0, backendURLWithoutTLSPassthrough)
+	assert.NoError(t, err)
+
 	dl1.ContractID = 100
 	dMap := map[uint32]uint64{
 		10: 100,
 	}
 	manager := NewDeploymentManager(
 		identity,
-		nodeID,
+		twinID,
 		dMap,
 		gridClient,
 		ncPool,
@@ -123,11 +195,13 @@ func TestSetWorkload(t *testing.T) {
 			return nil
 		}).AnyTimes()
 
-	err := manager.SetWorkloads(wlMap)
+	err = manager.SetWorkloads(wlMap)
 	assert.NoError(t, err)
 }
 func TestCancelWorkloads(t *testing.T) {
-	identity, nodeID := setUP()
+	identity, twinID, err := SetUP()
+	assert.NoError(t, err)
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	sub := mocks.NewMockSubstrateExt(ctrl)
@@ -136,7 +210,9 @@ func TestCancelWorkloads(t *testing.T) {
 	ncPool := mocks.NewMockNodeClientGetter(ctrl)
 	gridClient := mocks.NewMockClient(ctrl)
 
-	dl1 := deployment1(identity, false, 0, backendURLWithoutTLSPassthrough)
+	dl1, err := deploymentWithNameGateway(identity, twinID, false, 0, backendURLWithoutTLSPassthrough)
+	assert.NoError(t, err)
+
 	dl1.ContractID = 100
 	wlMap := map[uint32]map[string]bool{
 		10: {
@@ -145,7 +221,7 @@ func TestCancelWorkloads(t *testing.T) {
 	}
 	manager := NewDeploymentManager(
 		identity,
-		nodeID,
+		twinID,
 		map[uint32]uint64{10: 100},
 		gridClient,
 		ncPool,
@@ -168,11 +244,13 @@ func TestCancelWorkloads(t *testing.T) {
 			return nil
 		})
 
-	err := manager.CancelWorkloads(wlMap)
+	err = manager.CancelWorkloads(wlMap)
 	assert.NoError(t, err)
 }
 func TestGetWorkload(t *testing.T) {
-	identity, nodeID := setUP()
+	identity, twinID, err := SetUP()
+	assert.NoError(t, err)
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	sub := mocks.NewMockSubstrateExt(ctrl)
@@ -180,19 +258,21 @@ func TestGetWorkload(t *testing.T) {
 	ncPool := mocks.NewMockNodeClientGetter(ctrl)
 	cl := mocks.NewRMBMockClient(ctrl)
 	gridClient := mocks.NewMockClient(ctrl)
-	dl1 := deployment1(identity, false, 0, backendURLWithoutTLSPassthrough)
-	gw := GatewayNameProxy{
+	dl1, err := deploymentWithNameGateway(identity, twinID, false, 0, backendURLWithoutTLSPassthrough)
+	assert.NoError(t, err)
+
+	gw := workloads.GatewayNameProxy{
 		Name:           "name",
 		TLSPassthrough: false,
 		Backends:       []zos.Backend{zos.Backend(backendURLWithoutTLSPassthrough)},
 	}
 
-	_, err := gw.GenerateWorkloadFromGName(gw)
+	_, err = gw.GenerateWorkloads()
 	assert.NoError(t, err)
 	dl1.ContractID = 100
 	manager := NewDeploymentManager(
 		identity,
-		nodeID,
+		twinID,
 		map[uint32]uint64{10: 100},
 		gridClient,
 		ncPool,
@@ -220,7 +300,9 @@ func TestGetWorkload(t *testing.T) {
 }
 
 func TestGetDeployment(t *testing.T) {
-	identity, nodeID := setUP()
+	identity, twinID, err := SetUP()
+	assert.NoError(t, err)
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	sub := mocks.NewMockSubstrateExt(ctrl)
@@ -229,14 +311,16 @@ func TestGetDeployment(t *testing.T) {
 	cl := mocks.NewRMBMockClient(ctrl)
 	gridClient := mocks.NewMockClient(ctrl)
 
-	dl1 := deployment1(identity, false, 0, backendURLWithoutTLSPassthrough)
+	dl1, err := deploymentWithNameGateway(identity, twinID, false, 0, backendURLWithoutTLSPassthrough)
+	assert.NoError(t, err)
+
 	dl1.ContractID = 100
 	dMap := map[uint32]uint64{
 		10: 100,
 	}
 	manager := NewDeploymentManager(
 		identity,
-		nodeID,
+		twinID,
 		dMap,
 		gridClient,
 		ncPool,
@@ -258,6 +342,6 @@ func TestGetDeployment(t *testing.T) {
 			*res = dl1
 			return nil
 		})
-	_, err := manager.GetDeployment(uint32(10))
+	_, err = manager.GetDeployment(uint32(10))
 	assert.NoError(t, err)
 }

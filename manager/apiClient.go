@@ -1,5 +1,5 @@
-// Package deployer for grid deployer
-package deployer
+// Package manager for grid manager
+package manager
 
 import (
 	client "github.com/threefoldtech/grid3-go/node"

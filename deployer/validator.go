@@ -8,12 +8,12 @@ import (
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/grid3-go/subi"
 	proxy "github.com/threefoldtech/grid_proxy_server/pkg/client"
-	proxytypes "github.com/threefoldtech/grid_proxy_server/pkg/types"
+	proxyTypes "github.com/threefoldtech/grid_proxy_server/pkg/types"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
-// Validator interface for deployments
+// Validator interface for any validator
 type Validator interface {
 	Validate(ctx context.Context, sub subi.SubstrateExt, oldDeployments map[uint32]gridtypes.Deployment, newDeployments map[uint32]gridtypes.Deployment) error
 }
@@ -29,7 +29,7 @@ type ValidatorImpl struct {
 //	if a real error dodges the validation, it'll be fail anyway in the deploying phase
 func (d *ValidatorImpl) Validate(ctx context.Context, sub subi.SubstrateExt, oldDeployments map[uint32]gridtypes.Deployment, newDeployments map[uint32]gridtypes.Deployment) error {
 	farmIPs := make(map[int]int)
-	nodeMap := make(map[uint32]proxytypes.NodeWithNestedCapacity)
+	nodeMap := make(map[uint32]proxyTypes.NodeWithNestedCapacity)
 	for node := range oldDeployments {
 		nodeInfo, err := d.gridClient.Node(node)
 		if err != nil {
@@ -51,9 +51,9 @@ func (d *ValidatorImpl) Validate(ctx context.Context, sub subi.SubstrateExt, old
 	}
 	for farm := range farmIPs {
 		farmUint64 := uint64(farm)
-		farmInfo, _, err := d.gridClient.Farms(proxytypes.FarmFilter{
+		farmInfo, _, err := d.gridClient.Farms(proxyTypes.FarmFilter{
 			FarmID: &farmUint64,
-		}, proxytypes.Limit{
+		}, proxyTypes.Limit{
 			Page: 1,
 			Size: 1,
 		})
@@ -74,22 +74,32 @@ func (d *ValidatorImpl) Validate(ctx context.Context, sub subi.SubstrateExt, old
 		if !ok {
 			return fmt.Errorf("node %d not returned from the grid proxy", node)
 		}
-		farmIPs[nodeData.FarmID] += int(countDeploymentPublicIPs(dl))
+
+		publicIPCount, err := CountDeploymentPublicIPs(dl)
+		if err != nil {
+			return errors.Wrap(err, "failed to count deployment public IPs")
+		}
+
+		farmIPs[nodeData.FarmID] += int(publicIPCount)
 	}
 	for node, dl := range newDeployments {
 		oldDl, alreadyExists := oldDeployments[node]
 		if err := dl.Valid(); err != nil {
 			return errors.Wrap(err, "invalid deployment")
 		}
-		needed, err := capacity(dl)
+		needed, err := Capacity(dl)
 		if err != nil {
 			return err
 		}
 
-		requiredIPs := int(countDeploymentPublicIPs(dl))
+		publicIPCount, err := CountDeploymentPublicIPs(dl)
+		if err != nil {
+			return errors.Wrap(err, "failed to count deployment public IPs")
+		}
+		requiredIPs := int(publicIPCount)
 		nodeInfo := nodeMap[node]
 		if alreadyExists {
-			oldCap, err := capacity(oldDl)
+			oldCap, err := Capacity(oldDl)
 			if err != nil {
 				return errors.Wrapf(err, "couldn't read old deployment %d of node %d capacity", oldDl.ContractID, node)
 			}
@@ -113,10 +123,10 @@ func (d *ValidatorImpl) Validate(ctx context.Context, sub subi.SubstrateExt, old
 		if farmIPs[nodeInfo.FarmID] < 0 {
 			return fmt.Errorf("farm %d doesn't have enough public ips", nodeInfo.FarmID)
 		}
-		if hasWorkload(&dl, zos.GatewayFQDNProxyType) && nodeInfo.PublicConfig.Ipv4 == "" {
+		if HasWorkload(&dl, zos.GatewayFQDNProxyType) && nodeInfo.PublicConfig.Ipv4 == "" {
 			return fmt.Errorf("node %d can't deploy a fqdn workload as it doesn't have a public ipv4 configured", node)
 		}
-		if hasWorkload(&dl, zos.GatewayNameProxyType) && nodeInfo.PublicConfig.Domain == "" {
+		if HasWorkload(&dl, zos.GatewayNameProxyType) && nodeInfo.PublicConfig.Domain == "" {
 			return fmt.Errorf("node %d can't deploy a gateway name workload as it doesn't have a domain configured", node)
 		}
 		mrus := nodeInfo.Capacity.Total.MRU - nodeInfo.Capacity.Used.MRU
@@ -134,4 +144,17 @@ func (d *ValidatorImpl) Validate(ctx context.Context, sub subi.SubstrateExt, old
 		}
 	}
 	return nil
+}
+
+// capacityPrettyPrint prints the capacity data
+func capacityPrettyPrint(cap gridtypes.Capacity) string {
+	return fmt.Sprintf("[mru: %d, sru: %d, hru: %d]", cap.MRU, cap.SRU, cap.HRU)
+}
+
+// addCapacity adds a new data for capacity
+func addCapacity(cap *proxyTypes.Capacity, add *gridtypes.Capacity) {
+	cap.CRU += add.CRU
+	cap.MRU += add.MRU
+	cap.SRU += add.SRU
+	cap.HRU += add.HRU
 }
