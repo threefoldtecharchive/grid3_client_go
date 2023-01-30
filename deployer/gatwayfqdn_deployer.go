@@ -28,7 +28,7 @@ type GatewayFQDNDeployer struct {
 // Generates new gateway fqdn deployer
 func NewGatewayFqdnDeployer(tfPluginClient *TFPluginClient) GatewayFQDNDeployer {
 	gatewayFQDN := GatewayFQDNDeployer{
-		ncPool:   client.NewNodeClientPool(tfPluginClient.RMB),
+		ncPool: client.NewNodeClientPool(tfPluginClient.RMB),
 		deployer: Deployer{},
 	}
 
@@ -64,6 +64,7 @@ func (k *GatewayFQDNDeployer) GenerateVersionlessDeployments(ctx context.Context
 	return deployments, nil
 }
 
+
 // Deploy deploys the GatewayFQDN deployments using the deployer
 func (k *GatewayFQDNDeployer) Deploy(ctx context.Context, gw *workloads.GatewayFQDNProxy) error {
 	sub := k.TFPluginClient.SubstrateConn
@@ -75,10 +76,9 @@ func (k *GatewayFQDNDeployer) Deploy(ctx context.Context, gw *workloads.GatewayF
 		return errors.Wrap(err, "couldn't generate deployments data")
 	}
 
-	deploymentData := DeploymentData{
-		Name:        gw.Name,
-		Type:        gw.FQDN,
-		ProjectName: gw.ZosWorkload().Description,
+	deploymentData := workloads.DeploymentData{
+		Name: k.Gw.Name,
+		Type: "Gateway Fqdn",
 	}
 
 	newDeploymentsData := make(map[uint32]workloads.DeploymentData)
@@ -105,6 +105,7 @@ func (k *GatewayFQDNDeployer) syncContracts(ctx context.Context, sub subi.Substr
 	return nil
 }
 
+func (k *GatewayFQDNDeployer) sync(ctx context.Context, sub subi.SubstrateExt) error {
 func (k *GatewayFQDNDeployer) sync(ctx context.Context, sub subi.SubstrateExt) error {
 	if err := k.syncContracts(ctx, sub); err != nil {
 		return errors.Wrap(err, "couldn't sync contracts")
