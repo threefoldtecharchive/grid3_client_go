@@ -2,24 +2,21 @@
 package deployer
 
 import (
+	"context"
 	"fmt"
 	"log"
+	"net"
+	"time"
 
-	// "net"
 	"os"
 	"os/exec"
 	"testing"
 
-	// "time"
-
 	"github.com/joho/godotenv"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
-	"github.com/threefoldtech/substrate-client"
-	// "github.com/threefoldtech/zos/pkg/vm"
-	// "github.com/stretchr/testify/assert"
-	// "github.com/threefoldtech/grid3-go/workloads"
-	// "github.com/threefoldtech/zos/pkg/gridtypes"
+	"github.com/threefoldtech/grid3-go/workloads"
+	"github.com/threefoldtech/zos/pkg/gridtypes"
 )
 
 func setup() (TFPluginClient, error) {
@@ -41,7 +38,6 @@ func setup() (TFPluginClient, error) {
 	return NewTFPluginClient(mnemonics, "sr25519", network, "", "", true, "", true)
 }
 
-// SSHKeys generates ssh keys in a temp directory and set env PUBLICKEY and PRIVATEKEY with them
 func SSHKeys() {
 	err := os.Mkdir("/tmp/.ssh", 0755)
 	if err != nil {
@@ -75,68 +71,49 @@ func TestVMDeployment(t *testing.T) {
 	tfPluginClient, err := setup()
 	assert.NoError(t, err)
 
-	// publicKey := os.Getenv("PUBLICKEY")
+	publicKey := os.Getenv("PUBLICKEY")
 
-	// mgr := substrate.NewManager("wss://tfchain.dev.grid.tf")
-	// sub1, err := mgr.Substrate()
-	// if err != nil {
-	// 	println(err)
-	// }
-	identity, err := substrate.NewIdentityFromSr25519Phrase("secret add bag cluster deposit beach illness letter crouch position rain arctic")
-	if err != nil {
-		println(err)
+	network := workloads.ZNet{
+		Name:        "testingNetwork",
+		Description: "network for testing",
+		Nodes:       []uint32{14},
+		IPRange: gridtypes.NewIPNet(net.IPNet{
+			IP:   net.IPv4(10, 1, 0, 0),
+			Mask: net.CIDRMask(16, 32),
+		}),
+		AddWGAccess: false,
 	}
-	// mgr = NewManager("wss://tfchain.dev.grid.tf")
-	contractID, err := tfPluginClient.SubstrateConn.CreateNodeContract(identity, 14, `{"type":"","name":"","projectName":""}`, "f482ef493234fd1040cf9f96c3a0dbe1", 0, nil)
+
+	vm := workloads.VM{
+		Name:       "vm",
+		Flist:      "https://hub.grid.tf/tf-official-apps/threefoldtech-ubuntu-20.04.flist",
+		CPU:        2,
+		Planetary:  true,
+		Memory:     1024,
+		RootfsSize: 20 * 1024,
+		Entrypoint: "/init.sh",
+		EnvVars: map[string]string{
+			"SSH_KEY":  publicKey,
+			"TEST_VAR": "this value for test",
+		},
+		IP:          "10.1.0.2",
+		NetworkName: "testingNetwork",
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+
+	err = tfPluginClient.NetworkDeployer.Deploy(ctx, &network)
 	assert.NoError(t, err)
-	println(contractID)
-	// CreateNodeContract(d.identity, node, string(deploymentDataBytes), hashHex, publicIPCount, newDeploymentSolutionProvider[node])
-	// println(d.identity, node, string(deploymentDataBytes), hashHex, publicIPCount, newDeploymentSolutionProvider[node])
-	// log.Printf("CreateNodeContract returned id: %d\n", contractID)
-	// if err != nil {
-	// 	return currentDeployments, errors.Wrap(err, "failed to create contract")
-	// }
 
-	// network := workloads.ZNet{
-	// 	Name:        "testingNetwork",
-	// 	Description: "network for testing",
-	// 	Nodes:       []uint32{14},
-	// 	IPRange: gridtypes.NewIPNet(net.IPNet{
-	// 		IP:   net.IPv4(10, 1, 0, 0),
-	// 		Mask: net.CIDRMask(16, 32),
-	// 	}),
-	// 	AddWGAccess: false,
-	// }
+	fmt.Println(vm.CPU)
+	/*
+	   dl := workloads.NewDeployment("vm", 14, "", nil, "testingNetwork", nil, nil, []workloads.VM{vm}, nil)
+	   err = tfPluginClient.DeploymentDeployer.Deploy(ctx, tfPluginClient.SubstrateConn, &dl)
+	   assert.NoError(t, err)
 
-	// vm := workloads.VM{
-	// 	Name:       "vm",
-	// 	Flist:      "https://hub.grid.tf/tf-official-apps/threefoldtech-ubuntu-20.04.flist",
-	// 	CPU:        2,
-	// 	Planetary:  true,
-	// 	Memory:     1024,
-	// 	RootfsSize: 20 * 1024,
-	// 	Entrypoint: "/init.sh",
-	// 	EnvVars: map[string]string{
-	// 		"SSH_KEY":  publicKey,
-	// 		"TEST_VAR": "this value for test",
-	// 	},
-	// 	IP:          "10.1.0.2",
-	// 	NetworkName: "testingNetwork",
-	// }
-
-	// ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-	// defer cancel()
-
-	// err = tfPluginClient.NetworkDeployer.Deploy(ctx, &network)
-	// assert.NoError(t, err)
-
-	// println(vm.CPU)
-
-	// dl := workloads.NewDeployment("vm", 14, "", nil, "testingNetwork", nil, nil, []workloads.VM{vm}, nil)
-	// err = tfPluginClient.DeploymentDeployer.Deploy(ctx, tfPluginClient.SubstrateConn, &dl)
-	// assert.NoError(t, err)
-
-	// v, err := tfPluginClient.DeploymentDeployer.deployer.stateLoader.LoadVMFromGrid(14, "vm")
-	// assert.NoError(t, err)
-	// fmt.Printf("v: %v\n", v)
+	   v, err := tfPluginClient.DeploymentDeployer.deployer.stateLoader.LoadVMFromGrid(14, "vm")
+	   assert.NoError(t, err)
+	   fmt.Printf("v: %v\n", v)
+	*/
 }

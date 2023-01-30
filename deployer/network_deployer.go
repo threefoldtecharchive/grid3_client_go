@@ -186,13 +186,12 @@ func (k *NetworkDeployer) Validate(ctx context.Context, znet *workloads.ZNet) er
 }
 
 // GenerateVersionlessDeploymentsAndWorkloads generates deployments for network deployer without versions
-func (k *NetworkDeployer) GenerateVersionlessDeploymentsAndWorkloads(ctx context.Context, znet *workloads.ZNet) (map[uint32]gridtypes.Deployment, map[uint32][]gridtypes.Workload, error) {
+func (k *NetworkDeployer) GenerateVersionlessDeployments(ctx context.Context, znet *workloads.ZNet) (map[uint32]gridtypes.Deployment, error) {
 	deployments := make(map[uint32]gridtypes.Deployment)
-	netWorkloads := make(map[uint32][]gridtypes.Workload)
 
 	err := k.Validate(ctx, znet)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	log.Printf("nodes: %v\n", znet.Nodes)
@@ -206,14 +205,14 @@ func (k *NetworkDeployer) GenerateVersionlessDeploymentsAndWorkloads(ctx context
 	for _, nodeID := range znet.Nodes {
 		nodeClient, err := k.deployer.ncPool.GetNodeClient(sub, nodeID)
 		if err != nil {
-			return nil, nil, errors.Wrapf(err, "couldn't get node %d client", nodeID)
+			return nil, errors.Wrapf(err, "couldn't get node %d client", nodeID)
 		}
 
 		endpoint, err := workloads.GetNodeEndpoint(ctx, nodeClient)
 		if errors.Is(err, workloads.ErrNoAccessibleInterfaceFound) {
 			hiddenNodes = append(hiddenNodes, nodeID)
 		} else if err != nil {
-			return nil, nil, errors.Wrapf(err, "failed to get node %d endpoint", nodeID)
+			return nil, errors.Wrapf(err, "failed to get node %d endpoint", nodeID)
 		} else if endpoint.To4() != nil {
 			accessibleNodes = append(accessibleNodes, nodeID)
 			ipv4Node = nodeID
@@ -236,7 +235,7 @@ func (k *NetworkDeployer) GenerateVersionlessDeploymentsAndWorkloads(ctx context
 		} else {
 			publicNode, err := workloads.GetPublicNode(ctx, k.TFPluginClient.GridProxyClient, []uint32{})
 			if err != nil {
-				return nil, nil, errors.Wrap(err, "public node needed because you requested adding wg access or a hidden node is added to the network")
+				return nil, errors.Wrap(err, "public node needed because you requested adding wg access or a hidden node is added to the network")
 			}
 			znet.PublicNodeID = publicNode
 			accessibleNodes = append(accessibleNodes, publicNode)
@@ -245,11 +244,11 @@ func (k *NetworkDeployer) GenerateVersionlessDeploymentsAndWorkloads(ctx context
 		if endpoints[znet.PublicNodeID] == "" { // old or new outsider
 			cl, err := k.deployer.ncPool.GetNodeClient(sub, znet.PublicNodeID)
 			if err != nil {
-				return nil, nil, errors.Wrapf(err, "couldn't get node %d client", znet.PublicNodeID)
+				return nil, errors.Wrapf(err, "couldn't get node %d client", znet.PublicNodeID)
 			}
 			endpoint, err := workloads.GetNodeEndpoint(ctx, cl)
 			if err != nil {
-				return nil, nil, errors.Wrapf(err, "failed to get node %d endpoint", znet.PublicNodeID)
+				return nil, errors.Wrapf(err, "failed to get node %d endpoint", znet.PublicNodeID)
 			}
 			endpoints[znet.PublicNodeID] = endpoint.String()
 		}
@@ -257,13 +256,13 @@ func (k *NetworkDeployer) GenerateVersionlessDeploymentsAndWorkloads(ctx context
 
 	allNodes := append(hiddenNodes, accessibleNodes...)
 	if err := k.assignNodesIPs(allNodes, znet); err != nil {
-		return nil, nil, errors.Wrap(err, "couldn't assign node ips")
+		return nil, errors.Wrap(err, "couldn't assign node ips")
 	}
 	if err := k.assignNodesWGKey(allNodes); err != nil {
-		return nil, nil, errors.Wrap(err, "couldn't assign node wg keys")
+		return nil, errors.Wrap(err, "couldn't assign node wg keys")
 	}
 	if err := k.assignNodesWGPort(ctx, sub, allNodes); err != nil {
-		return nil, nil, errors.Wrap(err, "couldn't assign node wg ports")
+		return nil, errors.Wrap(err, "couldn't assign node wg ports")
 	}
 
 	nonAccessibleIPRanges := []gridtypes.IPNet{}
@@ -344,8 +343,6 @@ func (k *NetworkDeployer) GenerateVersionlessDeploymentsAndWorkloads(ctx context
 		}
 
 		workload := znet.GenerateWorkload(znet.NodesIPRange[nodeID], k.Keys[nodeID].String(), uint16(k.WGPort[nodeID]), peers)
-		netWorkloads[nodeID] = append(netWorkloads[nodeID], workload)
-
 		deployment := workloads.NewGridDeployment(k.TFPluginClient.TwinID, []gridtypes.Workload{workload})
 		deployments[nodeID] = deployment
 	}
@@ -366,12 +363,10 @@ func (k *NetworkDeployer) GenerateVersionlessDeploymentsAndWorkloads(ctx context
 		}
 
 		workload := znet.GenerateWorkload(znet.NodesIPRange[nodeID], k.Keys[nodeID].String(), uint16(k.WGPort[nodeID]), peers)
-		netWorkloads[nodeID] = append(netWorkloads[nodeID], workload)
-
 		deployment := workloads.NewGridDeployment(k.TFPluginClient.TwinID, []gridtypes.Workload{workload})
 		deployments[nodeID] = deployment
 	}
-	return deployments, netWorkloads, nil
+	return deployments, nil
 }
 
 // Deploy deploys the network deployments using the deployer
@@ -382,7 +377,7 @@ func (k *NetworkDeployer) Deploy(ctx context.Context, znet *workloads.ZNet) erro
 		return errors.Wrapf(err, "couldn't generate Computed Znet")
 	}
 
-	newDeployments, _, err := k.GenerateVersionlessDeploymentsAndWorkloads(ctx, znet)
+	newDeployments, err := k.GenerateVersionlessDeployments(ctx, znet)
 	fmt.Printf("newDeployments: %v\n", newDeployments)
 
 	if err != nil {

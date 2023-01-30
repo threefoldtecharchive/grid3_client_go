@@ -229,7 +229,7 @@ func GetNodeEndpoint(ctx context.Context, nodeClient *client.NodeClient) (net.IP
 	log.Printf("publicConfig: %v\n", publicConfig)
 	log.Printf("publicConfig.IPv4: %v\n", publicConfig.IPv4)
 	log.Printf("publicConfig.IPv.IP: %v\n", publicConfig.IPv4.IP)
-	log.Printf("err: %s\n", err)
+	log.Printf("err: %v\n", err)
 	if err == nil && publicConfig.IPv4.IP != nil {
 
 		ip := publicConfig.IPv4.IP

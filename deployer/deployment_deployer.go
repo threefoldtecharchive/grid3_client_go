@@ -253,9 +253,11 @@ func (d *DeploymentDeployer) assignNodesIPs(dl *workloads.Deployment) error {
 	}
 	for _, vm := range dl.Vms {
 		vmIP := net.ParseIP(vm.IP)
-		vmHostID := vmIP[3]
-		if vm.IP != "" && ipRangeCIDR.Contains(vmIP) && !workloads.Contains(usedHosts, vmHostID) {
-			usedHosts = append(usedHosts, vmHostID)
+		if vmIP != nil {
+			vmHostID := vmIP[3]
+			if vm.IP != "" && ipRangeCIDR.Contains(vmIP) && !workloads.Contains(usedHosts, vmHostID) {
+				usedHosts = append(usedHosts, vmHostID)
+			}
 		}
 	}
 	curHostID := byte(2)
@@ -272,7 +274,7 @@ func (d *DeploymentDeployer) assignNodesIPs(dl *workloads.Deployment) error {
 			curHostID++
 		}
 		usedHosts = append(usedHosts, curHostID)
-		vmIP := ip
+		vmIP := ip.To4()
 		vmIP[3] = curHostID
 		dl.Vms[idx].IP = vmIP.String()
 	}

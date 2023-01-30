@@ -115,7 +115,7 @@ func validateMnemonics(mnemonics string) error {
 
 	alphaOnly := regexp.MustCompile(`^[a-zA-Z\s]+$`)
 	if !alphaOnly.MatchString(mnemonics) {
-		return errors.New("mnemonics are can only be composed of a non-alphanumeric character or a whitespace")
+		return errors.New("mnemonics can only be composed of a non-alphanumeric character or a whitespace")
 	}
 
 	return nil
