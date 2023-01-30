@@ -46,7 +46,7 @@ type TFPluginClient struct {
 
 	DeploymentDeployer  DeploymentDeployer
 	NetworkDeployer     NetworkDeployer
-	gatewayFQDNDeployer GatewayFQDNDeployer
+	GatewayFQDNDeployer GatewayFQDNDeployer
 	//gatewayNameDeployer GatewayNameDeployer
 	//k8sDeployer k8sDeployer
 }

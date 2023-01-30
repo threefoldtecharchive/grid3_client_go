@@ -17,30 +17,7 @@ require (
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20200609130330-bd2cb7843e1b
 )
 
-require (
-	github.com/blang/semver v3.5.1+incompatible // indirect
-	github.com/diskfs/go-diskfs v1.2.0 // indirect
-	github.com/go-ole/go-ole v1.2.6 // indirect
-	github.com/golang/protobuf v1.5.2 // indirect
-	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
-	github.com/pierrec/lz4 v2.3.0+incompatible // indirect
-	github.com/pkg/xattr v0.4.1 // indirect
-	github.com/shirou/gopsutil v3.21.11+incompatible // indirect
-	github.com/sirupsen/logrus v1.8.1 // indirect
-	github.com/threefoldtech/zbus v1.0.0 // indirect
-	github.com/tklauser/go-sysconf v0.3.9 // indirect
-	github.com/tklauser/numcpus v0.3.0 // indirect
-	github.com/ulikunitz/xz v0.5.6 // indirect
-	github.com/vishvananda/netlink v1.1.1-0.20201029203352-d40f9887b852 // indirect
-	github.com/vishvananda/netns v0.0.0-20210104183010-2eb08e3e575f // indirect
-	github.com/vmihailenco/msgpack v4.0.4+incompatible // indirect
-	github.com/yusufpapurcu/wmi v1.2.2 // indirect
-	golang.org/x/term v0.4.0 // indirect
-	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/protobuf v1.27.1 // indirect
-	gopkg.in/djherbis/times.v1 v1.2.0 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
-)
+require golang.org/x/term v0.4.0 // indirect
 
 require (
 	github.com/ChainSafe/go-schnorrkel v1.0.0 // indirect
