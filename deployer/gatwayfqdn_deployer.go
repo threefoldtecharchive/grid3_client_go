@@ -28,6 +28,7 @@ type GatewayFQDNDeployer struct {
 // Generates new gateway fqdn deployer
 func NewGatewayFqdnDeployer(tfPluginClient *TFPluginClient) GatewayFQDNDeployer {
 	gatewayFQDN := GatewayFQDNDeployer{
+		ncPool: client.NewNodeClientPool(tfPluginClient.RMB),
 		deployer: Deployer{},
 	}
 
@@ -51,8 +52,6 @@ func (k *GatewayFQDNDeployer) GenerateVersionlessDeployments(ctx context.Context
 	deployments := make(map[uint32]gridtypes.Deployment)
 	var wls []gridtypes.Workload
 
-	println(deployments)
-
 	err := k.Validate(ctx)
 	if err != nil {
 		return nil, err
@@ -66,6 +65,7 @@ func (k *GatewayFQDNDeployer) GenerateVersionlessDeployments(ctx context.Context
 	return deployments, nil
 }
 
+
 // Deploy deploys the GatewayFQDN deployments using the deployer
 func (k *GatewayFQDNDeployer) Deploy(ctx context.Context, sub subi.SubstrateExt) error {
 	if err := k.Validate(ctx); err != nil {
@@ -77,7 +77,7 @@ func (k *GatewayFQDNDeployer) Deploy(ctx context.Context, sub subi.SubstrateExt)
 	}
 
 	deploymentData := DeploymentData{
-		Name: k.Gw.Name,
+		Name: k.Gw.FQDN,
 		Type: "Gateway Fqdn",
 	}
 
@@ -105,7 +105,7 @@ func (k *GatewayFQDNDeployer) syncContracts(ctx context.Context, sub subi.Substr
 	return nil
 }
 
-func (k *GatewayFQDNDeployer) sync(ctx context.Context, sub subi.SubstrateExt ) error {
+func (k *GatewayFQDNDeployer) sync(ctx context.Context, sub subi.SubstrateExt) error {
 	if err := k.syncContracts(ctx, sub); err != nil {
 		return errors.Wrap(err, "couldn't sync contracts")
 	}
@@ -131,8 +131,7 @@ func (k *GatewayFQDNDeployer) Cancel(ctx context.Context, sub subi.SubstrateExt)
 	newDeploymentsData := make(map[uint32]DeploymentData)
 	newDeploymentsSolutionProvider := make(map[uint32]*uint64)
 
-	k.NodeDeploymentID, err = k.deployer.Deploy(ctx, sub, k.NodeDeploymentID, newDeployments,newDeploymentsData, newDeploymentsSolutionProvider)
+	k.NodeDeploymentID, err = k.deployer.Deploy(ctx, sub, k.NodeDeploymentID, newDeployments, newDeploymentsData, newDeploymentsSolutionProvider)
 
 	return err
 }
-
