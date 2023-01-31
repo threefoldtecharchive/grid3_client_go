@@ -7,7 +7,6 @@ import (
 	"net"
 
 	"github.com/pkg/errors"
-	"github.com/threefoldtech/grid3-go/subi"
 	"github.com/threefoldtech/grid3-go/workloads"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
@@ -61,10 +60,11 @@ func (d *DeploymentDeployer) GenerateVersionlessDeployments(ctx context.Context,
 }
 
 // Deploy deploys a new deployment
-func (d *DeploymentDeployer) Deploy(ctx context.Context, sub subi.SubstrateExt, dl *workloads.Deployment) error {
+func (d *DeploymentDeployer) Deploy(ctx context.Context, dl *workloads.Deployment) error {
 	if err := d.Validate(ctx, dl); err != nil {
 		return err
 	}
+
 	newDeployments, err := d.GenerateVersionlessDeployments(ctx, dl)
 	if err != nil {
 		return errors.Wrap(err, "couldn't generate deployments data")
@@ -74,73 +74,68 @@ func (d *DeploymentDeployer) Deploy(ctx context.Context, sub subi.SubstrateExt, 
 		dl.SolutionType = "Virtual Machine"
 	}
 
-	deploymentData := DeploymentData{
+	deploymentData := workloads.DeploymentData{
 		Name:        dl.Name,
 		Type:        "vm",
 		ProjectName: dl.SolutionType,
 	}
 	// deployment data
-	newDeploymentsData := map[uint32]DeploymentData{dl.NodeID: deploymentData}
+	newDeploymentsData := map[uint32]workloads.DeploymentData{dl.NodeID: deploymentData}
 
 	// solution providers
 	newDeploymentsSolutionProvider := map[uint32]*uint64{dl.NodeID: dl.SolutionProvider}
 
-	oldDeployments := d.deployer.stateLoader.currentNodeDeployment
+	oldDeployments := d.TFPluginClient.stateLoader.currentNodeDeployment
 
-	currentDeployments, err := d.deployer.Deploy(ctx, sub, oldDeployments, newDeployments, newDeploymentsData, newDeploymentsSolutionProvider)
+	currentDeployments, err := d.deployer.Deploy(ctx, oldDeployments, newDeployments, newDeploymentsData, newDeploymentsSolutionProvider)
 	if currentDeployments[dl.NodeID] != 0 {
 		dl.ContractID = currentDeployments[dl.NodeID]
-		d.deployer.stateLoader.currentNodeDeployment[dl.NodeID] = dl.ContractID
+		d.TFPluginClient.stateLoader.currentNodeDeployment[dl.NodeID] = dl.ContractID
 		d.currentDeployments[dl.ContractID] = *dl
 	}
 	return err
 }
 
 // Cancel cancels deployments
-func (d *DeploymentDeployer) Cancel(ctx context.Context, sub subi.SubstrateExt, dl *workloads.Deployment) error {
-	newDeployments := map[uint32]gridtypes.Deployment{dl.NodeID: {}}
-
-	if len(dl.SolutionType) == 0 {
-		dl.SolutionType = "Virtual Machine"
+func (d *DeploymentDeployer) Cancel(ctx context.Context, dl *workloads.Deployment) error {
+	if err := d.Validate(ctx, dl); err != nil {
+		return err
 	}
 
-	deploymentData := DeploymentData{
-		Name:        dl.Name,
-		Type:        "vm",
-		ProjectName: dl.SolutionType,
-	}
+	// TODO cancel specific deployment only
+	newDeployments := map[uint32]gridtypes.Deployment{}
 
 	// deployment data
-	newDeploymentsData := map[uint32]DeploymentData{dl.NodeID: deploymentData}
+	newDeploymentsData := make(map[uint32]workloads.DeploymentData)
 
 	// solution providers
-	newDeploymentsSolutionProvider := map[uint32]*uint64{dl.NodeID: dl.SolutionProvider}
+	newDeploymentsSolutionProvider := make(map[uint32]*uint64)
 
-	oldDeployments := d.deployer.stateLoader.currentNodeDeployment
+	oldDeployments := d.TFPluginClient.stateLoader.currentNodeDeployment
 
-	currentDeployments, err := d.deployer.Deploy(ctx, sub, oldDeployments, newDeployments, newDeploymentsData, newDeploymentsSolutionProvider)
+	currentDeployments, err := d.deployer.Deploy(ctx, oldDeployments, newDeployments, newDeploymentsData, newDeploymentsSolutionProvider)
 	id := currentDeployments[dl.NodeID]
 	// TODO: if not cancelled ???
 	if id != 0 {
 		dl.ContractID = id
 	} else {
 		dl.ContractID = 0
-		delete(d.deployer.stateLoader.currentNodeDeployment, dl.NodeID)
+		delete(d.TFPluginClient.stateLoader.currentNodeDeployment, dl.NodeID)
 		delete(d.currentDeployments, dl.ContractID)
 	}
 	return err
 }
 
 // Sync syncs the deployments
-func (d *DeploymentDeployer) Sync(ctx context.Context, sub subi.SubstrateExt) error {
-	currentDeployments, err := d.deployer.GetDeployments(ctx, sub, d.deployer.stateLoader.currentNodeDeployment)
+func (d *DeploymentDeployer) Sync(ctx context.Context) error {
+	currentDeployments, err := d.deployer.GetDeployments(ctx, d.TFPluginClient.stateLoader.currentNodeDeployment)
 	if err != nil {
 		return errors.Wrap(err, "failed to get deployments to update local state")
 	}
 
 	for nodeID, dl := range currentDeployments {
-		contractID := d.deployer.stateLoader.currentNodeDeployment[nodeID]
-		contractID, err := d.syncContract(sub, contractID)
+		contractID := d.TFPluginClient.stateLoader.currentNodeDeployment[nodeID]
+		contractID, err := d.syncContract(contractID)
 		if err != nil {
 			return err
 		}
@@ -158,7 +153,7 @@ func (d *DeploymentDeployer) Sync(ctx context.Context, sub subi.SubstrateExt) er
 		var qsfs []workloads.QSFS
 		var disks []workloads.Disk
 
-		network := d.deployer.stateLoader.networks.getNetwork(gridDl.NetworkName)
+		network := d.TFPluginClient.stateLoader.networks.getNetwork(gridDl.NetworkName)
 		network.deleteDeploymentHostIDs(gridDl.NodeID, gridDl.ContractID)
 
 		usedIPs := []byte{}
@@ -207,7 +202,7 @@ func (d *DeploymentDeployer) Sync(ctx context.Context, sub subi.SubstrateExt) er
 			}
 		}
 
-		network = d.deployer.stateLoader.networks.getNetwork(gridDl.NetworkName)
+		network = d.TFPluginClient.stateLoader.networks.getNetwork(gridDl.NetworkName)
 		network.setDeploymentHostIDs(gridDl.NodeID, gridDl.ContractID, usedIPs)
 
 		gridDl.Match(disks, qsfs, zdbs, vms)
@@ -235,13 +230,13 @@ func (d *DeploymentDeployer) Validate(ctx context.Context, dl *workloads.Deploym
 }
 
 func (d *DeploymentDeployer) assignNodesIPs(dl *workloads.Deployment) error {
-	znet, err := d.deployer.stateLoader.LoadNetworkFromGrid(dl.NetworkName)
+	znet, err := d.TFPluginClient.stateLoader.LoadNetworkFromGrid(dl.NetworkName)
 	if err != nil {
-		log.Printf("error getting network workload: %s", err.Error())
+		return errors.Wrapf(err, "error getting network workload")
 	}
-	ipRange := znet.IPRange.IP.String()
+	ipRange := znet.IPRange.String()
 
-	network := d.deployer.stateLoader.networks.getNetwork(dl.NetworkName)
+	network := d.TFPluginClient.stateLoader.networks.getNetwork(dl.NetworkName)
 	usedHosts := network.getUsedNetworkHostIDs(dl.NodeID)
 
 	if len(dl.Vms) == 0 {
@@ -281,7 +276,9 @@ func (d *DeploymentDeployer) assignNodesIPs(dl *workloads.Deployment) error {
 	return nil
 }
 
-func (d *DeploymentDeployer) syncContract(sub subi.SubstrateExt, contractID uint64) (uint64, error) {
+func (d *DeploymentDeployer) syncContract(contractID uint64) (uint64, error) {
+	sub := d.TFPluginClient.SubstrateConn
+
 	if contractID == 0 {
 		return contractID, nil
 	}

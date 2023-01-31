@@ -156,8 +156,8 @@ func RandomName() string {
 	return name
 }
 
-// Wait waits for addr to connect
-func Wait(addr string, port string) bool {
+// TestConnection used to test connection
+func TestConnection(addr string, port string) bool {
 	for t := time.Now(); time.Since(t) < 3*time.Minute; {
 		_, err := net.DialTimeout("tcp", net.JoinHostPort(addr, "22"), time.Second*12)
 		if err == nil {

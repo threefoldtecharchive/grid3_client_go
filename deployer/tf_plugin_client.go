@@ -49,6 +49,8 @@ type TFPluginClient struct {
 	GatewayFQDNDeployer GatewayFQDNDeployer
 	//gatewayNameDeployer GatewayNameDeployer
 	//k8sDeployer k8sDeployer
+
+	stateLoader *StateLoader
 }
 
 // NewTFPluginClient generates a new tf plugin client
@@ -113,6 +115,7 @@ func NewTFPluginClient(mnemonics string,
 	if err := validateAccount(&tfPluginClient, sub); err != nil {
 		return TFPluginClient{}, errors.Wrap(err, "couldn't validate substrate account")
 	}
+
 	tfPluginClient.SubstrateConn = sub
 
 	twinID, err := sub.GetTwinByPubKey(keyPair.Public())
@@ -157,5 +160,7 @@ func NewTFPluginClient(mnemonics string,
 
 	tfPluginClient.DeploymentDeployer = NewDeploymentDeployer(&tfPluginClient)
 	tfPluginClient.NetworkDeployer = NewNetworkDeployer(&tfPluginClient)
+
+	tfPluginClient.stateLoader = NewStateLoader(tfPluginClient.NcPool, tfPluginClient.SubstrateConn)
 	return tfPluginClient, nil
 }

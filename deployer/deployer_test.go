@@ -4,45 +4,23 @@ package deployer
 import (
 	"context"
 	"encoding/hex"
-	"os"
-
-	"github.com/joho/godotenv"
-	"github.com/pkg/errors"
-	"github.com/threefoldtech/grid3-go/subi"
-	"github.com/threefoldtech/grid3-go/workloads"
-	"github.com/threefoldtech/substrate-client"
-	"github.com/threefoldtech/zos/pkg/gridtypes"
-	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
-)
-
-/*
-import (
-
-	"context"
-	"encoding/hex"
 	"encoding/json"
 	"os"
-
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	"github.com/joho/godotenv"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
-
 	"github.com/threefoldtech/grid3-go/mocks"
 	client "github.com/threefoldtech/grid3-go/node"
 	"github.com/threefoldtech/grid3-go/subi"
 	"github.com/threefoldtech/grid3-go/workloads"
-
 	"github.com/threefoldtech/substrate-client"
-
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
-
-	"github.com/joho/godotenv"
-
 )
-*/
+
 func SetUP() (identity substrate.Identity, twinID uint32, err error) {
 	if _, err = os.Stat("../.env"); !errors.Is(err, os.ErrNotExist) {
 		err = godotenv.Load("../.env")
@@ -114,27 +92,27 @@ func (d *EmptyValidator) Validate(ctx context.Context, sub subi.SubstrateExt, ol
 	return nil
 }
 
-/*
 func TestCreate(t *testing.T) {
-	identity, twinID, err := SetUP()
+	tfPluginClient, err := setup()
 	assert.NoError(t, err)
+
+	identity := tfPluginClient.Identity
+	twinID := tfPluginClient.TwinID
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	gridClient := mocks.NewMockClient(ctrl)
 	cl := mocks.NewRMBMockClient(ctrl)
 	sub := mocks.NewMockSubstrateExt(ctrl)
 	ncPool := mocks.NewMockNodeClientGetter(ctrl)
 
+	tfPluginClient.SubstrateConn = sub
+	tfPluginClient.NcPool = ncPool
+	tfPluginClient.RMB = cl
+
 	deployer := NewDeployer(
-		identity,
-		twinID,
-		gridClient,
-		ncPool,
+		tfPluginClient,
 		true,
-		nil,
-		"",
 	)
 
 	dl1, err := deploymentWithNameGateway(identity, twinID, true, 0, backendURLWithTLSPassthrough)
@@ -145,6 +123,16 @@ func TestCreate(t *testing.T) {
 	newDls := map[uint32]gridtypes.Deployment{
 		10: dl1,
 		20: dl2,
+	}
+
+	newDlsData := map[uint32]workloads.DeploymentData{
+		10: {},
+		20: {},
+	}
+
+	newDlsSolProvider := map[uint32]*uint64{
+		10: nil,
+		20: nil,
 	}
 
 	dl1.ContractID = 100
@@ -159,7 +147,7 @@ func TestCreate(t *testing.T) {
 		CreateNodeContract(
 			identity,
 			uint32(10),
-			"",
+			`{"type":"","name":"","projectName":""}`,
 			dl1Hash,
 			uint32(0),
 			nil,
@@ -169,7 +157,7 @@ func TestCreate(t *testing.T) {
 		CreateNodeContract(
 			identity,
 			uint32(20),
-			"",
+			`{"type":"","name":"","projectName":""}`,
 			dl2Hash,
 			uint32(0),
 			nil,
@@ -217,31 +205,32 @@ func TestCreate(t *testing.T) {
 
 	deployer.validator = &EmptyValidator{}
 
-	contracts, err := deployer.Deploy(context.Background(), sub, nil, newDls)
+	contracts, err := deployer.Deploy(context.Background(), nil, newDls, newDlsData, newDlsSolProvider)
 	assert.NoError(t, err)
 	assert.Equal(t, contracts, map[uint32]uint64{10: 100, 20: 200})
 }
 
 func TestUpdate(t *testing.T) {
-	identity, twinID, err := SetUP()
+	tfPluginClient, err := setup()
 	assert.NoError(t, err)
+
+	identity := tfPluginClient.Identity
+	twinID := tfPluginClient.TwinID
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	gridClient := mocks.NewMockClient(ctrl)
 	cl := mocks.NewRMBMockClient(ctrl)
 	sub := mocks.NewMockSubstrateExt(ctrl)
 	ncPool := mocks.NewMockNodeClientGetter(ctrl)
 
+	tfPluginClient.SubstrateConn = sub
+	tfPluginClient.NcPool = ncPool
+	tfPluginClient.RMB = cl
+
 	deployer := NewDeployer(
-		identity,
-		twinID,
-		gridClient,
-		ncPool,
+		tfPluginClient,
 		true,
-		nil,
-		"",
 	)
 
 	dl1, err := deploymentWithNameGateway(identity, twinID, true, 0, backendURLWithTLSPassthrough)
@@ -251,6 +240,14 @@ func TestUpdate(t *testing.T) {
 
 	newDls := map[uint32]gridtypes.Deployment{
 		10: dl2,
+	}
+
+	newDlsData := map[uint32]workloads.DeploymentData{
+		10: {},
+	}
+
+	newDlsSolProvider := map[uint32]*uint64{
+		10: nil,
 	}
 
 	dl1.ContractID = 100
@@ -299,7 +296,8 @@ func TestUpdate(t *testing.T) {
 
 	deployer.validator = &EmptyValidator{}
 
-	contracts, err := deployer.Deploy(context.Background(), sub, map[uint32]uint64{10: 100}, newDls)
+	contracts, err := deployer.Deploy(context.Background(), map[uint32]uint64{10: 100}, newDls, newDlsData, newDlsSolProvider)
+
 	assert.NoError(t, err)
 	assert.Equal(t, contracts, map[uint32]uint64{10: 100})
 
@@ -308,25 +306,26 @@ func TestUpdate(t *testing.T) {
 }
 
 func TestCancel(t *testing.T) {
-	identity, twinID, err := SetUP()
+	tfPluginClient, err := setup()
 	assert.NoError(t, err)
+
+	identity := tfPluginClient.Identity
+	twinID := tfPluginClient.TwinID
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	gridClient := mocks.NewMockClient(ctrl)
 	cl := mocks.NewRMBMockClient(ctrl)
 	sub := mocks.NewMockSubstrateExt(ctrl)
 	ncPool := mocks.NewMockNodeClientGetter(ctrl)
 
+	tfPluginClient.SubstrateConn = sub
+	tfPluginClient.NcPool = ncPool
+	tfPluginClient.RMB = cl
+
 	deployer := NewDeployer(
-		identity,
-		twinID,
-		gridClient,
-		ncPool,
+		tfPluginClient,
 		true,
-		nil,
-		"",
 	)
 
 	dl1, err := deploymentWithNameGateway(identity, twinID, true, 0, backendURLWithTLSPassthrough)
@@ -354,31 +353,32 @@ func TestCancel(t *testing.T) {
 
 	deployer.validator = &EmptyValidator{}
 
-	contracts, err := deployer.Deploy(context.Background(), sub, map[uint32]uint64{10: 100}, nil)
+	contracts, err := deployer.Deploy(context.Background(), map[uint32]uint64{10: 100}, nil, nil, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, contracts, map[uint32]uint64{})
 }
 
 func TestCocktail(t *testing.T) {
-	identity, twinID, err := SetUP()
+	tfPluginClient, err := setup()
 	assert.NoError(t, err)
+
+	identity := tfPluginClient.Identity
+	twinID := tfPluginClient.TwinID
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	gridClient := mocks.NewMockClient(ctrl)
 
 	cl := mocks.NewRMBMockClient(ctrl)
 	sub := mocks.NewMockSubstrateExt(ctrl)
 	ncPool := mocks.NewMockNodeClientGetter(ctrl)
 
+	tfPluginClient.SubstrateConn = sub
+	tfPluginClient.NcPool = ncPool
+	tfPluginClient.RMB = cl
+
 	deployer := NewDeployer(
-		identity,
-		twinID,
-		gridClient,
-		ncPool,
+		tfPluginClient,
 		true,
-		nil,
-		"",
 	)
 
 	g := workloads.GatewayFQDNProxy{Name: "f", FQDN: "test.com", Backends: []zos.Backend{zos.Backend(backendURLWithoutTLSPassthrough)}}
@@ -422,11 +422,23 @@ func TestCocktail(t *testing.T) {
 		40: dl6,
 	}
 
+	newDlsData := map[uint32]workloads.DeploymentData{
+		10: {},
+		30: {},
+		40: {},
+	}
+
+	newDlsSolProvider := map[uint32]*uint64{
+		10: nil,
+		30: nil,
+		40: nil,
+	}
+
 	sub.EXPECT().
 		CreateNodeContract(
 			identity,
 			uint32(30),
-			"",
+			`{"type":"","name":"","projectName":""}`,
 			dl4Hash,
 			uint32(0),
 			nil,
@@ -549,7 +561,7 @@ func TestCocktail(t *testing.T) {
 
 	deployer.validator = &EmptyValidator{}
 
-	contracts, err := deployer.Deploy(context.Background(), sub, oldDls, newDls)
+	contracts, err := deployer.Deploy(context.Background(), oldDls, newDls, newDlsData, newDlsSolProvider)
 	assert.NoError(t, err)
 	assert.Equal(t, contracts, map[uint32]uint64{
 		20: 200,
@@ -557,4 +569,3 @@ func TestCocktail(t *testing.T) {
 		40: 400,
 	})
 }
-*/

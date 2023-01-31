@@ -69,6 +69,7 @@ func (d *ValidatorImpl) Validate(ctx context.Context, sub subi.SubstrateExt, old
 			}
 		}
 	}
+
 	for node, dl := range oldDeployments {
 		nodeData, ok := nodeMap[node]
 		if !ok {
@@ -82,11 +83,13 @@ func (d *ValidatorImpl) Validate(ctx context.Context, sub subi.SubstrateExt, old
 
 		farmIPs[nodeData.FarmID] += int(publicIPCount)
 	}
+
 	for node, dl := range newDeployments {
 		oldDl, alreadyExists := oldDeployments[node]
 		if err := dl.Valid(); err != nil {
 			return errors.Wrap(err, "invalid deployment")
 		}
+
 		needed, err := Capacity(dl)
 		if err != nil {
 			return err

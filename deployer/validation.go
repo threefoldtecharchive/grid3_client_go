@@ -156,13 +156,13 @@ func validateClientRMB(tfPluginClient *TFPluginClient, sub subi.SubstrateExt) er
 }
 
 func validateAccountBalanceForExtrinsics(sub subi.SubstrateExt, identity substrate.Identity) error {
-	acc, err := sub.GetAccount(identity)
+	balance, err := sub.GetBalance(identity)
 	if err != nil && !errors.Is(err, substrate.ErrAccountNotFound) {
 		return errors.Wrap(err, "failed to get account with the given mnemonics")
 	}
-	log.Printf("money %d\n", acc.Data.Free)
-	if acc.Data.Free.Cmp(big.NewInt(20000)) == -1 {
-		return fmt.Errorf("account contains %s, min fee is 20000", acc.Data.Free)
+	log.Printf("money %d\n", balance.Free)
+	if balance.Free.Cmp(big.NewInt(20000)) == -1 {
+		return fmt.Errorf("account contains %s, min fee is 20000", balance.Free)
 	}
 	return nil
 }

@@ -67,16 +67,19 @@ func SSHKeys() {
 }
 
 func TestVMDeployment(t *testing.T) {
-
 	tfPluginClient, err := setup()
 	assert.NoError(t, err)
 
-	publicKey := os.Getenv("PUBLICKEY")
+	publicKey := `ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDNFMdYHGcGqWsE7H1eqsWaXwOQQQrh6bYWsKKGa7KswNa8BhyEK9bjxEs13LvIVPUckn/wVVqlH0qFAc8JjBRmSjGdDjyZIvawOIyDX/Jr0fPAyS3e8eL+FvuJVW1OCKZ4DmGYgNiEYFDZ0uxf6lyfJyYsiTxzeukHOjtDe3xIg660aYdWKV4bbog9AmkdXL7x0lTkUb+ERVhMCvtIFE7YKGZqeEovL6tgXl9U/ApdXK/xT0283CWoKBQVcvZUEqimtWTaEFekFD4PTDkwfUg6WZY6Gy6yTU4HESziSh5e0raH7mP4YJ8tZsdtnfIL+NRvReUqFz8goG6Dm0nvsvwcI8jJhH8lGbPxd6hqbvk+PnttZRr5uxiIJwIx/98fW+mAL0N7AScRklFSjQgr4dRTqZ+/TXyUj9E0x/nyaEpRuj83SzLSwFsc2izoxNCSJDz3m5t7RW2Inm3X3oZmkFOdWL4Y1yGIHcFY0i9LSgHYaQpfLpDz4WnlkkU8cyf73Ic= rawda@rawda-Inspiron-3576`
+
+	//os.Getenv("PUBLICKEY")
+
+	nodeID := uint32(3)
 
 	network := workloads.ZNet{
 		Name:        "testingNetwork",
 		Description: "network for testing",
-		Nodes:       []uint32{14},
+		Nodes:       []uint32{nodeID},
 		IPRange: gridtypes.NewIPNet(net.IPNet{
 			IP:   net.IPv4(10, 1, 0, 0),
 			Mask: net.CIDRMask(16, 32),
@@ -86,7 +89,7 @@ func TestVMDeployment(t *testing.T) {
 
 	vm := workloads.VM{
 		Name:       "vm",
-		Flist:      "https://hub.grid.tf/tf-official-apps/threefoldtech-ubuntu-20.04.flist",
+		Flist:      "https://hub.grid.tf/tf-official-apps/base:latest.flist",
 		CPU:        2,
 		Planetary:  true,
 		Memory:     1024,
@@ -96,7 +99,7 @@ func TestVMDeployment(t *testing.T) {
 			"SSH_KEY":  publicKey,
 			"TEST_VAR": "this value for test",
 		},
-		IP:          "10.1.0.2",
+		IP:          "10.1.2.5",
 		NetworkName: "testingNetwork",
 	}
 
@@ -106,14 +109,18 @@ func TestVMDeployment(t *testing.T) {
 	err = tfPluginClient.NetworkDeployer.Deploy(ctx, &network)
 	assert.NoError(t, err)
 
-	fmt.Println(vm.CPU)
-	/*
-	   dl := workloads.NewDeployment("vm", 14, "", nil, "testingNetwork", nil, nil, []workloads.VM{vm}, nil)
-	   err = tfPluginClient.DeploymentDeployer.Deploy(ctx, tfPluginClient.SubstrateConn, &dl)
-	   assert.NoError(t, err)
+	dl := workloads.NewDeployment("vm", nodeID, "", nil, "testingNetwork", nil, nil, []workloads.VM{vm}, nil)
+	err = tfPluginClient.DeploymentDeployer.Deploy(ctx, &dl)
+	assert.NoError(t, err)
 
-	   v, err := tfPluginClient.DeploymentDeployer.deployer.stateLoader.LoadVMFromGrid(14, "vm")
-	   assert.NoError(t, err)
-	   fmt.Printf("v: %v\n", v)
-	*/
+	v, err := tfPluginClient.stateLoader.LoadVMFromGrid(nodeID, "vm")
+	assert.NoError(t, err)
+	assert.Equal(t, v.IP, "10.1.2.5")
+	fmt.Printf("v: %v\n", v)
+
+	err = tfPluginClient.DeploymentDeployer.Cancel(ctx, &dl)
+	assert.NoError(t, err)
+
+	err = tfPluginClient.NetworkDeployer.Cancel(ctx, &network)
+	assert.NoError(t, err)
 }

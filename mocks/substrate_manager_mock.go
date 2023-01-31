@@ -299,6 +299,21 @@ func (mr *MockSubstrateExtMockRecorder) GetAccount(identity interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccount", reflect.TypeOf((*MockSubstrateExt)(nil).GetAccount), identity)
 }
 
+// GetBalance mocks base method.
+func (m *MockSubstrateExt) GetBalance(identity substrate.Identity) (balance substrate.Balance, err error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetBalance", identity)
+	ret0, _ := ret[0].(substrate.Balance)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetBalance indicates an expected call of GetBalance.
+func (mr *MockSubstrateExtMockRecorder) GetBalance(identity substrate.Identity) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBalance", reflect.TypeOf((*MockSubstrateExt)(nil).GetBalance), identity)
+}
+
 // GetContract mocks base method.
 func (m *MockSubstrateExt) GetContract(id uint64) (subi.Contract, error) {
 	m.ctrl.T.Helper()
