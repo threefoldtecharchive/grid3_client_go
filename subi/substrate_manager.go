@@ -12,7 +12,7 @@ import (
 // ManagerInterface for substrate manager
 type ManagerInterface interface {
 	substrate.Manager
-	SubstrateExt() (SubstrateExt, error)
+	SubstrateExt() (SubstrateImpl, error)
 }
 
 // Manager is substrate manager struct
@@ -27,23 +27,19 @@ func NewManager(url ...string) Manager {
 }
 
 // SubstrateExt returns a substrate implementation to be used
-func (m *Manager) SubstrateExt() (SubstrateExt, error) {
+func (m *Manager) SubstrateExt() (*SubstrateImpl, error) {
 	sub, err := m.Manager.Substrate()
 	return &SubstrateImpl{sub}, err
 }
 
-// Substrate interface for substrate client
-type Substrate interface {
+// SubstrateExt interface for substrate client
+type SubstrateExt interface {
 	CancelContract(identity substrate.Identity, contractID uint64) error
 	CreateNodeContract(identity substrate.Identity, node uint32, body string, hash string, publicIPs uint32, solutionProviderID *uint64) (uint64, error)
 	UpdateNodeContract(identity substrate.Identity, contract uint64, body string, hash string) (uint64, error)
 	Close()
 	GetTwinByPubKey(pk []byte) (uint32, error)
-}
 
-// SubstrateExt interface for substrate executable functions
-type SubstrateExt interface {
-	Substrate
 	EnsureContractCanceled(identity substrate.Identity, contractID uint64) error
 	DeleteInvalidContracts(contracts map[uint32]uint64) error
 	IsValidContract(contractID uint64) (bool, error)
@@ -57,6 +53,7 @@ type SubstrateExt interface {
 	GetNodeTwin(id uint32) (uint32, error)
 	CreateNameContract(identity substrate.Identity, name string) (uint64, error)
 	GetAccount(identity substrate.Identity) (types.AccountInfo, error)
+	GetBalance(identity substrate.Identity) (balance substrate.Balance, err error)
 	GetTwinIP(twinID uint32) (string, error)
 	GetTwinPK(twinID uint32) ([]byte, error)
 	GetContractIDByNameRegistration(name string) (uint64, error)
@@ -71,6 +68,17 @@ type SubstrateImpl struct {
 func (s *SubstrateImpl) GetAccount(identity substrate.Identity) (types.AccountInfo, error) {
 	res, err := s.Substrate.GetAccount(identity)
 	return res, normalizeNotFoundErrors(err)
+}
+
+// GetBalance returns the user's balance
+func (s *SubstrateImpl) GetBalance(identity substrate.Identity) (balance substrate.Balance, err error) {
+	accountAddress, err := substrate.FromAddress(identity.Address())
+	if err != nil {
+		return
+	}
+
+	balance, err = s.Substrate.GetBalance(accountAddress)
+	return balance, normalizeNotFoundErrors(err)
 }
 
 // GetNodeTwin returns the twin ID for a node ID
@@ -126,7 +134,7 @@ func (s *SubstrateImpl) UpdateNodeContract(identity substrate.Identity, contract
 // GetContract returns a contract given its ID
 func (s *SubstrateImpl) GetContract(contractID uint64) (Contract, error) {
 	contract, err := s.Substrate.GetContract(contractID)
-	return &ContractImpl{contract}, normalizeNotFoundErrors(err)
+	return Contract{contract}, normalizeNotFoundErrors(err)
 }
 
 // CancelContract cancels a contract

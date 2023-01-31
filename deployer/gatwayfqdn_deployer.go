@@ -81,13 +81,13 @@ func (k *GatewayFQDNDeployer) Deploy(ctx context.Context, gw *workloads.GatewayF
 		ProjectName: gw.ZosWorkload().Description,
 	}
 
-	newDeploymentsData := make(map[uint32]DeploymentData)
+	newDeploymentsData := make(map[uint32]workloads.DeploymentData)
 	newDeploymentsSolutionProvider := make(map[uint32]*uint64)
 
 	newDeploymentsData[k.Node] = deploymentData
 	newDeploymentsSolutionProvider[k.Node] = nil
 
-	k.NodeDeploymentID, err = k.deployer.Deploy(ctx, sub, k.NodeDeploymentID, newDeployments, newDeploymentsData, newDeploymentsSolutionProvider)
+	k.NodeDeploymentID, err = k.deployer.Deploy(ctx, k.NodeDeploymentID, newDeployments, newDeploymentsData, newDeploymentsSolutionProvider)
 	if k.ID == "" && k.NodeDeploymentID[k.Node] != 0 {
 		k.ID = strconv.FormatUint(k.NodeDeploymentID[k.Node], 10)
 	}
@@ -110,7 +110,7 @@ func (k *GatewayFQDNDeployer) sync(ctx context.Context, sub subi.SubstrateExt) e
 		return errors.Wrap(err, "couldn't sync contracts")
 	}
 
-	dls, err := k.deployer.GetDeployments(ctx, sub, k.NodeDeploymentID)
+	dls, err := k.deployer.GetDeployments(ctx, k.NodeDeploymentID)
 	if err != nil {
 		return errors.Wrap(err, "couldn't get deployment objects")
 	}
@@ -126,9 +126,9 @@ func (k *GatewayFQDNDeployer) sync(ctx context.Context, sub subi.SubstrateExt) e
 	return nil
 }
 
-func (k *GatewayFQDNDeployer) Cancel(ctx context.Context, sub subi.SubstrateExt) (err error) {
+func (k *GatewayFQDNDeployer) Cancel(ctx context.Context) (err error) {
 	newDeployments := make(map[uint32]gridtypes.Deployment)
-	newDeploymentsData := make(map[uint32]DeploymentData)
+	newDeploymentsData := make(map[uint32]workloads.DeploymentData)
 	newDeploymentsSolutionProvider := make(map[uint32]*uint64)
 
 	k.NodeDeploymentID, err = k.deployer.Deploy(ctx, sub, k.NodeDeploymentID, newDeployments, newDeploymentsData, newDeploymentsSolutionProvider)

@@ -2,14 +2,24 @@
 package workloads
 
 import (
+	"fmt"
 	"log"
+	"net"
 	"sort"
 	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/substrate-client"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
+	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
+
+// DeploymentData for deployments meta data
+type DeploymentData struct {
+	Type        string `json:"type"`
+	Name        string `json:"name"`
+	ProjectName string `json:"projectName"`
+}
 
 // Deployment struct
 type Deployment struct {
@@ -113,6 +123,52 @@ func (d *Deployment) Match(disks []Disk, qsfs []QSFS, zdbs []ZDB, vms []VM) {
 	}
 }
 
+// ConstructGridDeployment generates a new grid deployment from a deployment
+func (d *Deployment) ConstructGridDeployment(twin uint32) (gridtypes.Deployment, error) {
+	wls := []gridtypes.Workload{}
+
+	for _, d := range d.Disks {
+		wls = append(wls, d.GenerateWorkload())
+	}
+
+	for _, z := range d.Zdbs {
+		wls = append(wls, z.GenerateWorkload())
+	}
+
+	for _, v := range d.Vms {
+		vmWls, err := v.GenerateWorkloads()
+		if err != nil {
+			return gridtypes.Deployment{}, err
+		}
+		wls = append(wls, vmWls...)
+	}
+
+	for _, q := range d.Qsfs {
+		qWls, err := q.GenerateWorkloads()
+		if err != nil {
+			return gridtypes.Deployment{}, err
+		}
+		wls = append(wls, qWls...)
+	}
+
+	return gridtypes.Deployment{
+		Version: 0,
+		TwinID:  twin, //LocalTwin,
+		// this contract id must match the one on substrate
+		ContractID: d.ContractID,
+		Workloads:  wls,
+		SignatureRequirement: gridtypes.SignatureRequirement{
+			WeightRequired: 1,
+			Requests: []gridtypes.SignatureRequest{
+				{
+					TwinID: twin,
+					Weight: 1,
+				},
+			},
+		},
+	}, nil
+}
+
 // NewDeployment generates a new deployment
 func NewGridDeployment(twin uint32, workloads []gridtypes.Workload) gridtypes.Deployment {
 	return gridtypes.Deployment{
@@ -130,6 +186,26 @@ func NewGridDeployment(twin uint32, workloads []gridtypes.Workload) gridtypes.De
 			},
 		},
 	}
+}
+
+// GetUsedIPs returns used IPs for a deployment
+func GetUsedIPs(dl gridtypes.Deployment) ([]byte, error) {
+	usedIPs := []byte{}
+	for _, w := range dl.Workloads {
+		if !w.Result.State.IsOkay() {
+			return usedIPs, fmt.Errorf("workload %s state failed", w.Name)
+		}
+		if w.Type == zos.ZMachineType {
+			vm, err := NewVMFromWorkloads(&w, &dl)
+			if err != nil {
+				return usedIPs, errors.Wrapf(err, "error parsing vm: %s", vm.Name)
+			}
+
+			ip := net.ParseIP(vm.IP).To4()
+			usedIPs = append(usedIPs, ip[3])
+		}
+	}
+	return usedIPs, nil
 }
 
 // GatewayWorkloadGenerator is an interface for a gateway workload generator

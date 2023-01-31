@@ -16,30 +16,10 @@ import (
 	"github.com/pkg/errors"
 	client "github.com/threefoldtech/grid3-go/node"
 	"github.com/threefoldtech/grid3-go/subi"
+	"github.com/threefoldtech/grid3-go/workloads"
 	"github.com/threefoldtech/substrate-client"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 )
-
-/*
-// DeployerInterface to be used for any deployer
-type DeployerInterface interface {
-	Deploy(ctx context.Context, sub subi.SubstrateExt, oldDeployments map[uint32]uint64, newDeployments map[uint32]gridtypes.Deployment) (map[uint32]uint64, error)
-	GetDeployments(ctx context.Context, sub subi.SubstrateExt, dls map[uint32]uint64) (map[uint32]gridtypes.Deployment, error)
-	Wait(
-		ctx context.Context,
-		nodeClient *client.NodeClient,
-		deploymentID uint64,
-		workloadVersions map[string]uint32,
-	) error
-}
-*/
-
-// DeploymentData for deployments meta data
-type DeploymentData struct {
-	Type        string `json:"type"`
-	Name        string `json:"name"`
-	ProjectName string `json:"projectName"`
-}
 
 // Deployer to be used for any deployer
 type Deployer struct {
@@ -48,9 +28,7 @@ type Deployer struct {
 	validator       Validator
 	ncPool          client.NodeClientGetter
 	revertOnFailure bool
-	//solutionProvider *uint64
-
-	stateLoader StateLoader
+	SubstrateConn   subi.SubstrateExt
 }
 
 // NewDeployer returns a new deployer
@@ -58,7 +36,6 @@ func NewDeployer(
 	tfPluginClient TFPluginClient,
 	revertOnFailure bool,
 ) Deployer {
-	stateLoader := NewStateLoader(tfPluginClient.NcPool, tfPluginClient.SubstrateConn)
 
 	return Deployer{
 		tfPluginClient.Identity,
@@ -66,50 +43,51 @@ func NewDeployer(
 		&ValidatorImpl{gridClient: tfPluginClient.GridProxyClient},
 		tfPluginClient.NcPool,
 		revertOnFailure,
-		stateLoader,
+		tfPluginClient.SubstrateConn,
 	}
 }
 
 // TODO: newDeployments should support more than 1 deployment per node ID
 // Deploy deploys a new deployment given the old deployments' IDs
 func (d *Deployer) Deploy(ctx context.Context,
-	sub subi.SubstrateExt,
 	oldDeploymentIDs map[uint32]uint64,
 	newDeployments map[uint32]gridtypes.Deployment,
-	newDeploymentsData map[uint32]DeploymentData,
+	newDeploymentsData map[uint32]workloads.DeploymentData,
 	newDeploymentSolutionProvider map[uint32]*uint64,
 ) (map[uint32]uint64, error) {
-	oldDeployments, oldErr := d.GetDeployments(ctx, sub, oldDeploymentIDs)
+	oldDeployments, oldErr := d.GetDeployments(ctx, oldDeploymentIDs)
 	if oldErr == nil {
 		// check resources only when old deployments are readable
 		// being readable means it's a fresh deployment or an update with good nodes
 		// this is done to avoid preventing deletion of deployments on dead nodes
-		if err := d.validator.Validate(ctx, sub, oldDeployments, newDeployments); err != nil {
+		if err := d.validator.Validate(ctx, d.SubstrateConn, oldDeployments, newDeployments); err != nil {
 			return oldDeploymentIDs, err
 		}
 	}
+
 	// ignore oldErr until we need oldDeployments
-	currentDeployments, err := d.deploy(ctx, sub, oldDeploymentIDs, newDeployments, newDeploymentsData, newDeploymentSolutionProvider, d.revertOnFailure)
+	currentDeployments, err := d.deploy(ctx, oldDeploymentIDs, newDeployments, newDeploymentsData, newDeploymentSolutionProvider, d.revertOnFailure)
+
 	if err != nil && d.revertOnFailure {
 		if oldErr != nil {
 			return currentDeployments, fmt.Errorf("failed to deploy deployments: %w; failed to fetch deployment objects to revert deployments: %s; try again", err, oldErr)
 		}
 
-		currentDls, rerr := d.deploy(ctx, sub, currentDeployments, oldDeployments, newDeploymentsData, newDeploymentSolutionProvider, false)
+		currentDls, rerr := d.deploy(ctx, currentDeployments, oldDeployments, newDeploymentsData, newDeploymentSolutionProvider, false)
 		if rerr != nil {
 			return currentDls, fmt.Errorf("failed to deploy deployments: %w; failed to revert deployments: %s; try again", err, rerr)
 		}
 		return currentDls, err
 	}
+
 	return currentDeployments, err
 }
 
 func (d *Deployer) deploy(
 	ctx context.Context,
-	sub subi.SubstrateExt,
 	oldDeployments map[uint32]uint64,
 	newDeployments map[uint32]gridtypes.Deployment,
-	newDeploymentsData map[uint32]DeploymentData,
+	newDeploymentsData map[uint32]workloads.DeploymentData,
 	newDeploymentSolutionProvider map[uint32]*uint64,
 	revertOnFailure bool,
 ) (currentDeployments map[uint32]uint64, err error) {
@@ -120,17 +98,18 @@ func (d *Deployer) deploy(
 	// deletions
 	for node, contractID := range oldDeployments {
 		if _, ok := newDeployments[node]; !ok {
-			err = sub.EnsureContractCanceled(d.identity, contractID)
+			err = d.SubstrateConn.EnsureContractCanceled(d.identity, contractID)
 			if err != nil && !strings.Contains(err.Error(), "ContractNotExists") {
 				return currentDeployments, errors.Wrap(err, "failed to delete deployment")
 			}
 			delete(currentDeployments, node)
 		}
 	}
+
 	// creations
 	for node, dl := range newDeployments {
 		if _, ok := oldDeployments[node]; !ok {
-			client, err := d.ncPool.GetNodeClient(sub, node)
+			client, err := d.ncPool.GetNodeClient(d.SubstrateConn, node)
 			if err != nil {
 				return currentDeployments, errors.Wrap(err, "failed to get node client")
 			}
@@ -159,12 +138,11 @@ func (d *Deployer) deploy(
 			log.Printf("Number of public ips: %d\n", publicIPCount)
 
 			deploymentDataBytes, err := json.Marshal(newDeploymentsData[node])
-			fmt.Printf("newDeploymentsData: %v\n", newDeploymentsData)
 			if err != nil {
 				return currentDeployments, errors.Wrap(err, "failed to parse deployment data")
 			}
 
-			contractID, err := sub.CreateNodeContract(d.identity, node, string(deploymentDataBytes), hashHex, publicIPCount, newDeploymentSolutionProvider[node])
+			contractID, err := d.SubstrateConn.CreateNodeContract(d.identity, node, string(deploymentDataBytes), hashHex, publicIPCount, newDeploymentSolutionProvider[node])
 			log.Printf("CreateNodeContract returned id: %d\n", contractID)
 			if err != nil {
 				return currentDeployments, errors.Wrap(err, "failed to create contract")
@@ -176,8 +154,7 @@ func (d *Deployer) deploy(
 			err = client.DeploymentDeploy(ctx2, dl)
 
 			if err != nil {
-				rerr := sub.EnsureContractCanceled(d.identity, contractID)
-				log.Printf("failed to send deployment deploy request to node %s", err)
+				rerr := d.SubstrateConn.EnsureContractCanceled(d.identity, contractID)
 				if rerr != nil {
 					return currentDeployments, fmt.Errorf("error sending deployment to the node: %w, error cancelling contract: %s; you must cancel it manually (id: %d)", err, rerr, contractID)
 				}
@@ -205,14 +182,16 @@ func (d *Deployer) deploy(
 				return currentDeployments, errors.Wrap(err, "couldn't get deployment hash")
 			}
 
-			client, err := d.ncPool.GetNodeClient(sub, node)
+			client, err := d.ncPool.GetNodeClient(d.SubstrateConn, node)
 			if err != nil {
 				return currentDeployments, errors.Wrap(err, "failed to get node client")
 			}
+
 			oldDl, err := client.DeploymentGet(ctx, oldDeploymentID)
 			if err != nil {
 				return currentDeployments, errors.Wrap(err, "failed to get old deployment to update it")
 			}
+
 			oldDeploymentHash, err := HashDeployment(oldDl)
 			if err != nil {
 				return currentDeployments, errors.Wrap(err, "couldn't get deployment hash")
@@ -220,14 +199,17 @@ func (d *Deployer) deploy(
 			if oldDeploymentHash == newDeploymentHash && SameWorkloadsNames(dl, oldDl) {
 				continue
 			}
+
 			oldHashes, err := ConstructWorkloadHashes(oldDl)
 			if err != nil {
 				return currentDeployments, errors.Wrap(err, "couldn't get old workloads hashes")
 			}
+
 			newHashes, err := ConstructWorkloadHashes(dl)
 			if err != nil {
 				return currentDeployments, errors.Wrap(err, "couldn't get new workloads hashes")
 			}
+
 			oldWorkloadsVersions := ConstructWorkloadVersions(oldDl)
 			newWorkloadsVersions := map[string]uint32{}
 			dl.Version = oldDl.Version + 1
@@ -250,18 +232,17 @@ func (d *Deployer) deploy(
 				return currentDeployments, errors.Wrap(err, "deployment is invalid")
 			}
 
-			log.Printf("%+v", dl)
+			log.Printf("deployment: %+v", dl)
 			hash, err := dl.ChallengeHash()
-
 			if err != nil {
 				return currentDeployments, errors.Wrap(err, "failed to create hash")
 			}
-
 			hashHex := hex.EncodeToString(hash)
 			log.Printf("[DEBUG] HASH: %s", hashHex)
+
 			// TODO: Destroy and create if publicIPCount is changed
 			// publicIPCount, err := countDeploymentPublicIPs(dl)
-			contractID, err := sub.UpdateNodeContract(d.identity, dl.ContractID, "", hashHex)
+			contractID, err := d.SubstrateConn.UpdateNodeContract(d.identity, dl.ContractID, "", hashHex)
 			if err != nil {
 				return currentDeployments, errors.Wrap(err, "failed to update deployment")
 			}
@@ -271,8 +252,7 @@ func (d *Deployer) deploy(
 			err = client.DeploymentUpdate(sub, dl)
 			if err != nil {
 				// cancel previous contract
-				log.Printf("failed to send deployment update request to node %s", err)
-				return currentDeployments, errors.Wrap(err, "error sending deployment to the node")
+				return currentDeployments, errors.Wrapf(err, "failed to send deployment update request to node %d", node)
 			}
 			currentDeployments[node] = dl.ContractID
 
@@ -287,7 +267,7 @@ func (d *Deployer) deploy(
 }
 
 // GetDeployments returns deployments from a map of nodes IDs and deployments IDs
-func (d *Deployer) GetDeployments(ctx context.Context, sub subi.SubstrateExt, dls map[uint32]uint64) (map[uint32]gridtypes.Deployment, error) {
+func (d *Deployer) GetDeployments(ctx context.Context, dls map[uint32]uint64) (map[uint32]gridtypes.Deployment, error) {
 	res := make(map[uint32]gridtypes.Deployment)
 
 	var wg sync.WaitGroup
@@ -300,7 +280,7 @@ func (d *Deployer) GetDeployments(ctx context.Context, sub subi.SubstrateExt, dl
 		go func(nodeID uint32, dlID uint64) {
 
 			defer wg.Done()
-			nc, err := d.ncPool.GetNodeClient(sub, nodeID)
+			nc, err := d.ncPool.GetNodeClient(d.SubstrateConn, nodeID)
 			if err != nil {
 				resErrors = multierror.Append(resErrors, errors.Wrapf(err, "failed to get a client for node %d", nodeID))
 				return
@@ -393,7 +373,7 @@ func (d *Deployer) Wait(
 		if lastProgress.stateOk < currentProgress.stateOk {
 			lastProgress = currentProgress
 		} else if currentProgress.time.Sub(lastProgress.time) > 4*time.Minute {
-			timeoutError := fmt.Errorf("waiting for deployment %d timedout", deploymentID)
+			timeoutError := fmt.Errorf("waiting for deployment %d timed out", deploymentID)
 			return backoff.Permanent(timeoutError)
 		}
 
