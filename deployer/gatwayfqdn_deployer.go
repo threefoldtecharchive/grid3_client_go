@@ -28,7 +28,7 @@ type GatewayFQDNDeployer struct {
 // Generates new gateway fqdn deployer
 func NewGatewayFqdnDeployer(tfPluginClient *TFPluginClient) GatewayFQDNDeployer {
 	gatewayFQDN := GatewayFQDNDeployer{
-		ncPool: client.NewNodeClientPool(tfPluginClient.RMB),
+		ncPool:   client.NewNodeClientPool(tfPluginClient.RMB),
 		deployer: Deployer{},
 	}
 
@@ -43,12 +43,11 @@ func (k *GatewayFQDNDeployer) Validate(ctx context.Context) error {
 	if err := validateAccountBalanceForExtrinsics(sub, k.TFPluginClient.Identity); err != nil {
 		return err
 	}
-
 	return client.AreNodesUp(ctx, sub, []uint32{k.Node}, k.ncPool)
 }
 
 // GenerateVersionlessDeploymentsAndWorkloads generates deployments for gatewayFqdn deployer without versions
-func (k *GatewayFQDNDeployer) GenerateVersionlessDeployments(ctx context.Context) (map[uint32]gridtypes.Deployment, error) {
+func (k *GatewayFQDNDeployer) GenerateVersionlessDeployments(ctx context.Context, gw *workloads.GatewayFQDNProxy) (map[uint32]gridtypes.Deployment, error) {
 	deployments := make(map[uint32]gridtypes.Deployment)
 	var wls []gridtypes.Workload
 
@@ -58,27 +57,28 @@ func (k *GatewayFQDNDeployer) GenerateVersionlessDeployments(ctx context.Context
 	}
 
 	dl := workloads.NewGridDeployment(k.deployer.twinID, wls)
-	wls = append(wls, k.Gw.ZosWorkload())
+	wls = append(wls, gw.ZosWorkload())
 	dl.Workloads = wls
 	deployments[k.Node] = dl
 
 	return deployments, nil
 }
 
-
 // Deploy deploys the GatewayFQDN deployments using the deployer
-func (k *GatewayFQDNDeployer) Deploy(ctx context.Context, sub subi.SubstrateExt) error {
+func (k *GatewayFQDNDeployer) Deploy(ctx context.Context, gw *workloads.GatewayFQDNProxy) error {
+	sub := k.TFPluginClient.SubstrateConn
 	if err := k.Validate(ctx); err != nil {
 		return err
 	}
-	newDeployments, err := k.GenerateVersionlessDeployments(ctx)
+	newDeployments, err := k.GenerateVersionlessDeployments(ctx, gw)
 	if err != nil {
 		return errors.Wrap(err, "couldn't generate deployments data")
 	}
 
 	deploymentData := DeploymentData{
-		Name: k.Gw.FQDN,
-		Type: "Gateway Fqdn",
+		Name:        gw.Name,
+		Type:        gw.FQDN,
+		ProjectName: gw.ZosWorkload().Description,
 	}
 
 	newDeploymentsData := make(map[uint32]DeploymentData)

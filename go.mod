@@ -47,7 +47,6 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rs/cors v1.8.2 // indirect
 	github.com/rs/zerolog v1.26.0 // indirect
-	github.com/threefoldtech/terraform-provider-grid v1.7.0
 	github.com/vedhavyas/go-subkey v1.0.3 // indirect
 	golang.org/x/crypto v0.1.0
 	golang.org/x/net v0.5.0 // indirect
