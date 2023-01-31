@@ -82,11 +82,11 @@ func (k *GatewayNameDeployer) Deploy(ctx context.Context, sub subi.SubstrateExt)
 		return errors.Wrap(err, "couldn't generate deployments data")
 	}
 
-	deploymentData := DeploymentData{
+	deploymentData := workloads.DeploymentData{
 		Name: k.Gw.Name,
 		Type: "Gateway Name",
 	}
-	newDeploymentsData := make(map[uint32]DeploymentData)
+	newDeploymentsData := make(map[uint32]workloads.DeploymentData)
 	newDeploymentsSolutionProvider := make(map[uint32]*uint64)
 
 	newDeploymentsData[k.Node] = deploymentData
@@ -105,7 +105,7 @@ func (k *GatewayNameDeployer) Deploy(ctx context.Context, sub subi.SubstrateExt)
 		// create the resource if the contract is created
 		k.ID = uuid.New().String()
 	}
-	k.NodeDeploymentID, err = k.deployer.Deploy(ctx, sub, k.NodeDeploymentID, newDeployments,newDeploymentsData, newDeploymentsSolutionProvider)
+	k.NodeDeploymentID, err = k.deployer.Deploy(ctx,k.NodeDeploymentID, newDeployments,newDeploymentsData, newDeploymentsSolutionProvider)
 	return err
 }
 
@@ -131,7 +131,7 @@ func (k *GatewayNameDeployer) sync(ctx context.Context, sub subi.SubstrateExt ) 
 	if err := k.syncContracts(ctx, sub); err != nil {
 		return errors.Wrap(err, "couldn't sync contracts")
 	}
-	dls, err := k.deployer.GetDeployments(ctx, sub, k.NodeDeploymentID)
+	dls, err := k.deployer.GetDeployments(ctx, k.NodeDeploymentID)
 	if err != nil {
 		return errors.Wrap(err, "couldn't get deployment objects")
 	}
@@ -150,9 +150,9 @@ func (k *GatewayNameDeployer) sync(ctx context.Context, sub subi.SubstrateExt ) 
 
 func (k *GatewayNameDeployer) Cancel(ctx context.Context, sub subi.SubstrateExt) (err error) {
 	newDeployments := make(map[uint32]gridtypes.Deployment)
-	newDeploymentsData := make(map[uint32]DeploymentData)
+	newDeploymentsData := make(map[uint32]workloads.DeploymentData)
 	newDeploymentsSolutionProvider := make(map[uint32]*uint64)
-	k.NodeDeploymentID, err = k.deployer.Deploy(ctx, sub, k.NodeDeploymentID, newDeployments,newDeploymentsData,newDeploymentsSolutionProvider)
+	k.NodeDeploymentID, err = k.deployer.Deploy(ctx,k.NodeDeploymentID, newDeployments,newDeploymentsData,newDeploymentsSolutionProvider)
 	if err != nil {
 		return err
 	}

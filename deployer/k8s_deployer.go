@@ -266,15 +266,15 @@ func (k *K8sDeployer) Deploy(ctx context.Context, sub subi.SubstrateExt) error {
 	if err != nil {
 		return errors.Wrap(err, "couldn't generate deployments data")
 	}
-	deploymentData := DeploymentData{
+	deploymentData := workloads.DeploymentData{
 		Name: k.Master.Name,
 		Type: "k8s",
 	}
-	newDeploymentsData := make(map[uint32]DeploymentData)	///////todo
+	newDeploymentsData := make(map[uint32]workloads.DeploymentData)	///////todo
 	newDeploymentsData[k.Master.Node] = deploymentData
 	newDeploymentsSolutionProvider := make(map[uint32]*uint64)
 	newDeploymentsSolutionProvider[k.Master.Node] = nil
-	currentDeployments, err := k.deployer.Deploy(ctx, sub, k.NodeDeploymentID, newDeployments, newDeploymentsData, newDeploymentsSolutionProvider)
+	currentDeployments, err := k.deployer.Deploy(ctx, k.NodeDeploymentID, newDeployments, newDeploymentsData, newDeploymentsSolutionProvider)
 	if err := k.updateState(ctx, sub, currentDeployments); err != nil {
 		log.Printf("error updating state: %s\n", err)
 	}
@@ -284,7 +284,7 @@ func (k *K8sDeployer) Deploy(ctx context.Context, sub subi.SubstrateExt) error {
 func (k *K8sDeployer) updateState(ctx context.Context, sub subi.SubstrateExt, currentDeploymentIDs map[uint32]uint64) error {
 	log.Printf("current deployments\n")
 	k.NodeDeploymentID = currentDeploymentIDs
-	currentDeployments, err := k.deployer.GetDeployments(ctx, sub, currentDeploymentIDs)
+	currentDeployments, err := k.deployer.GetDeployments(ctx, currentDeploymentIDs)
 	if err != nil {
 		return errors.Wrap(err, "failed to get deployments to update local state")
 	}
@@ -415,7 +415,7 @@ func (k *K8sDeployer) updateFromRemote(ctx context.Context, sub subi.SubstrateEx
 	if err := k.removeDeletedContracts(ctx, sub); err != nil {
 		return errors.Wrap(err, "failed to remove deleted contracts")
 	}
-	currentDeployments, err := k.deployer.GetDeployments(ctx, sub, k.NodeDeploymentID)
+	currentDeployments, err := k.deployer.GetDeployments(ctx, k.NodeDeploymentID)
 	if err != nil {
 		return errors.Wrap(err, "failed to fetch remote deployments")
 	}

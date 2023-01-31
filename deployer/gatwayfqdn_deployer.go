@@ -66,7 +66,6 @@ func (k *GatewayFQDNDeployer) GenerateVersionlessDeployments(ctx context.Context
 
 // Deploy deploys the GatewayFQDN deployments using the deployer
 func (k *GatewayFQDNDeployer) Deploy(ctx context.Context, gw *workloads.GatewayFQDNProxy) error {
-	sub := k.TFPluginClient.SubstrateConn
 	if err := k.Validate(ctx); err != nil {
 		return err
 	}
@@ -75,7 +74,7 @@ func (k *GatewayFQDNDeployer) Deploy(ctx context.Context, gw *workloads.GatewayF
 		return errors.Wrap(err, "couldn't generate deployments data")
 	}
 
-	deploymentData := DeploymentData{
+	deploymentData := workloads.DeploymentData{
 		Name: k.Gw.FQDN,
 		Type: "Gateway Fqdn",
 	}
@@ -105,7 +104,6 @@ func (k *GatewayFQDNDeployer) syncContracts(ctx context.Context, sub subi.Substr
 }
 
 func (k *GatewayFQDNDeployer) sync(ctx context.Context, sub subi.SubstrateExt) error {
-func (k *GatewayFQDNDeployer) sync(ctx context.Context, sub subi.SubstrateExt) error {
 	if err := k.syncContracts(ctx, sub); err != nil {
 		return errors.Wrap(err, "couldn't sync contracts")
 	}
@@ -131,7 +129,7 @@ func (k *GatewayFQDNDeployer) Cancel(ctx context.Context) (err error) {
 	newDeploymentsData := make(map[uint32]workloads.DeploymentData)
 	newDeploymentsSolutionProvider := make(map[uint32]*uint64)
 
-	k.NodeDeploymentID, err = k.deployer.Deploy(ctx, sub, k.NodeDeploymentID, newDeployments, newDeploymentsData, newDeploymentsSolutionProvider)
+	k.NodeDeploymentID, err = k.deployer.Deploy(ctx, k.NodeDeploymentID, newDeployments, newDeploymentsData, newDeploymentsSolutionProvider)
 
 	return err
 }
