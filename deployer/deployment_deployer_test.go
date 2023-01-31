@@ -77,7 +77,7 @@ func constructTestDeployment() workloads.Deployment {
 			ComputedIP:    "5.5.5.5/24",
 			ComputedIP6:   "::7/64",
 			YggIP:         "::8/64",
-			IP:            "10.10.10.10",
+			IP:            "10.1.0.2",
 			Description:   "vm1_description",
 			CPU:           1,
 			Memory:        1024,
@@ -118,7 +118,7 @@ func constructTestDeployment() workloads.Deployment {
 			ComputedIP:    "",
 			ComputedIP6:   "::7/64",
 			YggIP:         "::8/64",
-			IP:            "10.10.10.10",
+			IP:            "10.1.0.2",
 			Description:   "vm2_description",
 			CPU:           1,
 			Memory:        1024,
@@ -308,7 +308,10 @@ func TestDeploymentGenerateDeployment(t *testing.T) {
 	gridDl, err := dl.ConstructGridDeployment(twinID)
 	assert.NoError(t, err)
 
-	_, networkDl := constructTestNetwork()
+	net := constructTestNetwork()
+	workload := net.GenerateWorkload(net.NodesIPRange[nodeID], "", uint16(0), []zos.Peer{})
+	networkDl := workloads.NewGridDeployment(twinID, []gridtypes.Workload{workload})
+
 	d.TFPluginClient.stateLoader.currentNodeNetwork[nodeID] = contractID
 
 	ncPool.EXPECT().
@@ -334,7 +337,9 @@ func TestDeploymentSync(t *testing.T) {
 	dl := constructTestDeployment()
 	d, cl, sub, ncPool := constructTestDeployer(t, true)
 
-	_, networkDl := constructTestNetwork()
+	net := constructTestNetwork()
+	workload := net.GenerateWorkload(net.NodesIPRange[nodeID], "", uint16(0), []zos.Peer{})
+	networkDl := workloads.NewGridDeployment(twinID, []gridtypes.Workload{workload})
 	d.TFPluginClient.stateLoader.currentNodeNetwork[nodeID] = contractID
 
 	// invalidate contract
