@@ -74,7 +74,7 @@ func TestVMDeployment(t *testing.T) {
 
 	//os.Getenv("PUBLICKEY")
 
-	nodeID := uint32(3)
+	nodeID := uint32(30)
 
 	network := workloads.ZNet{
 		Name:        "testingNetwork",
