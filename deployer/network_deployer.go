@@ -245,10 +245,6 @@ func (k *NetworkDeployer) Deploy(ctx context.Context, znet *workloads.ZNet) erro
 	if err != nil {
 		return err
 	}
-	/*znet, err := k.GenerateComputedZNet(ctx, k.TFPluginClient, znet, "")
-	if err != nil {
-		return errors.Wrapf(err, "couldn't generate computed znet")
-	}*/
 
 	newDeployments, err := k.GenerateVersionlessDeployments(ctx, znet)
 	if err != nil {
