@@ -338,7 +338,7 @@ func TestCancel(t *testing.T) {
 
 	deployer.validator = &EmptyValidator{}
 
-	contracts, err := deployer.Deploy(context.Background(), map[uint32]uint64{10: 100}, nil, nil, nil)
+	contracts, err := deployer.Cancel(context.Background(), map[uint32]uint64{10: 100}, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, contracts, map[uint32]uint64{})
 }
@@ -408,13 +408,13 @@ func TestCocktail(t *testing.T) {
 	}
 
 	newDlsData := map[uint32]workloads.DeploymentData{
-		10: {},
+		20: {},
 		30: {},
 		40: {},
 	}
 
 	newDlsSolProvider := map[uint32]*uint64{
-		10: nil,
+		20: nil,
 		30: nil,
 		40: nil,
 	}
@@ -547,6 +547,15 @@ func TestCocktail(t *testing.T) {
 	deployer.validator = &EmptyValidator{}
 
 	contracts, err := deployer.Deploy(context.Background(), oldDls, newDls, newDlsData, newDlsSolProvider)
+	assert.NoError(t, err)
+	assert.Equal(t, contracts, map[uint32]uint64{
+		10: 100,
+		20: 200,
+		30: 300,
+		40: 400,
+	})
+
+	contracts, err = deployer.Cancel(context.Background(), contracts, map[uint32]gridtypes.Deployment{20: {}, 30: {}, 40: {}})
 	assert.NoError(t, err)
 	assert.Equal(t, contracts, map[uint32]uint64{
 		20: 200,
