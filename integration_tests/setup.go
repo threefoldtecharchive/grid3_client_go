@@ -146,6 +146,10 @@ func FilterNodes(options NodeFilter, url string) ([]uint32, error) {
 		return nodes, err
 	}
 
+	if body != nil {
+		defer resp.Body.Close()
+	}
+
 	var nodesData []map[string]interface{}
 	err = json.Unmarshal(body, &nodesData)
 	if err != nil {
