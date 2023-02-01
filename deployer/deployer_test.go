@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
+	"log"
 	"os"
 	"testing"
 
@@ -21,41 +22,25 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
-func SetUP() (identity substrate.Identity, twinID uint32, err error) {
-	if _, err = os.Stat("../.env"); !errors.Is(err, os.ErrNotExist) {
-		err = godotenv.Load("../.env")
+var backendURLWithTLSPassthrough = "//1.1.1.1:10"
+var backendURLWithoutTLSPassthrough = "http://1.1.1.1:10"
+
+func setup() (TFPluginClient, error) {
+	if _, err := os.Stat("../.env"); !errors.Is(err, os.ErrNotExist) {
+		err := godotenv.Load("../.env")
 		if err != nil {
-			return
+			return TFPluginClient{}, err
 		}
 	}
 
 	mnemonics := os.Getenv("MNEMONICS")
-	identity, err = substrate.NewIdentityFromSr25519Phrase(mnemonics)
-	if err != nil {
-		return
-	}
-
-	keyPair, err := identity.KeyPair()
-	if err != nil {
-		return
-	}
+	log.Printf("mnemonics: %s", mnemonics)
 
 	network := os.Getenv("NETWORK")
-	pub := keyPair.Public()
-	sub := subi.NewManager(SubstrateURLs[network])
-	subext, err := sub.SubstrateExt()
-	if err != nil {
-		return
-	}
-	twin, err := subext.GetTwinByPubKey(pub)
-	if err != nil {
-		return
-	}
-	return identity, twin, nil
-}
+	log.Printf("network: %s", network)
 
-var backendURLWithTLSPassthrough = "//1.1.1.1:10"
-var backendURLWithoutTLSPassthrough = "http://1.1.1.1:10"
+	return NewTFPluginClient(mnemonics, "sr25519", network, "", "", true, "", true)
+}
 
 func deploymentWithNameGateway(identity substrate.Identity, twinID uint32, TLSPassthrough bool, version uint32, backendURL string) (gridtypes.Deployment, error) {
 	gw := workloads.GatewayNameProxy{

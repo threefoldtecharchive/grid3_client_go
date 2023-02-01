@@ -32,6 +32,8 @@ var (
 
 // TFPluginClient is a Threefold plugin client
 type TFPluginClient struct {
+	Network string
+
 	TwinID          uint32
 	Mnemonics       string
 	SubstrateURL    string
@@ -40,9 +42,8 @@ type TFPluginClient struct {
 	GridProxyClient proxy.Client
 	RMB             rmb.Client
 	SubstrateConn   subi.SubstrateExt
-	//manager         subi.Manager
-	NcPool   client.NodeClientGetter
-	Identity substrate.Identity
+	NcPool          client.NodeClientGetter
+	Identity        substrate.Identity
 
 	DeploymentDeployer  DeploymentDeployer
 	NetworkDeployer     NetworkDeployer
@@ -50,7 +51,7 @@ type TFPluginClient struct {
 	//gatewayNameDeployer GatewayNameDeployer
 	//k8sDeployer k8sDeployer
 
-	stateLoader *StateLoader
+	StateLoader *StateLoader
 }
 
 // NewTFPluginClient generates a new tf plugin client
@@ -95,6 +96,7 @@ func NewTFPluginClient(mnemonics string,
 	if network != "dev" && network != "qa" && network != "test" && network != "main" {
 		return TFPluginClient{}, errors.New("network must be one of dev, qa, test, and main")
 	}
+	tfPluginClient.Network = network
 
 	tfPluginClient.SubstrateURL = SubstrateURLs[network]
 	if len(strings.TrimSpace(substrateURL)) != 0 {
@@ -161,6 +163,6 @@ func NewTFPluginClient(mnemonics string,
 	tfPluginClient.DeploymentDeployer = NewDeploymentDeployer(&tfPluginClient)
 	tfPluginClient.NetworkDeployer = NewNetworkDeployer(&tfPluginClient)
 
-	tfPluginClient.stateLoader = NewStateLoader(tfPluginClient.NcPool, tfPluginClient.SubstrateConn)
+	tfPluginClient.StateLoader = NewStateLoader(tfPluginClient.NcPool, tfPluginClient.SubstrateConn)
 	return tfPluginClient, nil
 }

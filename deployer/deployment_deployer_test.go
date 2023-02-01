@@ -248,8 +248,8 @@ func constructTestDeployer(t *testing.T, mock bool) (DeploymentDeployer, *mocks.
 		tfPluginClient.NcPool = ncPool
 		tfPluginClient.RMB = cl
 
-		tfPluginClient.stateLoader.ncPool = ncPool
-		tfPluginClient.stateLoader.substrate = sub
+		tfPluginClient.StateLoader.ncPool = ncPool
+		tfPluginClient.StateLoader.substrate = sub
 	}
 
 	return NewDeploymentDeployer(&tfPluginClient), cl, sub, ncPool
@@ -312,7 +312,7 @@ func TestDeploymentGenerateDeployment(t *testing.T) {
 	workload := net.GenerateWorkload(net.NodesIPRange[nodeID], "", uint16(0), []zos.Peer{})
 	networkDl := workloads.NewGridDeployment(twinID, []gridtypes.Workload{workload})
 
-	d.TFPluginClient.stateLoader.currentNodeNetwork[nodeID] = contractID
+	d.tfPluginClient.StateLoader.currentNodeNetwork[nodeID] = contractID
 
 	ncPool.EXPECT().
 		GetNodeClient(sub, uint32(nodeID)).
@@ -340,7 +340,7 @@ func TestDeploymentSync(t *testing.T) {
 	net := constructTestNetwork()
 	workload := net.GenerateWorkload(net.NodesIPRange[nodeID], "", uint16(0), []zos.Peer{})
 	networkDl := workloads.NewGridDeployment(twinID, []gridtypes.Workload{workload})
-	d.TFPluginClient.stateLoader.currentNodeNetwork[nodeID] = contractID
+	d.tfPluginClient.StateLoader.currentNodeNetwork[nodeID] = contractID
 
 	// invalidate contract
 	sub.EXPECT().IsValidContract(dl.ContractID).Return(false, nil).AnyTimes()

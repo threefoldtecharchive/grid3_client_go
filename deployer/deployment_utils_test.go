@@ -11,8 +11,11 @@ import (
 )
 
 func TestDeploymentUtils(t *testing.T) {
-	identity, twinID, err := SetUP()
+	tfPluginClient, err := setup()
 	assert.NoError(t, err)
+
+	identity := tfPluginClient.Identity
+	twinID := tfPluginClient.TwinID
 
 	dl := workloads.NewGridDeployment(twinID, []gridtypes.Workload{})
 

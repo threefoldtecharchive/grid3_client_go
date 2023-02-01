@@ -3,6 +3,7 @@ package deployer
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"net"
 
@@ -16,7 +17,7 @@ import (
 type DeploymentDeployer struct {
 	currentDeployments map[uint64]workloads.Deployment
 
-	TFPluginClient *TFPluginClient
+	tfPluginClient *TFPluginClient
 	deployer       Deployer
 }
 
@@ -25,7 +26,7 @@ func NewDeploymentDeployer(tfPluginClient *TFPluginClient) DeploymentDeployer {
 	newDeployer := NewDeployer(*tfPluginClient, true)
 	deploymentDeployer := DeploymentDeployer{
 		currentDeployments: make(map[uint64]workloads.Deployment),
-		TFPluginClient:     tfPluginClient,
+		tfPluginClient:     tfPluginClient,
 		deployer:           newDeployer,
 	}
 	return deploymentDeployer
@@ -33,7 +34,7 @@ func NewDeploymentDeployer(tfPluginClient *TFPluginClient) DeploymentDeployer {
 
 // GenerateVersionlessDeployments generates a new deployment without a version
 func (d *DeploymentDeployer) GenerateVersionlessDeployments(ctx context.Context, dl *workloads.Deployment) (map[uint32]gridtypes.Deployment, error) {
-	newDl := workloads.NewGridDeployment(d.TFPluginClient.TwinID, []gridtypes.Workload{})
+	newDl := workloads.NewGridDeployment(d.tfPluginClient.TwinID, []gridtypes.Workload{})
 	err := d.assignNodesIPs(dl)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to assign node ips")
@@ -56,6 +57,18 @@ func (d *DeploymentDeployer) GenerateVersionlessDeployments(ctx context.Context,
 		newDl.Workloads = append(newDl.Workloads, qsfsWorkload)
 	}
 
+	deploymentData := workloads.DeploymentData{
+		Name:        dl.Name,
+		Type:        "vm",
+		ProjectName: dl.SolutionType,
+	}
+
+	deploymentDataBytes, err := json.Marshal(deploymentData)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to parse deployment data")
+	}
+
+	newDl.Metadata = string(deploymentDataBytes)
 	return map[uint32]gridtypes.Deployment{dl.NodeID: newDl}, nil
 }
 
@@ -65,32 +78,32 @@ func (d *DeploymentDeployer) Deploy(ctx context.Context, dl *workloads.Deploymen
 		return err
 	}
 
-	newDeployments, err := d.GenerateVersionlessDeployments(ctx, dl)
-	if err != nil {
-		return errors.Wrap(err, "couldn't generate deployments data")
-	}
-
 	if len(dl.SolutionType) == 0 {
 		dl.SolutionType = "Virtual Machine"
 	}
 
+	// deployment data
 	deploymentData := workloads.DeploymentData{
 		Name:        dl.Name,
 		Type:        "vm",
 		ProjectName: dl.SolutionType,
 	}
-	// deployment data
 	newDeploymentsData := map[uint32]workloads.DeploymentData{dl.NodeID: deploymentData}
 
 	// solution providers
 	newDeploymentsSolutionProvider := map[uint32]*uint64{dl.NodeID: dl.SolutionProvider}
 
-	oldDeployments := d.TFPluginClient.stateLoader.currentNodeDeployment
+	newDeployments, err := d.GenerateVersionlessDeployments(ctx, dl)
+	if err != nil {
+		return errors.Wrap(err, "couldn't generate deployments data")
+	}
+
+	oldDeployments := d.tfPluginClient.StateLoader.currentNodeDeployment
 
 	currentDeployments, err := d.deployer.Deploy(ctx, oldDeployments, newDeployments, newDeploymentsData, newDeploymentsSolutionProvider)
 	if currentDeployments[dl.NodeID] != 0 {
 		dl.ContractID = currentDeployments[dl.NodeID]
-		d.TFPluginClient.stateLoader.currentNodeDeployment[dl.NodeID] = dl.ContractID
+		d.tfPluginClient.StateLoader.currentNodeDeployment[dl.NodeID] = dl.ContractID
 		d.currentDeployments[dl.ContractID] = *dl
 	}
 	return err
@@ -102,25 +115,24 @@ func (d *DeploymentDeployer) Cancel(ctx context.Context, dl *workloads.Deploymen
 		return err
 	}
 
-	// TODO cancel specific deployment only
-	newDeployments := map[uint32]gridtypes.Deployment{}
+	oldDeployments := d.tfPluginClient.StateLoader.currentNodeDeployment
 
-	// deployment data
-	newDeploymentsData := make(map[uint32]workloads.DeploymentData)
+	// construct new deployments to have all old deployments except the given one
+	newDeployments := make(map[uint32]gridtypes.Deployment)
+	for nodeID := range oldDeployments {
+		if dl.NodeID != nodeID {
+			newDeployments[nodeID] = gridtypes.Deployment{}
+		}
+	}
 
-	// solution providers
-	newDeploymentsSolutionProvider := make(map[uint32]*uint64)
-
-	oldDeployments := d.TFPluginClient.stateLoader.currentNodeDeployment
-
-	currentDeployments, err := d.deployer.Deploy(ctx, oldDeployments, newDeployments, newDeploymentsData, newDeploymentsSolutionProvider)
+	currentDeployments, err := d.deployer.Cancel(ctx, oldDeployments, newDeployments)
 	id := currentDeployments[dl.NodeID]
 	// TODO: if not cancelled ???
 	if id != 0 {
 		dl.ContractID = id
 	} else {
 		dl.ContractID = 0
-		delete(d.TFPluginClient.stateLoader.currentNodeDeployment, dl.NodeID)
+		delete(d.tfPluginClient.StateLoader.currentNodeDeployment, dl.NodeID)
 		delete(d.currentDeployments, dl.ContractID)
 	}
 	return err
@@ -128,13 +140,13 @@ func (d *DeploymentDeployer) Cancel(ctx context.Context, dl *workloads.Deploymen
 
 // Sync syncs the deployments
 func (d *DeploymentDeployer) Sync(ctx context.Context) error {
-	currentDeployments, err := d.deployer.GetDeployments(ctx, d.TFPluginClient.stateLoader.currentNodeDeployment)
+	currentDeployments, err := d.deployer.GetDeployments(ctx, d.tfPluginClient.StateLoader.currentNodeDeployment)
 	if err != nil {
 		return errors.Wrap(err, "failed to get deployments to update local state")
 	}
 
 	for nodeID, dl := range currentDeployments {
-		contractID := d.TFPluginClient.stateLoader.currentNodeDeployment[nodeID]
+		contractID := d.tfPluginClient.StateLoader.currentNodeDeployment[nodeID]
 		contractID, err := d.syncContract(contractID)
 		if err != nil {
 			return err
@@ -153,7 +165,7 @@ func (d *DeploymentDeployer) Sync(ctx context.Context) error {
 		var qsfs []workloads.QSFS
 		var disks []workloads.Disk
 
-		network := d.TFPluginClient.stateLoader.networks.getNetwork(gridDl.NetworkName)
+		network := d.tfPluginClient.StateLoader.networks.getNetwork(gridDl.NetworkName)
 		network.deleteDeploymentHostIDs(gridDl.NodeID, gridDl.ContractID)
 
 		usedIPs := []byte{}
@@ -202,7 +214,7 @@ func (d *DeploymentDeployer) Sync(ctx context.Context) error {
 			}
 		}
 
-		network = d.TFPluginClient.stateLoader.networks.getNetwork(gridDl.NetworkName)
+		network = d.tfPluginClient.StateLoader.networks.getNetwork(gridDl.NetworkName)
 		network.setDeploymentHostIDs(gridDl.NodeID, gridDl.ContractID, usedIPs)
 
 		gridDl.Match(disks, qsfs, zdbs, vms)
@@ -220,9 +232,9 @@ func (d *DeploymentDeployer) Sync(ctx context.Context) error {
 
 // Validate validates a deployment deployer
 func (d *DeploymentDeployer) Validate(ctx context.Context, dl *workloads.Deployment) error {
-	sub := d.TFPluginClient.SubstrateConn
+	sub := d.tfPluginClient.SubstrateConn
 
-	if err := validateAccountBalanceForExtrinsics(sub, d.TFPluginClient.Identity); err != nil {
+	if err := validateAccountBalanceForExtrinsics(sub, d.tfPluginClient.Identity); err != nil {
 		return err
 	}
 
@@ -230,13 +242,11 @@ func (d *DeploymentDeployer) Validate(ctx context.Context, dl *workloads.Deploym
 }
 
 func (d *DeploymentDeployer) assignNodesIPs(dl *workloads.Deployment) error {
-	znet, err := d.TFPluginClient.stateLoader.LoadNetworkFromGrid(dl.NetworkName)
-	if err != nil {
-		return errors.Wrapf(err, "error getting network workload")
-	}
-	ipRange := znet.IPRange.String()
+	networkingState := d.tfPluginClient.StateLoader.networks
+	n := networkingState.getNetwork(dl.NetworkName)
+	ipRange := n.getNodeSubnet(dl.NodeID)
 
-	network := d.TFPluginClient.stateLoader.networks.getNetwork(dl.NetworkName)
+	network := d.tfPluginClient.StateLoader.networks.getNetwork(dl.NetworkName)
 	usedHosts := network.getUsedNetworkHostIDs(dl.NodeID)
 
 	if len(dl.Vms) == 0 {
@@ -277,7 +287,7 @@ func (d *DeploymentDeployer) assignNodesIPs(dl *workloads.Deployment) error {
 }
 
 func (d *DeploymentDeployer) syncContract(contractID uint64) (uint64, error) {
-	sub := d.TFPluginClient.SubstrateConn
+	sub := d.tfPluginClient.SubstrateConn
 
 	if contractID == 0 {
 		return contractID, nil

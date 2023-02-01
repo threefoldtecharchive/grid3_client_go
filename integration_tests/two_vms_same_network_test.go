@@ -4,13 +4,12 @@ package integration
 import (
 	"context"
 	"net"
-	"os"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/threefoldtech/grid3-go/manager"
+	"github.com/threefoldtech/grid3-go/deployer"
 	"github.com/threefoldtech/grid3-go/workloads"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 )
@@ -19,193 +18,150 @@ func TestTwoVMsSameNetwork(t *testing.T) {
 	tfPluginClient, err := setup()
 	assert.NoError(t, err)
 
-	publicKey := os.Getenv("PUBLICKEY")
+	publicKey, privateKey, err := GenerateSSHKeyPair()
+	assert.NoError(t, err)
+
+	filter := NodeFilter{
+		CRU:       2,
+		SRU:       2,
+		MRU:       1,
+		Status:    "up",
+		PublicIPs: true,
+	}
+	nodeIDs, err := FilterNodes(filter, deployer.RMBProxyURLs[tfPluginClient.Network])
+	assert.NoError(t, err)
+
+	nodeID := nodeIDs[0]
+
 	network := workloads.ZNet{
-		Name:        "testingNetwork456",
+		Name:        "testingNetwork",
 		Description: "network for testing",
-		Nodes:       []uint32{14},
+		Nodes:       []uint32{nodeID},
 		IPRange: gridtypes.NewIPNet(net.IPNet{
-			IP:   net.IPv4(10, 1, 0, 0),
+			IP:   net.IPv4(10, 20, 0, 0),
 			Mask: net.CIDRMask(16, 32),
 		}),
 		AddWGAccess: false,
 	}
+
 	vm1 := workloads.VM{
 		Name:       "vm1",
-		Flist:      "https://hub.grid.tf/tf-official-apps/threefoldtech-ubuntu-20.04.flist",
+		Flist:      "https://hub.grid.tf/tf-official-apps/base:latest.flist",
 		CPU:        2,
+		PublicIP:   true,
 		PublicIP6:  true,
 		Planetary:  true,
 		Memory:     1024,
-		Entrypoint: "/init.sh",
+		Entrypoint: "/sbin/zinit init",
 		EnvVars: map[string]string{
 			"SSH_KEY": publicKey,
 		},
-		IP:          "10.1.0.2",
-		NetworkName: "testingNetwork456",
+		IP:          "10.20.2.5",
+		NetworkName: network.Name,
 	}
+
 	vm2 := workloads.VM{
 		Name:       "vm2",
-		Flist:      "https://hub.grid.tf/tf-official-apps/threefoldtech-ubuntu-20.04.flist",
+		Flist:      "https://hub.grid.tf/tf-official-apps/base:latest.flist",
 		CPU:        2,
+		PublicIP:   true,
 		PublicIP6:  true,
 		Planetary:  true,
 		Memory:     1024,
-		Entrypoint: "/init.sh",
+		Entrypoint: "/sbin/zinit init",
 		EnvVars: map[string]string{
 			"SSH_KEY": publicKey,
 		},
-		IP:          "10.1.0.3",
-		NetworkName: "testingNetwork456",
+		IP:          "10.20.2.6",
+		NetworkName: network.Name,
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 6*time.Minute)
 	defer cancel()
 
-	networkManager, err := manager.NewNetworkDeployer(ctx, network, "", &tfPluginClient)
+	err = tfPluginClient.NetworkDeployer.Deploy(ctx, &network)
 	assert.NoError(t, err)
 
-	t.Run("public ipv6 and yggdrasil", func(t *testing.T) {
-		vm1Cp := vm1
-		vm2Cp := vm2
-
-		err := networkManager.Stage(ctx)
+	t.Run("public ipv6, yggdrasil and public IPv4", func(t *testing.T) {
+		dl := workloads.NewDeployment("vm", nodeID, "", nil, network.Name, nil, nil, []workloads.VM{vm1, vm2}, nil)
+		err = tfPluginClient.DeploymentDeployer.Deploy(ctx, &dl)
 		assert.NoError(t, err)
 
-		err = tfPluginClient.Manager.Commit(ctx)
+		v1, err := tfPluginClient.StateLoader.LoadVMFromGrid(nodeID, vm1.Name)
 		assert.NoError(t, err)
 
-		err = tfPluginClient.Manager.CancelAll()
+		v2, err := tfPluginClient.StateLoader.LoadVMFromGrid(nodeID, vm2.Name)
 		assert.NoError(t, err)
 
-		err = tfPluginClient.Manager.Stage(&vm1Cp, 14)
-		assert.NoError(t, err)
+		yggIP1 := v1.YggIP
+		yggIP2 := v2.YggIP
 
-		err = tfPluginClient.Manager.Stage(&vm2Cp, 14)
-		assert.NoError(t, err)
-
-		err = tfPluginClient.Manager.Commit(ctx)
-		assert.NoError(t, err)
-
-		result1, err := manager.LoadVMFromGrid(tfPluginClient.Manager, 14, "vm1")
-		assert.NoError(t, err)
-
-		result2, err := manager.LoadVMFromGrid(tfPluginClient.Manager, 14, "vm2")
-		assert.NoError(t, err)
-
-		yggIP1 := result1.YggIP
-		yggIP2 := result2.YggIP
-
-		privateIP1 := result1.IP
-		privateIP2 := result2.IP
-
-		publicIP6_1 := strings.Split(result1.ComputedIP6, "/")[0]
-		publicIP6_2 := strings.Split(result2.ComputedIP6, "/")[0]
-
-		if !Wait(yggIP1, "22") {
+		if !TestConnection(yggIP1, "22") {
 			t.Errorf("Yggdrasil IP 1 not reachable")
 		}
-		if !Wait(yggIP2, "22") {
+		if !TestConnection(yggIP2, "22") {
 			t.Errorf("Yggdrasil IP 2 not reachable")
 		}
 
-		_, err = RemoteRun("root", yggIP1, "apt install -y netcat")
+		publicIP1 := strings.Split(v1.ComputedIP, "/")[0]
+		publicIP2 := strings.Split(v2.ComputedIP, "/")[0]
+
+		if !TestConnection(publicIP1, "22") {
+			t.Errorf("public ip 1 is not reachable")
+		}
+		if !TestConnection(publicIP2, "22") {
+			t.Errorf("public ip 2 is not reachable")
+		}
+
+		privateIP1 := v1.IP
+		privateIP2 := v2.IP
+
+		publicIP6_1 := strings.Split(v1.ComputedIP6, "/")[0]
+		publicIP6_2 := strings.Split(v2.ComputedIP6, "/")[0]
+
+		_, err = RemoteRun("root", yggIP1, "apt install -y netcat", privateKey)
 		assert.NoError(t, err)
 
-		_, err = RemoteRun("root", yggIP2, "apt install -y netcat")
+		_, err = RemoteRun("root", yggIP2, "apt install -y netcat", privateKey)
 		assert.NoError(t, err)
 
 		// check privateIP2 from vm1
-		_, err = RemoteRun("root", yggIP2, "nc -z "+privateIP1+" 22")
+		_, err = RemoteRun("root", yggIP1, "nc -z "+privateIP2+" 22", privateKey)
 		assert.NoError(t, err)
 
 		// check privateIP1 from vm2
-		_, err = RemoteRun("root", yggIP1, "nc -z "+privateIP2+" 22")
+		_, err = RemoteRun("root", yggIP2, "nc -z "+privateIP1+" 22", privateKey)
 		assert.NoError(t, err)
 
 		// check yggIP2 from vm1
-		_, err = RemoteRun("root", yggIP1, "nc -z "+yggIP2+" 22")
+		_, err = RemoteRun("root", yggIP1, "nc -z "+yggIP2+" 22", privateKey)
 		assert.NoError(t, err)
 
 		// check yggIP1 from vm2
-		_, err = RemoteRun("root", yggIP2, "nc -z "+yggIP1+" 22")
+		_, err = RemoteRun("root", yggIP2, "nc -z "+yggIP1+" 22", privateKey)
 		assert.NoError(t, err)
 
 		// check publicIP62 from vm1
-		_, err = RemoteRun("root", yggIP1, "nc -z "+publicIP6_2+" 22")
+		_, err = RemoteRun("root", yggIP1, "nc -z "+publicIP6_2+" 22", privateKey)
 		assert.NoError(t, err)
 
 		// check publicIP61 from vm2
-		_, err = RemoteRun("root", yggIP2, "nc -z "+publicIP6_1+" 22")
-		assert.NoError(t, err)
-
-	})
-	t.Run("public IPv4", func(t *testing.T) {
-		t.SkipNow()
-		network.Nodes = []uint32{45}
-		vm1Cp := vm1
-		vm1Cp.PublicIP = true
-		vm2Cp := vm2
-		vm2Cp.PublicIP = true
-
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-		defer cancel()
-
-		err := networkManager.Stage(ctx)
-		assert.NoError(t, err)
-
-		err = tfPluginClient.Manager.Commit(ctx)
-		assert.NoError(t, err)
-
-		err = tfPluginClient.Manager.CancelAll()
-		assert.NoError(t, err)
-
-		err = tfPluginClient.Manager.Stage(&vm1Cp, 45)
-		assert.NoError(t, err)
-
-		err = tfPluginClient.Manager.Stage(&vm2Cp, 45)
-		assert.NoError(t, err)
-
-		err = tfPluginClient.Manager.Commit(ctx)
-		assert.NoError(t, err)
-
-		if err != nil {
-			t.Error(err)
-			t.FailNow()
-		}
-
-		result1, err := manager.LoadVMFromGrid(tfPluginClient.Manager, 45, "vm1")
-		assert.NoError(t, err)
-
-		result2, err := manager.LoadVMFromGrid(tfPluginClient.Manager, 45, "vm2")
-		assert.NoError(t, err)
-
-		yggIP1 := result1.YggIP
-		yggIP2 := result2.YggIP
-
-		publicIP1 := result1.ComputedIP
-		publicIP2 := result2.ComputedIP
-
-		if !Wait(yggIP1, "22") {
-			t.Errorf("Yggdrasil IP 1 not reachable")
-		}
-		if !Wait(yggIP2, "22") {
-			t.Errorf("Yggdrasil IP 2 not reachable")
-		}
-
-		_, err = RemoteRun("root", yggIP1, "apt install -y netcat")
-		assert.NoError(t, err)
-
-		_, err = RemoteRun("root", yggIP2, "apt install -y netcat")
+		_, err = RemoteRun("root", yggIP2, "nc -z "+publicIP6_1+" 22", privateKey)
 		assert.NoError(t, err)
 
 		// check publicIP2 from vm1
-		_, err = RemoteRun("root", yggIP1, "nc -z "+publicIP2+" 22")
+		_, err = RemoteRun("root", yggIP1, "nc -z "+publicIP2+" 22", privateKey)
 		assert.NoError(t, err)
 
 		// check publicIP1 from vm2
-		_, err = RemoteRun("root", yggIP2, "nc -z "+publicIP1+" 22")
+		_, err = RemoteRun("root", yggIP2, "nc -z "+publicIP1+" 22", privateKey)
 		assert.NoError(t, err)
 
+		// cancel all
+		err = tfPluginClient.DeploymentDeployer.Cancel(ctx, &dl)
+		assert.NoError(t, err)
+
+		err = tfPluginClient.NetworkDeployer.Cancel(ctx, &network)
+		assert.NoError(t, err)
 	})
 }
