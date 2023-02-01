@@ -48,7 +48,7 @@ func NewDeployer(
 }
 
 // TODO: newDeployments should support more than 1 deployment per node ID
-// Deploy deploys a new deployment given the old deployments' IDs
+// Deploy deploys or updates a new deployment given the old deployments' IDs
 func (d *Deployer) Deploy(ctx context.Context,
 	oldDeploymentIDs map[uint32]uint64,
 	newDeployments map[uint32]gridtypes.Deployment,
@@ -96,7 +96,7 @@ func (d *Deployer) deploy(
 		currentDeployments[nodeID] = contractID
 	}
 	// deletions
-	for node, contractID := range oldDeployments {
+	/*for node, contractID := range oldDeployments {
 		if _, ok := newDeployments[node]; !ok {
 			err = d.SubstrateConn.EnsureContractCanceled(d.identity, contractID)
 			if err != nil && !strings.Contains(err.Error(), "ContractNotExists") {
@@ -104,7 +104,7 @@ func (d *Deployer) deploy(
 			}
 			delete(currentDeployments, node)
 		}
-	}
+	}*/
 
 	// creations
 	for node, dl := range newDeployments {
@@ -264,6 +264,36 @@ func (d *Deployer) deploy(
 	}
 
 	return currentDeployments, nil
+}
+
+// Cancel cancels an old deployment not given in the new deployments
+func (d *Deployer) Cancel(ctx context.Context,
+	oldDeploymentIDs map[uint32]uint64,
+	newDeployments map[uint32]gridtypes.Deployment,
+) (map[uint32]uint64, error) {
+	oldDeployments, err := d.GetDeployments(ctx, oldDeploymentIDs)
+	if err != nil {
+		return oldDeploymentIDs, err
+	}
+
+	if err := d.validator.Validate(ctx, d.SubstrateConn, oldDeployments, newDeployments); err != nil {
+		return oldDeploymentIDs, err
+	}
+
+	currentDeployments := oldDeploymentIDs
+
+	// deletions
+	for node, contractID := range oldDeploymentIDs {
+		if _, ok := newDeployments[node]; !ok {
+			err = d.SubstrateConn.EnsureContractCanceled(d.identity, contractID)
+			if err != nil && !strings.Contains(err.Error(), "ContractNotExists") {
+				return currentDeployments, errors.Wrap(err, "failed to delete deployment")
+			}
+			delete(currentDeployments, node)
+		}
+	}
+
+	return currentDeployments, err
 }
 
 // GetDeployments returns deployments from a map of nodes IDs and deployments IDs

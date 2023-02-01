@@ -77,7 +77,7 @@ func constructTestDeployment() workloads.Deployment {
 			ComputedIP:    "5.5.5.5/24",
 			ComputedIP6:   "::7/64",
 			YggIP:         "::8/64",
-			IP:            "10.10.10.10",
+			IP:            "10.1.0.2",
 			Description:   "vm1_description",
 			CPU:           1,
 			Memory:        1024,
@@ -118,7 +118,7 @@ func constructTestDeployment() workloads.Deployment {
 			ComputedIP:    "",
 			ComputedIP6:   "::7/64",
 			YggIP:         "::8/64",
-			IP:            "10.10.10.10",
+			IP:            "10.1.0.2",
 			Description:   "vm2_description",
 			CPU:           1,
 			Memory:        1024,
@@ -248,8 +248,8 @@ func constructTestDeployer(t *testing.T, mock bool) (DeploymentDeployer, *mocks.
 		tfPluginClient.NcPool = ncPool
 		tfPluginClient.RMB = cl
 
-		tfPluginClient.stateLoader.ncPool = ncPool
-		tfPluginClient.stateLoader.substrate = sub
+		tfPluginClient.StateLoader.ncPool = ncPool
+		tfPluginClient.StateLoader.substrate = sub
 	}
 
 	return NewDeploymentDeployer(&tfPluginClient), cl, sub, ncPool
@@ -308,8 +308,12 @@ func TestDeploymentGenerateDeployment(t *testing.T) {
 	gridDl, err := dl.ConstructGridDeployment(twinID)
 	assert.NoError(t, err)
 
-	_, networkDl := constructTestNetwork()
-	d.TFPluginClient.stateLoader.currentNodeNetwork[nodeID] = contractID
+	net := constructTestNetwork()
+	workload := net.GenerateWorkload(net.NodesIPRange[nodeID], "", uint16(0), []zos.Peer{})
+	networkDl := workloads.NewGridDeployment(twinID, []gridtypes.Workload{workload})
+
+	d.tfPluginClient.StateLoader.currentNodeNetwork[nodeID] = contractID
+	d.tfPluginClient.StateLoader.networks = networkState{net.Name: network{subnets: map[uint32]string{nodeID: net.IPRange.String()}}}
 
 	ncPool.EXPECT().
 		GetNodeClient(sub, uint32(nodeID)).
@@ -334,8 +338,12 @@ func TestDeploymentSync(t *testing.T) {
 	dl := constructTestDeployment()
 	d, cl, sub, ncPool := constructTestDeployer(t, true)
 
-	_, networkDl := constructTestNetwork()
-	d.TFPluginClient.stateLoader.currentNodeNetwork[nodeID] = contractID
+	net := constructTestNetwork()
+	workload := net.GenerateWorkload(net.NodesIPRange[nodeID], "", uint16(0), []zos.Peer{})
+	networkDl := workloads.NewGridDeployment(twinID, []gridtypes.Workload{workload})
+
+	d.tfPluginClient.StateLoader.currentNodeNetwork[nodeID] = contractID
+	d.tfPluginClient.StateLoader.networks = networkState{net.Name: network{subnets: map[uint32]string{nodeID: net.IPRange.String()}}}
 
 	// invalidate contract
 	sub.EXPECT().IsValidContract(dl.ContractID).Return(false, nil).AnyTimes()

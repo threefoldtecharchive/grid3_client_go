@@ -14,8 +14,10 @@ import (
 )
 
 func TestValidator(t *testing.T) {
-	_, twinID, err := SetUP()
+	tfPluginClient, err := setup()
 	assert.NoError(t, err)
+
+	twinID := tfPluginClient.TwinID
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

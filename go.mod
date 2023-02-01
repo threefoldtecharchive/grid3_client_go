@@ -17,7 +17,10 @@ require (
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20221104135756-97bc4ad4a1cb
 )
 
-require golang.org/x/term v0.4.0 // indirect
+require (
+	github.com/google/go-querystring v1.1.0 // indirect
+	golang.org/x/term v0.4.0 // indirect
+)
 
 require (
 	github.com/ChainSafe/go-schnorrkel v1.0.0 // indirect

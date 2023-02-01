@@ -21,155 +21,30 @@ type NetworkDeployer struct {
 	WGPort map[uint32]int
 	Keys   map[uint32]wgtypes.Key
 
-	TFPluginClient *TFPluginClient
+	tfPluginClient *TFPluginClient
 	deployer       Deployer
 }
 
 // NewNetworkDeployer generates a new network deployer
 func NewNetworkDeployer(tfPluginClient *TFPluginClient) NetworkDeployer {
 	netDeployer := NetworkDeployer{
-		Keys:           map[uint32]wgtypes.Key{},
-		WGPort:         map[uint32]int{},
-		TFPluginClient: tfPluginClient,
+		Keys:           make(map[uint32]wgtypes.Key),
+		WGPort:         make(map[uint32]int),
+		tfPluginClient: tfPluginClient,
 		deployer:       Deployer{},
 	}
 
-	netDeployer.TFPluginClient = tfPluginClient
+	netDeployer.tfPluginClient = tfPluginClient
 	netDeployer.deployer = NewDeployer(*tfPluginClient, true)
 
 	return netDeployer
 }
 
-// GenerateComputedZNet generates the computed fields in the given znet
-func (k *NetworkDeployer) GenerateComputedZNet(ctx context.Context, tfPluginClient *TFPluginClient, znet *workloads.ZNet, solutionType string) (*workloads.ZNet, error) {
-	if solutionType == "" {
-		solutionType = "NETWORK"
-	}
-	znet.SolutionType = solutionType
-
-	peerSubnets := map[string]*zos.Peer{}
-	nodeSubnets := map[string]bool{}
-
-	// retrieve last network state
-	oldContracts := k.TFPluginClient.stateLoader.currentNodeNetwork
-
-	for _, nodeID := range znet.Nodes {
-		if _, ok := oldContracts[nodeID]; !ok {
-			// if node is new, it has no previous state and shouldn't be processed
-			continue
-		}
-		delete(oldContracts, nodeID)
-
-		dl, err := k.TFPluginClient.stateLoader.GetDeployment(oldContracts, nodeID)
-		if err != nil {
-			return &workloads.ZNet{}, errors.Wrapf(err, "couldn't get deployment with node ID %d", nodeID)
-		}
-
-		for _, wl := range dl.Workloads {
-			if wl.Name.String() == znet.Name && wl.Result.State == gridtypes.StateOk {
-				data, err := workloads.GetZNetWorkloadData(wl)
-				if err != nil {
-					return &workloads.ZNet{}, errors.Wrapf(err, "couldn't get workload \"%s\" data", wl.Name.String())
-				}
-
-				privateKey, err := wgtypes.ParseKey(data.WGPrivateKey)
-				if err != nil {
-					return &workloads.ZNet{}, errors.Wrap(err, "couldn't parse wire guard private key")
-				}
-
-				for idx, peer := range data.Peers {
-					peerSubnets[peer.Subnet.String()] = &data.Peers[idx]
-					if znet.AddWGAccess && peer.Endpoint == "" {
-						// this is the access node
-						znet.PublicNodeID = nodeID
-					}
-				}
-				nodeSubnets[data.Subnet.String()] = true
-
-				znet.NodeDeploymentID[nodeID] = dl.ContractID
-				k.Keys[nodeID] = privateKey
-				k.WGPort[nodeID] = int(data.WGListenPort)
-				znet.NodesIPRange[nodeID] = data.Subnet
-			}
-		}
-
-	}
-	// TODO: if oldDeployments is not empty and has any of this networks' workloads, they should be canceled
-	// if the workload represents an access node, and the user requires wg access, the workload should not be cancelled
-	//toCancel := map[uint32]map[string]bool{}
-
-	for nodeID, contractID := range oldContracts {
-		dl, err := k.TFPluginClient.stateLoader.GetDeployment(oldContracts, nodeID)
-		if err != nil {
-			return &workloads.ZNet{}, errors.Wrapf(err, "couldn't get deployment %d", contractID)
-		}
-		wlID, err := dl.Get(gridtypes.Name(znet.Name))
-
-		if err == nil {
-			wl := *(wlID.Workload)
-			data, err := workloads.GetZNetWorkloadData(wl)
-			if err != nil {
-				return &workloads.ZNet{}, errors.New("could not create network workload")
-			}
-			privateKey, err := wgtypes.ParseKey(data.WGPrivateKey)
-			if err != nil {
-				return &workloads.ZNet{}, errors.Wrap(err, "couldn't parse private key")
-			}
-
-			for idx, peer := range data.Peers {
-				peerSubnets[peer.Subnet.String()] = &data.Peers[idx]
-				if znet.AddWGAccess && peer.Endpoint == "" {
-					// this is the access node
-					znet.PublicNodeID = nodeID
-					znet.NodeDeploymentID[nodeID] = dl.ContractID
-					k.Keys[nodeID] = privateKey
-					k.WGPort[nodeID] = int(data.WGListenPort)
-					znet.NodesIPRange[nodeID] = data.Subnet
-					break
-				}
-			}
-			nodeSubnets[data.Subnet.String()] = true
-
-			/*
-				if !znet.AddWGAccess || znet.PublicNodeID != nodeID {
-					// this is a node to be cancelled
-					toCancel[nodeID] = make(map[string]bool)
-					toCancel[nodeID][znet.Name] = true
-				}
-			*/
-
-		}
-	}
-
-	for subnet := range peerSubnets {
-		if _, ok := nodeSubnets[subnet]; !ok {
-			// this was the user access ip
-			externalIP, err := gridtypes.ParseIPNet(subnet)
-			if err != nil {
-				return &workloads.ZNet{}, errors.Wrapf(err, "couldn't parse user address")
-			}
-			znet.ExternalIP = &externalIP
-			break
-		}
-	}
-
-	if znet.ExternalIP == nil {
-		// user does not have userAccess configs and a new private key should be generated
-		secretKey, err := wgtypes.GeneratePrivateKey()
-		if err != nil {
-			return &workloads.ZNet{}, errors.Wrapf(err, "couldn't generate new private key")
-		}
-		znet.ExternalSK = secretKey
-	}
-
-	return znet, nil
-}
-
 // Validate validates a network deployer
 func (k *NetworkDeployer) Validate(ctx context.Context, znet *workloads.ZNet) error {
-	sub := k.TFPluginClient.SubstrateConn
+	sub := k.tfPluginClient.SubstrateConn
 
-	if err := validateAccountBalanceForExtrinsics(sub, k.TFPluginClient.Identity); err != nil {
+	if err := validateAccountBalanceForExtrinsics(sub, k.tfPluginClient.Identity); err != nil {
 		return err
 	}
 
@@ -190,7 +65,7 @@ func (k *NetworkDeployer) GenerateVersionlessDeployments(ctx context.Context, zn
 	deployments := make(map[uint32]gridtypes.Deployment)
 
 	log.Printf("nodes: %v\n", znet.Nodes)
-	sub := k.TFPluginClient.SubstrateConn
+	sub := k.tfPluginClient.SubstrateConn
 
 	endpoints := make(map[uint32]string)
 	hiddenNodes := make([]uint32, 0)
@@ -228,7 +103,7 @@ func (k *NetworkDeployer) GenerateVersionlessDeployments(ctx context.Context, zn
 		} else if ipv4Node != 0 { // there's one in the network original nodes
 			znet.PublicNodeID = ipv4Node
 		} else {
-			publicNode, err := workloads.GetPublicNode(ctx, k.TFPluginClient.GridProxyClient, []uint32{})
+			publicNode, err := workloads.GetPublicNode(ctx, k.tfPluginClient.GridProxyClient, []uint32{})
 			if err != nil {
 				return nil, errors.Wrap(err, "public node needed because you requested adding wg access or a hidden node is added to the network")
 			}
@@ -338,7 +213,7 @@ func (k *NetworkDeployer) GenerateVersionlessDeployments(ctx context.Context, zn
 		}
 
 		workload := znet.GenerateWorkload(znet.NodesIPRange[nodeID], k.Keys[nodeID].String(), uint16(k.WGPort[nodeID]), peers)
-		deployment := workloads.NewGridDeployment(k.TFPluginClient.TwinID, []gridtypes.Workload{workload})
+		deployment := workloads.NewGridDeployment(k.tfPluginClient.TwinID, []gridtypes.Workload{workload})
 		deployments[nodeID] = deployment
 	}
 
@@ -358,7 +233,7 @@ func (k *NetworkDeployer) GenerateVersionlessDeployments(ctx context.Context, zn
 		}
 
 		workload := znet.GenerateWorkload(znet.NodesIPRange[nodeID], k.Keys[nodeID].String(), uint16(k.WGPort[nodeID]), peers)
-		deployment := workloads.NewGridDeployment(k.TFPluginClient.TwinID, []gridtypes.Workload{workload})
+		deployment := workloads.NewGridDeployment(k.tfPluginClient.TwinID, []gridtypes.Workload{workload})
 		deployments[nodeID] = deployment
 	}
 	return deployments, nil
@@ -386,6 +261,10 @@ func (k *NetworkDeployer) Deploy(ctx context.Context, znet *workloads.ZNet) erro
 		return errors.Wrap(err, "couldn't print deployments data")
 	}
 
+	if len(znet.SolutionType) == 0 {
+		znet.SolutionType = "Network"
+	}
+
 	deploymentData := workloads.DeploymentData{
 		Name:        znet.Name,
 		Type:        "network",
@@ -402,17 +281,15 @@ func (k *NetworkDeployer) Deploy(ctx context.Context, znet *workloads.ZNet) erro
 		newDeploymentsSolutionProvider[nodeID] = nil
 	}
 
-	currentDeployments, err := k.deployer.Deploy(ctx, k.TFPluginClient.stateLoader.currentNodeNetwork, newDeployments, newDeploymentsData, newDeploymentsSolutionProvider)
+	currentDeployments, err := k.deployer.Deploy(ctx, k.tfPluginClient.StateLoader.currentNodeNetwork, newDeployments, newDeploymentsData, newDeploymentsSolutionProvider)
 	if err != nil {
 		return errors.Wrapf(err, "couldn't deploy network %s", znet.Name)
 	}
 
 	// update state
 	znet.NodeDeploymentID = currentDeployments
-	k.TFPluginClient.stateLoader.networks.updateNetwork(znet.Name, znet.NodesIPRange)
-	for nodeID, contractID := range currentDeployments {
-		k.TFPluginClient.stateLoader.currentNodeNetwork[nodeID] = contractID
-	}
+	k.tfPluginClient.StateLoader.networks.updateNetwork(znet.Name, znet.NodesIPRange)
+	k.tfPluginClient.StateLoader.currentNodeNetwork = currentDeployments
 	if err := k.readNodesConfig(ctx, znet); err != nil {
 		return errors.Wrap(err, "couldn't read node's data")
 	}
@@ -427,35 +304,25 @@ func (k *NetworkDeployer) Cancel(ctx context.Context, znet *workloads.ZNet) erro
 		return err
 	}
 
-	/*znet, err := k.GenerateComputedZNet(ctx, k.TFPluginClient, znet, "")
-	if err != nil {
-		return errors.Wrapf(err, "couldn't generate computed znet")
-	}*/
+	oldDeployments := k.tfPluginClient.StateLoader.currentNodeNetwork
 
-	// TODO: handle cancelled znet only
+	// construct new deployments to have all old deployments except the given one
 	newDeployments := make(map[uint32]gridtypes.Deployment)
-
-	newDeploymentsData := make(map[uint32]workloads.DeploymentData)
-	newDeploymentsSolutionProvider := make(map[uint32]*uint64)
-
-	for _, node := range znet.Nodes {
-		// deployment data
-		newDeploymentsData[node] = workloads.DeploymentData{}
-		// solution providers
-		newDeploymentsSolutionProvider[node] = nil
+	for nodeID := range oldDeployments {
+		if !workloads.Contains(znet.Nodes, nodeID) {
+			newDeployments[nodeID] = gridtypes.Deployment{}
+		}
 	}
 
-	currentDeployments, err := k.deployer.Deploy(ctx, k.TFPluginClient.stateLoader.currentNodeNetwork, newDeployments, newDeploymentsData, newDeploymentsSolutionProvider)
+	currentDeployments, err := k.deployer.Cancel(ctx, oldDeployments, newDeployments)
 	if err != nil {
 		return errors.Wrapf(err, "couldn't cancel network %s", znet.Name)
 	}
 
 	// update state
 	znet.NodeDeploymentID = currentDeployments
-	k.TFPluginClient.stateLoader.networks.updateNetwork(znet.Name, znet.NodesIPRange)
-	for nodeID, contractID := range currentDeployments {
-		k.TFPluginClient.stateLoader.currentNodeNetwork[nodeID] = contractID
-	}
+	k.tfPluginClient.StateLoader.networks.updateNetwork(znet.Name, znet.NodesIPRange)
+	k.tfPluginClient.StateLoader.currentNodeNetwork = currentDeployments
 	if err := k.readNodesConfig(ctx, znet); err != nil {
 		return errors.Wrap(err, "couldn't read node's data")
 	}

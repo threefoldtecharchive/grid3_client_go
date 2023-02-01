@@ -17,7 +17,7 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
-func setupLoaderTests(t *testing.T, wls []gridtypes.Workload) *StateLoader {
+func SetupLoaderTests(t *testing.T, wls []gridtypes.Workload) *StateLoader {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -64,7 +64,7 @@ func TestLoadDiskFromGrid(t *testing.T) {
 	}
 
 	t.Run("success", func(t *testing.T) {
-		stateLoader := setupLoaderTests(t, []gridtypes.Workload{diskWl})
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{diskWl})
 
 		got, err := stateLoader.LoadDiskFromGrid(1, "test")
 		assert.NoError(t, err)
@@ -75,7 +75,7 @@ func TestLoadDiskFromGrid(t *testing.T) {
 		diskWlCp := diskWl
 		diskWlCp.Type = "invalid"
 
-		stateLoader := setupLoaderTests(t, []gridtypes.Workload{diskWlCp})
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{diskWlCp})
 
 		_, err := stateLoader.LoadDiskFromGrid(1, "test")
 		assert.Error(t, err)
@@ -88,7 +88,7 @@ func TestLoadDiskFromGrid(t *testing.T) {
 			Name: "name",
 		})
 
-		stateLoader := setupLoaderTests(t, []gridtypes.Workload{diskWlCp})
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{diskWlCp})
 
 		_, err := stateLoader.LoadDiskFromGrid(1, "test")
 		assert.Error(t, err)
@@ -114,7 +114,7 @@ func TestLoadGatewayFqdnFromGrid(t *testing.T) {
 	}
 
 	t.Run("success", func(t *testing.T) {
-		stateLoader := setupLoaderTests(t, []gridtypes.Workload{gatewayWl})
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{gatewayWl})
 
 		got, err := stateLoader.LoadGatewayFqdnFromGrid(1, "test")
 		assert.NoError(t, err)
@@ -125,7 +125,7 @@ func TestLoadGatewayFqdnFromGrid(t *testing.T) {
 		gatewayWlCp := gatewayWl
 		gatewayWlCp.Type = "invalid"
 
-		stateLoader := setupLoaderTests(t, []gridtypes.Workload{gatewayWlCp})
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{gatewayWlCp})
 
 		_, err := stateLoader.LoadGatewayFqdnFromGrid(1, "test")
 		assert.Error(t, err)
@@ -138,7 +138,7 @@ func TestLoadGatewayFqdnFromGrid(t *testing.T) {
 			Name: "name",
 		})
 
-		stateLoader := setupLoaderTests(t, []gridtypes.Workload{gatewayWlCp})
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{gatewayWlCp})
 
 		_, err := stateLoader.LoadGatewayFqdnFromGrid(1, "test")
 		assert.Error(t, err)
@@ -173,7 +173,7 @@ func TestLoadGatewayNameFromGrid(t *testing.T) {
 	}
 
 	t.Run("success", func(t *testing.T) {
-		stateLoader := setupLoaderTests(t, []gridtypes.Workload{gatewayWl})
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{gatewayWl})
 
 		got, err := stateLoader.LoadGatewayNameFromGrid(1, "test")
 		assert.NoError(t, err)
@@ -183,7 +183,7 @@ func TestLoadGatewayNameFromGrid(t *testing.T) {
 		gatewayWlCp := gatewayWl
 		gatewayWlCp.Type = "invalid"
 
-		stateLoader := setupLoaderTests(t, []gridtypes.Workload{gatewayWlCp})
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{gatewayWlCp})
 
 		_, err := stateLoader.LoadGatewayNameFromGrid(1, "test")
 		assert.Error(t, err)
@@ -196,7 +196,7 @@ func TestLoadGatewayNameFromGrid(t *testing.T) {
 			FQDN: "123",
 		})
 
-		stateLoader := setupLoaderTests(t, []gridtypes.Workload{gatewayWlCp})
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{gatewayWlCp})
 
 		_, err := stateLoader.LoadGatewayNameFromGrid(1, "test")
 		assert.Error(t, err)
@@ -269,7 +269,7 @@ func TestLoadK8sFromGrid(t *testing.T) {
 	}
 
 	t.Run("success", func(t *testing.T) {
-		stateLoader := setupLoaderTests(t, []gridtypes.Workload{k8sWorkload})
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{k8sWorkload})
 
 		got, err := stateLoader.LoadK8sFromGrid(map[uint32]string{1: "test"}, map[uint32][]string{})
 		assert.NoError(t, err)
@@ -280,7 +280,7 @@ func TestLoadK8sFromGrid(t *testing.T) {
 		k8sWorkloadCp := k8sWorkload
 		k8sWorkloadCp.Type = "invalid"
 
-		stateLoader := setupLoaderTests(t, []gridtypes.Workload{k8sWorkloadCp})
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{k8sWorkloadCp})
 
 		_, err := stateLoader.LoadK8sFromGrid(map[uint32]string{1: "test"}, map[uint32][]string{})
 		assert.Error(t, err)
@@ -293,7 +293,7 @@ func TestLoadK8sFromGrid(t *testing.T) {
 			FList: "",
 		})
 
-		stateLoader := setupLoaderTests(t, []gridtypes.Workload{k8sWorkloadCp})
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{k8sWorkloadCp})
 
 		_, err := stateLoader.LoadK8sFromGrid(map[uint32]string{1: "test"}, map[uint32][]string{})
 		assert.Error(t, err)
@@ -329,7 +329,7 @@ func TestLoadNetworkFromGrid(t *testing.T) {
 	}
 
 	t.Run("success", func(t *testing.T) {
-		stateLoader := setupLoaderTests(t, []gridtypes.Workload{networkWl})
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{networkWl})
 
 		got, err := stateLoader.LoadNetworkFromGrid("test")
 		assert.NoError(t, err)
@@ -340,7 +340,7 @@ func TestLoadNetworkFromGrid(t *testing.T) {
 		networkWlCp := networkWl
 		networkWlCp.Type = "invalid"
 
-		stateLoader := setupLoaderTests(t, []gridtypes.Workload{networkWlCp})
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{networkWlCp})
 
 		_, err := stateLoader.LoadNetworkFromGrid("test")
 		assert.Error(t, err)
@@ -353,7 +353,7 @@ func TestLoadNetworkFromGrid(t *testing.T) {
 			WGPrivateKey: "key",
 		})
 
-		stateLoader := setupLoaderTests(t, []gridtypes.Workload{networkWlCp})
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{networkWlCp})
 
 		_, err := stateLoader.LoadNetworkFromGrid("test")
 		assert.Error(t, err)
@@ -443,7 +443,7 @@ func TestLoadQsfsFromGrid(t *testing.T) {
 	}
 
 	t.Run("success", func(t *testing.T) {
-		stateLoader := setupLoaderTests(t, []gridtypes.Workload{qsfsWl})
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{qsfsWl})
 
 		got, err := stateLoader.LoadQsfsFromGrid(1, "test")
 		assert.NoError(t, err)
@@ -453,7 +453,7 @@ func TestLoadQsfsFromGrid(t *testing.T) {
 		qsfsWlCp := qsfsWl
 		qsfsWlCp.Type = "invalid"
 
-		stateLoader := setupLoaderTests(t, []gridtypes.Workload{qsfsWlCp})
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{qsfsWlCp})
 
 		_, err := stateLoader.LoadQsfsFromGrid(1, "test")
 		assert.Error(t, err)
@@ -466,7 +466,7 @@ func TestLoadQsfsFromGrid(t *testing.T) {
 			Name: "name",
 		})
 
-		stateLoader := setupLoaderTests(t, []gridtypes.Workload{qsfsWlCp})
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{qsfsWlCp})
 
 		_, err := stateLoader.LoadQsfsFromGrid(1, "test")
 		assert.Error(t, err)
@@ -476,7 +476,7 @@ func TestLoadQsfsFromGrid(t *testing.T) {
 		qsfsWlCp := qsfsWl
 		qsfsWlCp.Result.Data = nil
 
-		stateLoader := setupLoaderTests(t, []gridtypes.Workload{qsfsWlCp})
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{qsfsWlCp})
 
 		_, err := stateLoader.LoadQsfsFromGrid(1, "test")
 		assert.Error(t, err)
@@ -554,7 +554,7 @@ func TestLoadVMFromGrid(t *testing.T) {
 	}
 
 	t.Run("success", func(t *testing.T) {
-		stateLoader := setupLoaderTests(t, []gridtypes.Workload{vmWl})
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{vmWl})
 
 		got, err := stateLoader.LoadVMFromGrid(1, "test")
 		assert.NoError(t, err)
@@ -565,7 +565,7 @@ func TestLoadVMFromGrid(t *testing.T) {
 		vmWlCp := vmWl
 		vmWlCp.Type = "invalid"
 
-		stateLoader := setupLoaderTests(t, []gridtypes.Workload{vmWlCp})
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{vmWlCp})
 
 		_, err := stateLoader.LoadVMFromGrid(1, "test")
 		assert.Error(t, err)
@@ -578,7 +578,7 @@ func TestLoadVMFromGrid(t *testing.T) {
 			FQDN: "123",
 		})
 
-		stateLoader := setupLoaderTests(t, []gridtypes.Workload{vmWlCp})
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{vmWlCp})
 
 		_, err := stateLoader.LoadVMFromGrid(1, "test")
 		assert.Error(t, err)
@@ -588,7 +588,7 @@ func TestLoadVMFromGrid(t *testing.T) {
 		vmWlCp := vmWl
 		vmWlCp.Result.Data = nil
 
-		stateLoader := setupLoaderTests(t, []gridtypes.Workload{vmWlCp})
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{vmWlCp})
 
 		_, err := stateLoader.LoadVMFromGrid(1, "test")
 		assert.Error(t, err)
@@ -639,7 +639,7 @@ func TestLoadZdbFromGrid(t *testing.T) {
 	}
 
 	t.Run("success", func(t *testing.T) {
-		stateLoader := setupLoaderTests(t, []gridtypes.Workload{zdbWl})
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{zdbWl})
 
 		got, err := stateLoader.LoadZdbFromGrid(1, "test")
 		assert.NoError(t, err)
@@ -650,7 +650,7 @@ func TestLoadZdbFromGrid(t *testing.T) {
 		zdbWlCp := zdbWl
 		zdbWlCp.Type = "invalid"
 
-		stateLoader := setupLoaderTests(t, []gridtypes.Workload{zdbWlCp})
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{zdbWlCp})
 
 		_, err := stateLoader.LoadZdbFromGrid(1, "test")
 		assert.Error(t, err)
@@ -663,7 +663,7 @@ func TestLoadZdbFromGrid(t *testing.T) {
 			Name: "name",
 		})
 
-		stateLoader := setupLoaderTests(t, []gridtypes.Workload{zdbWlCp})
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{zdbWlCp})
 
 		_, err := stateLoader.LoadZdbFromGrid(1, "test")
 		assert.Error(t, err)
@@ -673,7 +673,7 @@ func TestLoadZdbFromGrid(t *testing.T) {
 		zdbWlCp := zdbWl
 		zdbWlCp.Result.Data = nil
 
-		stateLoader := setupLoaderTests(t, []gridtypes.Workload{zdbWlCp})
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{zdbWlCp})
 
 		_, err := stateLoader.LoadZdbFromGrid(1, "test")
 		assert.Error(t, err)

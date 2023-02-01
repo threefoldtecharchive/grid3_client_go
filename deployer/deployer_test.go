@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
+	"log"
 	"os"
 	"testing"
 
@@ -21,41 +22,25 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
-func SetUP() (identity substrate.Identity, twinID uint32, err error) {
-	if _, err = os.Stat("../.env"); !errors.Is(err, os.ErrNotExist) {
-		err = godotenv.Load("../.env")
+var backendURLWithTLSPassthrough = "//1.1.1.1:10"
+var backendURLWithoutTLSPassthrough = "http://1.1.1.1:10"
+
+func setup() (TFPluginClient, error) {
+	if _, err := os.Stat("../.env"); !errors.Is(err, os.ErrNotExist) {
+		err := godotenv.Load("../.env")
 		if err != nil {
-			return
+			return TFPluginClient{}, err
 		}
 	}
 
 	mnemonics := os.Getenv("MNEMONICS")
-	identity, err = substrate.NewIdentityFromSr25519Phrase(mnemonics)
-	if err != nil {
-		return
-	}
-
-	keyPair, err := identity.KeyPair()
-	if err != nil {
-		return
-	}
+	log.Printf("mnemonics: %s", mnemonics)
 
 	network := os.Getenv("NETWORK")
-	pub := keyPair.Public()
-	sub := subi.NewManager(SubstrateURLs[network])
-	subext, err := sub.SubstrateExt()
-	if err != nil {
-		return
-	}
-	twin, err := subext.GetTwinByPubKey(pub)
-	if err != nil {
-		return
-	}
-	return identity, twin, nil
-}
+	log.Printf("network: %s", network)
 
-var backendURLWithTLSPassthrough = "//1.1.1.1:10"
-var backendURLWithoutTLSPassthrough = "http://1.1.1.1:10"
+	return NewTFPluginClient(mnemonics, "sr25519", network, "", "", true, "", true)
+}
 
 func deploymentWithNameGateway(identity substrate.Identity, twinID uint32, TLSPassthrough bool, version uint32, backendURL string) (gridtypes.Deployment, error) {
 	gw := workloads.GatewayNameProxy{
@@ -353,7 +338,7 @@ func TestCancel(t *testing.T) {
 
 	deployer.validator = &EmptyValidator{}
 
-	contracts, err := deployer.Deploy(context.Background(), map[uint32]uint64{10: 100}, nil, nil, nil)
+	contracts, err := deployer.Cancel(context.Background(), map[uint32]uint64{10: 100}, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, contracts, map[uint32]uint64{})
 }
@@ -423,13 +408,13 @@ func TestCocktail(t *testing.T) {
 	}
 
 	newDlsData := map[uint32]workloads.DeploymentData{
-		10: {},
+		20: {},
 		30: {},
 		40: {},
 	}
 
 	newDlsSolProvider := map[uint32]*uint64{
-		10: nil,
+		20: nil,
 		30: nil,
 		40: nil,
 	}
@@ -562,6 +547,15 @@ func TestCocktail(t *testing.T) {
 	deployer.validator = &EmptyValidator{}
 
 	contracts, err := deployer.Deploy(context.Background(), oldDls, newDls, newDlsData, newDlsSolProvider)
+	assert.NoError(t, err)
+	assert.Equal(t, contracts, map[uint32]uint64{
+		10: 100,
+		20: 200,
+		30: 300,
+		40: 400,
+	})
+
+	contracts, err = deployer.Cancel(context.Background(), contracts, map[uint32]gridtypes.Deployment{20: {}, 30: {}, 40: {}})
 	assert.NoError(t, err)
 	assert.Equal(t, contracts, map[uint32]uint64{
 		20: 200,
