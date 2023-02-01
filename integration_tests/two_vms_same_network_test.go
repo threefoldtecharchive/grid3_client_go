@@ -46,7 +46,7 @@ func TestTwoVMsSameNetwork(t *testing.T) {
 
 	vm1 := workloads.VM{
 		Name:       "vm1",
-		Flist:      "https://hub.grid.tf/tf-official-apps/base:latest.flist",
+		Flist:      "https://hub.grid.tf/tf-official-apps/threefoldtech-ubuntu-22.04.flist",
 		CPU:        2,
 		PublicIP:   true,
 		PublicIP6:  true,
@@ -62,7 +62,7 @@ func TestTwoVMsSameNetwork(t *testing.T) {
 
 	vm2 := workloads.VM{
 		Name:       "vm2",
-		Flist:      "https://hub.grid.tf/tf-official-apps/base:latest.flist",
+		Flist:      "https://hub.grid.tf/tf-official-apps/threefoldtech-ubuntu-22.04.flist",
 		CPU:        2,
 		PublicIP:   true,
 		PublicIP6:  true,
@@ -76,7 +76,7 @@ func TestTwoVMsSameNetwork(t *testing.T) {
 		NetworkName: network.Name,
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 6*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
 
 	err = tfPluginClient.NetworkDeployer.Deploy(ctx, &network)

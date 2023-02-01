@@ -313,6 +313,7 @@ func TestDeploymentGenerateDeployment(t *testing.T) {
 	networkDl := workloads.NewGridDeployment(twinID, []gridtypes.Workload{workload})
 
 	d.tfPluginClient.StateLoader.currentNodeNetwork[nodeID] = contractID
+	d.tfPluginClient.StateLoader.networks = networkState{net.Name: network{subnets: map[uint32]string{nodeID: net.IPRange.String()}}}
 
 	ncPool.EXPECT().
 		GetNodeClient(sub, uint32(nodeID)).
@@ -340,7 +341,9 @@ func TestDeploymentSync(t *testing.T) {
 	net := constructTestNetwork()
 	workload := net.GenerateWorkload(net.NodesIPRange[nodeID], "", uint16(0), []zos.Peer{})
 	networkDl := workloads.NewGridDeployment(twinID, []gridtypes.Workload{workload})
+
 	d.tfPluginClient.StateLoader.currentNodeNetwork[nodeID] = contractID
+	d.tfPluginClient.StateLoader.networks = networkState{net.Name: network{subnets: map[uint32]string{nodeID: net.IPRange.String()}}}
 
 	// invalidate contract
 	sub.EXPECT().IsValidContract(dl.ContractID).Return(false, nil).AnyTimes()
