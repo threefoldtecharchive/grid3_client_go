@@ -111,7 +111,6 @@ func (k *GatewayFQDNDeployer) syncContracts(ctx context.Context, gw *workloads.G
 		return err
 	}
 	if len(gw.NodeDeploymentID) == 0 {
-		// delete resource in case nothing is active (reflects only on read)
 		gw.ContractID = 0
 	}
 	return nil
@@ -131,9 +130,19 @@ func (k *GatewayFQDNDeployer) Sync(ctx context.Context, gw *workloads.GatewayFQD
 	dl := dls[gw.NodeID]
 	wl, _ := dl.Get(gridtypes.Name(gw.Name))
 
+	gwWorkload := workloads.GatewayFQDNProxy{}
+	gw.Backends = gwWorkload.Backends
+	gw.Name = gwWorkload.Name
+	gw.FQDN = gwWorkload.FQDN
+	gw.TLSPassthrough = gwWorkload.TLSPassthrough
+
 	if wl != nil && wl.Result.State.IsOkay() {
-		gwWl, err := workloads.NewGatewayFQDNProxyFromZosWorkload(*wl.Workload)
-		gw = &gwWl
+		gwWorkload, err := workloads.NewGatewayFQDNProxyFromZosWorkload(*wl.Workload)
+		gw.Backends = gwWorkload.Backends
+		gw.Name = gwWorkload.Name
+		gw.FQDN = gwWorkload.FQDN
+		gw.TLSPassthrough = gwWorkload.TLSPassthrough
+
 		if err != nil {
 			return err
 		}
