@@ -74,6 +74,7 @@ func (k *K8sDeployer) Validate(ctx context.Context, k8sCluster *workloads.K8sClu
 	if err := k.validateToken(ctx, k8sCluster); err != nil {
 		return err
 	}
+
 	if err := validateAccountBalanceForExtrinsics(k.deployer.SubstrateConn, k.tfPluginClient.Identity); err != nil {
 		return err
 	}
@@ -187,7 +188,30 @@ func (k *K8sDeployer) GenerateVersionlessDeployments(ctx context.Context, k8sClu
 	return deployments, nil
 }
 
+func (k *K8sDeployer) nodeIps(k8sCluster *workloads.K8sCluster) error {
+	network := k.tfPluginClient.StateLoader.networks.getNetwork(k8sCluster.NetworkName)
+	nodesIPRange := make(map[uint32]gridtypes.IPNet)
+	var err error
+	nodesIPRange[k8sCluster.Master.Node], err = gridtypes.ParseIPNet(network.getNodeSubnet(k8sCluster.Master.Node))
+	if err != nil {
+		return errors.Wrap(err, "couldn't parse master node ip range")
+	}
+	for _, worker := range k8sCluster.Workers {
+		nodesIPRange[worker.Node], err = gridtypes.ParseIPNet(network.getNodeSubnet(worker.Node))
+		if err != nil {
+			return errors.Wrapf(err, "couldn't parse worker node (%d) ip range", worker.Node)
+		}
+	}
+	k8sCluster.NodesIPRange = nodesIPRange
+
+	return nil
+
+}
+
 func (k *K8sDeployer) Deploy(ctx context.Context, k8sCluster *workloads.K8sCluster) error {
+	if err := k.nodeIps(k8sCluster); err != nil {
+		return err
+	}
 	if err := k.Validate(ctx, k8sCluster); err != nil {
 		return err
 	}

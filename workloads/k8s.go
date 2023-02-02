@@ -37,6 +37,7 @@ type K8sCluster struct {
 	Token            string
 	SSHKey           string
 	NetworkName      string
+	//computed
 	NodesIPRange     map[uint32]gridtypes.IPNet
 	NodeDeploymentID map[uint32]uint64
 	ContractID       uint64
