@@ -250,6 +250,8 @@ func constructTestDeployer(t *testing.T, mock bool) (DeploymentDeployer, *mocks.
 
 		tfPluginClient.StateLoader.ncPool = ncPool
 		tfPluginClient.StateLoader.substrate = sub
+
+		tfPluginClient.DeploymentDeployer.tfPluginClient = &tfPluginClient
 	}
 
 	return tfPluginClient.DeploymentDeployer, cl, sub, ncPool

@@ -46,10 +46,11 @@ func constructTestFQDNDeployer(t *testing.T, mock bool) (
 		tfPluginClient.RMB = cl
 		tfPluginClient.GridProxyClient = gridProxyCl
 
-		tfPluginClient.GatewayFQDNDeployer.deployer = deployer
-
 		tfPluginClient.StateLoader.ncPool = ncPool
 		tfPluginClient.StateLoader.substrate = sub
+
+		tfPluginClient.GatewayFQDNDeployer.deployer = deployer
+		tfPluginClient.GatewayFQDNDeployer.tfPluginClient = &tfPluginClient
 	}
 
 	return tfPluginClient.GatewayFQDNDeployer, cl, sub, ncPool, deployer, gridProxyCl
@@ -87,13 +88,10 @@ func TestValidateNodeReachable(t *testing.T) {
 		Return(nil)
 
 	ncPool.EXPECT().
-		GetNodeClient(
-			gomock.Any(),
-			nodeID,
-		).
+		GetNodeClient(sub, nodeID).AnyTimes().
 		Return(client.NewNodeClient(twinID, cl), nil)
 
-	err := d.Validate(context.TODO(), &workloads.GatewayFQDNProxy{NodeID: nodeID})
+	err := d.Validate(context.Background(), &workloads.GatewayFQDNProxy{NodeID: nodeID})
 	assert.NoError(t, err)
 }
 
