@@ -177,13 +177,15 @@ func TestNameDeploy(t *testing.T) {
 		NcPool:        pool,
 		SubstrateConn: sub,
 		TwinID:        11,
+		StateLoader:   &StateLoader{currentNodeDeployment: map[uint32]uint64{}},
 	})
 	gatewayNameDeployer.deployer = deployer
 
 	newDeploymentsSolutionProvider := map[uint32]*uint64{10: nil}
 	deploymentData := workloads.DeploymentData{
-		Name: gw.Name,
-		Type: "Gateway Name",
+		Name:        gw.Name,
+		Type:        "Gateway Name",
+		ProjectName: "Gateway",
 	}
 	newDeploymentsData := map[uint32]workloads.DeploymentData{10: deploymentData}
 	dls, err := gatewayNameDeployer.GenerateVersionlessDeployments(context.Background(), &gw)
@@ -236,6 +238,7 @@ func TestNameUpdate(t *testing.T) {
 		NcPool:        pool,
 		SubstrateConn: sub,
 		TwinID:        11,
+		StateLoader:   &StateLoader{currentNodeDeployment: map[uint32]uint64{}},
 	})
 	gatewayNameDeployer.deployer = deployer
 	gw := workloads.GatewayNameProxy{
@@ -249,8 +252,9 @@ func TestNameUpdate(t *testing.T) {
 	}
 	newDeploymentsSolutionProvider := map[uint32]*uint64{10: nil}
 	deploymentData := workloads.DeploymentData{
-		Name: gw.Name,
-		Type: "Gateway Name",
+		Name:        gw.Name,
+		Type:        "Gateway Name",
+		ProjectName: "Gateway",
 	}
 	newDeploymentsData := map[uint32]workloads.DeploymentData{10: deploymentData}
 	dls, err := gatewayNameDeployer.GenerateVersionlessDeployments(context.Background(), &gw)
@@ -304,6 +308,7 @@ func TestNameUpdateFailed(t *testing.T) {
 		NcPool:        pool,
 		SubstrateConn: sub,
 		TwinID:        11,
+		StateLoader:   &StateLoader{currentNodeDeployment: map[uint32]uint64{}},
 	})
 	gatewayNameDeployer.deployer = deployer
 	gw := workloads.GatewayNameProxy{
@@ -317,8 +322,9 @@ func TestNameUpdateFailed(t *testing.T) {
 	}
 	newDeploymentsSolutionProvider := map[uint32]*uint64{10: nil}
 	deploymentData := workloads.DeploymentData{
-		Name: gw.Name,
-		Type: "Gateway Name",
+		Name:        gw.Name,
+		Type:        "Gateway Name",
+		ProjectName: "Gateway",
 	}
 	newDeploymentsData := map[uint32]workloads.DeploymentData{10: deploymentData}
 	dls, err := gatewayNameDeployer.GenerateVersionlessDeployments(context.Background(), &gw)
@@ -370,6 +376,7 @@ func TestNameCancel(t *testing.T) {
 		Identity:      identity,
 		SubstrateConn: sub,
 		TwinID:        11,
+		StateLoader:   &StateLoader{},
 	})
 	gatewayNameDeployer.deployer = deployer
 	gw := workloads.GatewayNameProxy{
@@ -381,17 +388,12 @@ func TestNameCancel(t *testing.T) {
 		Backends:         []zos.Backend{"https://1.1.1.1", "http://2.2.2.2"},
 		FQDN:             "name.com",
 	}
-	newDeployments := make(map[uint32]gridtypes.Deployment)
-	newDeploymentsData := make(map[uint32]workloads.DeploymentData)
-	newDeploymentsSolutionProvider := make(map[uint32]*uint64)
 	assert.NoError(t, err)
 
-	deployer.EXPECT().Deploy(
+	deployer.EXPECT().Cancel(
 		gomock.Any(),
-		gw.NodeDeploymentID,
-		newDeployments,
-		newDeploymentsData,
-		newDeploymentsSolutionProvider,
+		map[uint32]uint64{},
+		map[uint32]gridtypes.Deployment{},
 	).Return(map[uint32]uint64{}, nil)
 	sub.EXPECT().
 		EnsureContractCanceled(identity, uint64(200)).
@@ -416,6 +418,7 @@ func TestNameCancelDeploymentsFailed(t *testing.T) {
 		Identity:      identity,
 		SubstrateConn: sub,
 		TwinID:        11,
+		StateLoader:   &StateLoader{},
 	})
 	gatewayNameDeployer.deployer = deployer
 	gw := workloads.GatewayNameProxy{
@@ -427,17 +430,12 @@ func TestNameCancelDeploymentsFailed(t *testing.T) {
 		Backends:         []zos.Backend{"https://1.1.1.1", "http://2.2.2.2"},
 		FQDN:             "name.com",
 	}
-	newDeployments := make(map[uint32]gridtypes.Deployment)
-	newDeploymentsData := make(map[uint32]workloads.DeploymentData)
-	newDeploymentsSolutionProvider := make(map[uint32]*uint64)
 	assert.NoError(t, err)
 
-	deployer.EXPECT().Deploy(
+	deployer.EXPECT().Cancel(
 		gomock.Any(),
-		gw.NodeDeploymentID,
-		newDeployments,
-		newDeploymentsData,
-		newDeploymentsSolutionProvider,
+		map[uint32]uint64{},
+		map[uint32]gridtypes.Deployment{},
 	).Return(map[uint32]uint64{10: 100}, errors.New("error"))
 	err = gatewayNameDeployer.Cancel(context.Background(), &gw)
 	assert.Error(t, err)
@@ -457,6 +455,7 @@ func TestNameCancelContractsFailed(t *testing.T) {
 		Identity:      identity,
 		SubstrateConn: sub,
 		TwinID:        11,
+		StateLoader:   &StateLoader{},
 	})
 	gatewayNameDeployer.deployer = deployer
 	gw := workloads.GatewayNameProxy{
@@ -468,17 +467,12 @@ func TestNameCancelContractsFailed(t *testing.T) {
 		Backends:         []zos.Backend{"https://1.1.1.1", "http://2.2.2.2"},
 		FQDN:             "name.com",
 	}
-	newDeployments := make(map[uint32]gridtypes.Deployment)
-	newDeploymentsData := make(map[uint32]workloads.DeploymentData)
-	newDeploymentsSolutionProvider := make(map[uint32]*uint64)
 	assert.NoError(t, err)
 
-	deployer.EXPECT().Deploy(
+	deployer.EXPECT().Cancel(
 		gomock.Any(),
-		gw.NodeDeploymentID,
-		newDeployments,
-		newDeploymentsData,
-		newDeploymentsSolutionProvider,
+		map[uint32]uint64{},
+		map[uint32]gridtypes.Deployment{},
 	).Return(map[uint32]uint64{}, nil)
 	sub.EXPECT().
 		EnsureContractCanceled(identity, uint64(200)).
@@ -698,5 +692,10 @@ func TestNameSyncDeletedWorkload(t *testing.T) {
 	gw.FQDN = "123"
 	err = gatewayNameDeployer.sync(context.Background(), &gw)
 	assert.NoError(t, err)
-	assert.Equal(t, gw, workloads.GatewayNameProxy{})
+	assert.Empty(t, gw.Backends)
+	assert.Empty(t, gw.TLSPassthrough)
+	assert.Empty(t, gw.Name)
+	assert.Empty(t, gw.FQDN)
+	assert.Equal(t, gw.ContractID, uint64(100))
+	assert.Equal(t, gw.NodeDeploymentID, map[uint32]uint64{10: 100})
 }
