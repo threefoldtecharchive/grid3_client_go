@@ -199,7 +199,7 @@ func NewQSFSFromSchema(qsfs map[string]interface{}) QSFS {
 }
 
 // NewQSFSFromWorkload generates a new QSFS from a workload
-func NewQSFSFromWorkload(wl gridtypes.Workload) (QSFS, error) {
+func NewQSFSFromWorkload(wl *gridtypes.Workload) (QSFS, error) {
 	var data *zos.QuantumSafeFS
 	dataI, err := wl.WorkloadData()
 	if err != nil {

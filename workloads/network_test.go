@@ -51,12 +51,8 @@ func TestNetwork(t *testing.T) {
 			gridProxyClient,
 			[]uint32{},
 		)
-		if err.Error() == "no nodes with public ipv4" {
-			assert.Error(t, err)
-			assert.Equal(t, nodeID, uint32(0))
-		} else {
-			assert.NoError(t, err)
-			assert.Equal(t, nodeID, uint32(14))
-		}
+		assert.NoError(t, err)
+		assert.Equal(t, nodeID, uint32(14))
+
 	})
 }

@@ -9,17 +9,23 @@ import (
 
 // GatewayFQDNProxy for gateway FQDN proxy
 type GatewayFQDNProxy struct {
-	// Name the fully qualified domain name to use (cannot be present with Name)
-	Name string
-
-	// Passthrough whether to pass tls traffic or not
-	TLSPassthrough bool
-
+	NodeID uint32
 	// Backends are list of backend ips
 	Backends []zos.Backend
-
 	// FQDN deployed on the node
 	FQDN string
+
+	// optional
+	// Name the fully qualified domain name to use (cannot be present with Name)
+	Name string
+	// Passthrough whether to pass tls traffic or not
+	TLSPassthrough   bool
+	Description      string
+	NodeDeploymentID map[uint32]uint64
+	SolutionType     string
+
+	// computed
+	ContractID uint64
 }
 
 // NewGatewayFQDNProxyFromZosWorkload generates a gateway FQDN proxy from a zos workload

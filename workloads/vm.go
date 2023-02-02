@@ -94,7 +94,7 @@ func NewVMFromSchema(vm map[string]interface{}) *VM {
 }
 
 // NewVMFromWorkloads generates a new vm from given workloads and deployment
-func NewVMFromWorkloads(wl gridtypes.Workload, dl gridtypes.Deployment) (VM, error) {
+func NewVMFromWorkloads(wl *gridtypes.Workload, dl *gridtypes.Deployment) (VM, error) {
 	dataI, err := wl.WorkloadData()
 	if err != nil {
 		return VM{}, errors.Wrap(err, "failed to get workload data")
@@ -156,7 +156,7 @@ func mounts(mounts []zos.MachineMount) []Mount {
 	return res
 }
 
-func pubIP(dl gridtypes.Deployment, name gridtypes.Name) zos.PublicIPResult {
+func pubIP(dl *gridtypes.Deployment, name gridtypes.Name) zos.PublicIPResult {
 
 	pubIPWl, err := dl.Get(name)
 	if err != nil || !pubIPWl.Workload.Result.State.IsOkay() {

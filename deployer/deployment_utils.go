@@ -3,11 +3,27 @@ package deployer
 
 import (
 	"crypto/md5"
+	"encoding/json"
+	"log"
 
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
+
+// PrintDeployments prints deployments
+func PrintDeployments(dls map[uint32]gridtypes.Deployment) error {
+	for _, dl := range dls {
+		enc := json.NewEncoder(log.Writer())
+		enc.SetIndent("", "  ")
+
+		err := enc.Encode(dl)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
 // CountDeploymentPublicIPs counts the public IPs of a deployment
 func CountDeploymentPublicIPs(dl gridtypes.Deployment) (uint32, error) {

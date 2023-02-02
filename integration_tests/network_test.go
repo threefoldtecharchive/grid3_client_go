@@ -1,29 +1,35 @@
-//go:build integration
-// +build integration
-
 // Package integration for integration tests
 package integration
 
 import (
 	"context"
-	"log"
 	"net"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/threefoldtech/grid3-go/manager"
+	"github.com/threefoldtech/grid3-go/deployer"
 	"github.com/threefoldtech/grid3-go/workloads"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 )
 
-func TestDeployment(t *testing.T) {
+func TestNetworkDeployment(t *testing.T) {
+	tfPluginClient, err := setup()
+	assert.NoError(t, err)
 
-	dlManager, apiClient := setup()
+	filter := NodeFilter{
+		CRU:    2,
+		SRU:    2,
+		MRU:    1,
+		Status: "up",
+	}
+	nodeIDs, err := FilterNodes(filter, deployer.RMBProxyURLs[tfPluginClient.Network])
+	assert.NoError(t, err)
 
 	network := workloads.ZNet{
 		Name:        "net1",
 		Description: "not skynet",
-		Nodes:       []uint32{33, 34},
+		Nodes:       nodeIDs[:1],
 		IPRange: gridtypes.NewIPNet(net.IPNet{
 			IP:   net.IPv4(10, 1, 0, 0),
 			Mask: net.CIDRMask(16, 32),
@@ -31,61 +37,51 @@ func TestDeployment(t *testing.T) {
 		AddWGAccess: true,
 	}
 
-	networkManager, err := manager.NewNetworkDeployer(apiClient.Manager, network)
-	assert.NoError(t, err)
+	networkCp := network
 
-	// vm := workloads.VM{
-	// 	Name: "vm1",
-	// }
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	defer cancel()
 
-	access, err := networkManager.Stage(context.Background(), apiClient, network)
-	assert.Equal(t, nil, err)
-	log.Printf("user access: %+v", access)
+	// TODO: metadata is empty
 
-	err = dlManager.Commit(context.Background())
-	assert.Equal(t, nil, err)
+	t.Run("deploy network with wireguard access", func(t *testing.T) {
+		err = tfPluginClient.NetworkDeployer.Deploy(ctx, &network)
+		assert.NoError(t, err)
 
-	err = dlManager.CancelAll()
-	assert.NoError(t, err)
+		_, err := tfPluginClient.StateLoader.LoadNetworkFromGrid(network.Name)
+		assert.NoError(t, err)
+	})
 
-	ln, err := manager.LoadNetworkFromGrid(dlManager, "net1")
-	assert.NoError(t, err)
-	log.Printf("current network: %+v", ln)
-	log.Printf("current contracts: %+v", dlManager.GetContractIDs())
+	t.Run("deploy network with wireguard access on different nodes", func(t *testing.T) {
+		networkCp.Nodes = []uint32{nodeIDs[1]}
 
-	// network.AddWGAccess = true
-	network.Nodes = []uint32{33, 31}
-	access, err = networkManager.Stage(context.Background(), apiClient, network)
-	assert.Equal(t, nil, err)
-	log.Printf("user access: %+v", access)
+		err = tfPluginClient.NetworkDeployer.Deploy(ctx, &networkCp)
+		assert.NoError(t, err)
 
-	err = dlManager.Commit(context.Background())
-	assert.Equal(t, nil, err)
+		_, err := tfPluginClient.StateLoader.LoadNetworkFromGrid(networkCp.Name)
+		assert.NoError(t, err)
+	})
 
-	ln, err = manager.LoadNetworkFromGrid(dlManager, "net1")
-	assert.NoError(t, err)
-	log.Printf("current network: %+v", ln)
-	log.Printf("current contracts: %+v", dlManager.GetContractIDs())
+	t.Run("update network remove wireguard access", func(t *testing.T) {
+		networkCp.AddWGAccess = false
+		networkCp.Nodes = []uint32{nodeIDs[1]}
 
-	network.AddWGAccess = false
-	network.Nodes = []uint32{33, 31}
-	access, err = networkManager.Stage(context.Background(), apiClient, network)
-	assert.Equal(t, nil, err)
-	log.Printf("user access: %+v", access)
+		err = tfPluginClient.NetworkDeployer.Deploy(ctx, &networkCp)
+		assert.NoError(t, err)
 
-	err = dlManager.Commit(context.Background())
-	assert.NoError(t, err)
-	ln, err = manager.LoadNetworkFromGrid(dlManager, "net1")
-	assert.NoError(t, err)
-	log.Printf("current network: %+v", ln)
-	log.Printf("current contracts: %+v", dlManager.GetContractIDs())
+		_, err := tfPluginClient.StateLoader.LoadNetworkFromGrid(networkCp.Name)
+		assert.NoError(t, err)
+	})
 
-	err = dlManager.CancelAll()
-	assert.NoError(t, err)
+	t.Run("cancel network", func(t *testing.T) {
+		err = tfPluginClient.NetworkDeployer.Cancel(ctx, &network)
+		assert.NoError(t, err)
 
-	ln, err = manager.LoadNetworkFromGrid(dlManager, "net1")
-	assert.NoError(t, err)
+		err = tfPluginClient.NetworkDeployer.Cancel(ctx, &networkCp)
+		assert.NoError(t, err)
 
-	log.Printf("current network: %+v", ln)
-	log.Printf("current contracts: %+v", dlManager.GetContractIDs())
+		_, err := tfPluginClient.StateLoader.LoadNetworkFromGrid(network.Name)
+		assert.Error(t, err)
+	})
+
 }

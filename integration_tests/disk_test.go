@@ -7,36 +7,44 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/threefoldtech/grid3-go/manager"
+	"github.com/threefoldtech/grid3-go/deployer"
 	"github.com/threefoldtech/grid3-go/workloads"
 )
 
 func TestDiskDeployment(t *testing.T) {
-	nodeID := uint32(30)
+	tfPluginClient, err := setup()
+	assert.NoError(t, err)
+
+	filter := NodeFilter{
+		Status: "up",
+		SRU:    10,
+	}
+	nodeIDs, err := FilterNodes(filter, deployer.RMBProxyURLs[tfPluginClient.Network])
+	assert.NoError(t, err)
+
+	nodeID := nodeIDs[0]
 
 	disk := workloads.Disk{
 		Name:        "testName",
-		Size:        20,
+		Size:        10,
 		Description: "disk test",
 	}
-	deploymentManager, _ := setup()
-	err := deploymentManager.Stage(&disk, nodeID)
-	assert.NoError(t, err)
+
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 	defer cancel()
 
-	err = deploymentManager.Commit(ctx)
+	dl := workloads.NewDeployment("disk", nodeID, "", nil, "", []workloads.Disk{disk}, nil, nil, nil)
+	err = tfPluginClient.DeploymentDeployer.Deploy(ctx, &dl)
 	assert.NoError(t, err)
 
-	err = deploymentManager.CancelAll()
+	resDisk, err := tfPluginClient.StateLoader.LoadDiskFromGrid(nodeID, disk.Name)
+	assert.NoError(t, err)
+	assert.Equal(t, disk, resDisk)
+
+	// cancel all
+	err = tfPluginClient.DeploymentDeployer.Cancel(ctx, &dl)
 	assert.NoError(t, err)
 
-	result, err := manager.LoadDiskFromGrid(deploymentManager, 13, "testName")
-	assert.Equal(t, disk, result)
-	assert.NoError(t, err)
-	err = deploymentManager.CancelAll()
-	assert.NoError(t, err)
-	_, err = manager.LoadDiskFromGrid(deploymentManager, 13, "testName")
+	_, err = tfPluginClient.StateLoader.LoadDiskFromGrid(nodeID, disk.Name)
 	assert.Error(t, err)
-
 }

@@ -56,7 +56,7 @@ func TestZLog(t *testing.T) {
 	})
 
 	t.Run("test_zLogs_from_deployment", func(t *testing.T) {
-		zlogs := zlogs(deployment, zmachineName)
+		zlogs := zlogs(&deployment, zmachineName)
 		assert.Equal(t, zlogs, []Zlog{zlog})
 	})
 

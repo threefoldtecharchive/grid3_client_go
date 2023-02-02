@@ -9,7 +9,8 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	subi "github.com/threefoldtech/grid3-go/subi"
+	client "github.com/threefoldtech/grid3-go/node"
+	"github.com/threefoldtech/grid3-go/workloads"
 	gridtypes "github.com/threefoldtech/zos/pkg/gridtypes"
 )
 
@@ -37,31 +38,78 @@ func (m *MockDeployer) EXPECT() *MockDeployerMockRecorder {
 }
 
 // Deploy mocks base method.
-func (m *MockDeployer) Deploy(ctx context.Context, sub subi.SubstrateExt, oldDeployments map[uint32]uint64, newDeployments map[uint32]gridtypes.Deployment) (map[uint32]uint64, error) {
+func (m *MockDeployer) Deploy(ctx context.Context,
+	oldDeploymentIDs map[uint32]uint64,
+	newDeployments map[uint32]gridtypes.Deployment,
+	newDeploymentsData map[uint32]workloads.DeploymentData,
+	newDeploymentSolutionProvider map[uint32]*uint64,
+) (map[uint32]uint64, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Deploy", ctx, sub, oldDeployments, newDeployments)
+	ret := m.ctrl.Call(m, "Deploy", ctx, newDeployments, newDeploymentsData, newDeploymentSolutionProvider)
 	ret0, _ := ret[0].(map[uint32]uint64)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Deploy indicates an expected call of Deploy.
-func (mr *MockDeployerMockRecorder) Deploy(ctx, sub, oldDeployments, newDeployments interface{}) *gomock.Call {
+func (mr *MockDeployerMockRecorder) Deploy(ctx, oldDeployments, newDeployments, newDeploymentsData, newDeploymentSolutionProvider interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Deploy", reflect.TypeOf((*MockDeployer)(nil).Deploy), ctx, sub, oldDeployments, newDeployments)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Deploy", reflect.TypeOf((*MockDeployer)(nil).Deploy), ctx, newDeployments, newDeploymentsData, newDeploymentSolutionProvider)
+}
+
+// Cancel mocks base method.
+func (m *MockDeployer) Cancel(ctx context.Context,
+	oldDeploymentIDs map[uint32]uint64,
+	newDeployments map[uint32]gridtypes.Deployment,
+) (map[uint32]uint64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Cancel", ctx, newDeployments)
+	ret0, _ := ret[0].(map[uint32]uint64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Cancel indicates an expected call of Cancel.
+func (mr *MockDeployerMockRecorder) Cancel(ctx, oldDeployments, newDeployments interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Cancel", reflect.TypeOf((*MockDeployer)(nil).Cancel), ctx, newDeployments)
 }
 
 // GetDeployments mocks base method.
-func (m *MockDeployer) GetDeployments(ctx context.Context, sub subi.SubstrateExt, dls map[uint32]uint64) (map[uint32]gridtypes.Deployment, error) {
+func (m *MockDeployer) GetDeployments(ctx context.Context, dls map[uint32]uint64) (map[uint32]gridtypes.Deployment, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetDeployments", ctx, sub, dls)
+	ret := m.ctrl.Call(m, "GetDeployments", ctx, dls)
 	ret0, _ := ret[0].(map[uint32]gridtypes.Deployment)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetDeployments indicates an expected call of GetDeployments.
-func (mr *MockDeployerMockRecorder) GetDeployments(ctx, sub, dls interface{}) *gomock.Call {
+func (mr *MockDeployerMockRecorder) GetDeployments(ctx, dls interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDeployments", reflect.TypeOf((*MockDeployer)(nil).GetDeployments), ctx, sub, dls)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDeployments", reflect.TypeOf((*MockDeployer)(nil).GetDeployments), ctx, dls)
+}
+
+// Wait mocks base method.
+func (m *MockDeployer) Wait(
+	ctx context.Context,
+	nodeClient *client.NodeClient,
+	deploymentID uint64,
+	workloadVersions map[string]uint32,
+) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Wait", ctx, nodeClient, deploymentID, workloadVersions)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Wait indicates an expected call of Wait.
+func (mr *MockDeployerMockRecorder) Wait(
+	ctx context.Context,
+	nodeClient *client.NodeClient,
+	deploymentID uint64,
+	workloadVersions map[string]uint32,
+) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Wait", reflect.TypeOf((*MockDeployer)(nil).Wait), ctx, nodeClient, deploymentID, workloadVersions)
 }

@@ -5,17 +5,19 @@ go 1.18
 require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/centrifuge/go-substrate-rpc-client/v4 v4.0.5
-	github.com/goombaio/namegenerator v0.0.0-20181006234301-989e774b106e
+	github.com/google/go-querystring v1.1.0
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/joho/godotenv v1.4.0
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.7.0
 	github.com/threefoldtech/go-rmb v0.2.0
 	github.com/threefoldtech/grid_proxy_server v1.5.6
-	github.com/threefoldtech/substrate-client v0.0.0-20230103083438-c6d86a2e6338
+	github.com/threefoldtech/substrate-client v0.0.0-20230111172347-137127470b5d
 	github.com/threefoldtech/zos v0.5.6-0.20230103093557-d9c7fe2b92e7
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20200609130330-bd2cb7843e1b
 )
+
+require golang.org/x/term v0.4.0 // indirect
 
 require (
 	github.com/ChainSafe/go-schnorrkel v1.0.0 // indirect
@@ -31,8 +33,8 @@ require (
 	github.com/go-redis/redis/v8 v8.11.1 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/golang/mock v1.6.0
-	github.com/gomodule/redigo v2.0.0+incompatible // indirect
-	github.com/google/uuid v1.3.0 // indirect
+	github.com/gomodule/redigo v2.0.0+incompatible
+	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/gtank/merlin v0.1.1 // indirect
@@ -49,9 +51,8 @@ require (
 	golang.org/x/crypto v0.0.0-20220518034528-6f7dac969898
 	golang.org/x/net v0.5.0 // indirect
 	golang.org/x/sys v0.4.0 // indirect
-	golang.org/x/term v0.4.0 // indirect
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )
 
-replace github.com/centrifuge/go-substrate-rpc-client/v4 v4.0.5 => github.com/threefoldtech/go-substrate-rpc-client/v4 v4.0.3-0.20220629145942-1ef6a654b4b5
+replace github.com/centrifuge/go-substrate-rpc-client/v4 v4.0.5 => github.com/threefoldtech/go-substrate-rpc-client/v4 v4.0.6-0.20230102154731-7c633b7d3c71

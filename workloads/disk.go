@@ -24,7 +24,7 @@ func NewDiskFromSchema(disk map[string]interface{}) Disk {
 }
 
 // NewDiskFromWorkload generates a new disk from a workload
-func NewDiskFromWorkload(wl gridtypes.Workload) (Disk, error) {
+func NewDiskFromWorkload(wl *gridtypes.Workload) (Disk, error) {
 	dataI, err := wl.WorkloadData()
 	if err != nil {
 		return Disk{}, errors.Wrap(err, "failed to get workload data")
@@ -57,29 +57,21 @@ func (d *Disk) GetName() string {
 }
 
 // GenerateWorkloads generates a workload from a disk
-func (d *Disk) GenerateWorkloads() ([]gridtypes.Workload, error) {
-	return []gridtypes.Workload{
-		{
-			Name:        gridtypes.Name(d.Name),
-			Version:     0,
-			Type:        zos.ZMountType,
-			Description: d.Description,
-			Data: gridtypes.MustMarshal(zos.ZMount{
-				Size: gridtypes.Unit(d.Size) * gridtypes.Gigabyte,
-			}),
-		},
-	}, nil
+func (d *Disk) GenerateWorkload() gridtypes.Workload {
+	return gridtypes.Workload{
+		Name:        gridtypes.Name(d.Name),
+		Version:     0,
+		Type:        zos.ZMountType,
+		Description: d.Description,
+		Data: gridtypes.MustMarshal(zos.ZMount{
+			Size: gridtypes.Unit(d.Size) * gridtypes.Gigabyte,
+		}),
+	}
 }
 
 // BindWorkloadsToNode for staging workloads with node ID
 func (d *Disk) BindWorkloadsToNode(nodeID uint32) (map[uint32][]gridtypes.Workload, error) {
 	workloadsMap := map[uint32][]gridtypes.Workload{}
-
-	workloads, err := d.GenerateWorkloads()
-	if err != nil {
-		return workloadsMap, err
-	}
-
-	workloadsMap[nodeID] = workloads
+	workloadsMap[nodeID] = []gridtypes.Workload{d.GenerateWorkload()}
 	return workloadsMap, nil
 }

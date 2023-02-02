@@ -15,6 +15,7 @@ import (
 	proxyTypes "github.com/threefoldtech/grid_proxy_server/pkg/types"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
+	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
 // UserAccess struct
@@ -33,18 +34,22 @@ type ZNet struct {
 	Nodes       []uint32
 	IPRange     gridtypes.IPNet
 	AddWGAccess bool
-	ContractID  uint64
+
+	// computed
+	SolutionType     string
+	AccessWGConfig   string
+	ExternalIP       *gridtypes.IPNet
+	ExternalSK       wgtypes.Key
+	PublicNodeID     uint32
+	NodesIPRange     map[uint32]gridtypes.IPNet
+	NodeDeploymentID map[uint32]uint64
 }
 
 // NewNetworkFromWorkload generates a new znet from a workload
-func NewNetworkFromWorkload(wl gridtypes.Workload, nodeID uint32, contractID uint64) (ZNet, error) {
-	dataI, err := wl.WorkloadData()
+func NewNetworkFromWorkload(wl gridtypes.Workload, nodeID uint32) (ZNet, error) {
+	data, err := GetZNetWorkloadData(wl)
 	if err != nil {
-		return ZNet{}, errors.Wrap(err, "failed to get workload data")
-	}
-	data, ok := dataI.(*zos.Network)
-	if !ok {
-		return ZNet{}, errors.New("could not create network workload")
+		return ZNet{}, err
 	}
 
 	return ZNet{
@@ -53,8 +58,49 @@ func NewNetworkFromWorkload(wl gridtypes.Workload, nodeID uint32, contractID uin
 		Nodes:       []uint32{nodeID},
 		IPRange:     data.NetworkIPRange,
 		AddWGAccess: data.WGPrivateKey != "",
-		ContractID:  contractID,
 	}, nil
+}
+
+// Validate validates a network
+func (znet *ZNet) Validate() error {
+	mask := znet.IPRange.Mask
+	if ones, _ := mask.Size(); ones != 16 {
+		return fmt.Errorf("subnet in ip range %s should be 16", znet.IPRange.String())
+	}
+
+	return nil
+}
+
+// GetZNetWorkloadData retrieves network workload data
+func GetZNetWorkloadData(wl gridtypes.Workload) (*zos.Network, error) {
+	dataI, err := wl.WorkloadData()
+	if err != nil {
+		return &zos.Network{}, errors.Wrap(err, "failed to get workload data")
+	}
+
+	data, ok := dataI.(*zos.Network)
+	if !ok {
+		return &zos.Network{}, errors.New("could not create network workload")
+	}
+
+	return data, nil
+}
+
+// GenerateWorkloads generates a workload from a znet
+func (znet *ZNet) GenerateWorkload(subnet gridtypes.IPNet, wgPrivateKey string, wgListenPort uint16, peers []zos.Peer) gridtypes.Workload {
+	return gridtypes.Workload{
+		Version:     0,
+		Type:        zos.NetworkType,
+		Description: znet.Description,
+		Name:        gridtypes.Name(znet.Name),
+		Data: gridtypes.MustMarshal(zos.Network{
+			NetworkIPRange: gridtypes.MustParseIPNet(znet.IPRange.String()),
+			Subnet:         subnet,
+			WGPrivateKey:   wgPrivateKey,
+			WGListenPort:   wgListenPort,
+			Peers:          peers,
+		}),
+	}
 }
 
 var (
@@ -183,7 +229,7 @@ func GetNodeEndpoint(ctx context.Context, nodeClient *client.NodeClient) (net.IP
 	log.Printf("publicConfig: %v\n", publicConfig)
 	log.Printf("publicConfig.IPv4: %v\n", publicConfig.IPv4)
 	log.Printf("publicConfig.IPv.IP: %v\n", publicConfig.IPv4.IP)
-	log.Printf("err: %s\n", err)
+	log.Printf("err: %v\n", err)
 	if err == nil && publicConfig.IPv4.IP != nil {
 
 		ip := publicConfig.IPv4.IP
@@ -218,4 +264,15 @@ func GetNodeEndpoint(ctx context.Context, nodeClient *client.NodeClient) (net.IP
 		return ip, nil
 	}
 	return nil, errors.Wrap(ErrNoAccessibleInterfaceFound, "no public ipv4 or ipv6 on zos interface found")
+}
+
+// NextFreeOctet finds a free ip for a node
+func NextFreeOctet(used []byte, start *byte) error {
+	for Contains(used, *start) && *start <= 254 {
+		*start++
+	}
+	if *start == 255 {
+		return errors.New("couldn't find a free ip to add node")
+	}
+	return nil
 }
