@@ -27,10 +27,8 @@ func TestGatewayFQDNDeployment(t *testing.T) {
 	assert.NoError(t, err)
 
 	filter := NodeFilter{
-		CRU:    2,
-		SRU:    2,
-		MRU:    1,
-		Status: "up",
+		Status:  "up",
+		Gateway: true,
 	}
 	nodeIDs, err := FilterNodes(filter, deployer.RMBProxyURLs[tfPluginClient.Network])
 	assert.NoError(t, err)
@@ -60,7 +58,6 @@ func TestGatewayFQDNDeployment(t *testing.T) {
 		EnvVars: map[string]string{
 			"SSH_KEY": publicKey,
 		},
-		IP:          "10.20.2.5",
 		NetworkName: network.Name,
 	}
 
@@ -79,12 +76,13 @@ func TestGatewayFQDNDeployment(t *testing.T) {
 	assert.True(t, TestConnection(v.YggIP, "22"))
 
 	backend := fmt.Sprintf("http://[%s]:9000", v.YggIP)
+	fqdn := "test.hamada.grid.tf" //"hamada1.3x0.me"
 	gw := workloads.GatewayFQDNProxy{
 		NodeID:         gwNodeID,
 		Name:           "test",
 		TLSPassthrough: false,
 		Backends:       []zos.Backend{zos.Backend(backend)},
-		FQDN:           "hamada1.3x0.me",
+		FQDN:           fqdn,
 	}
 
 	err = tfPluginClient.GatewayFQDNDeployer.Deploy(ctx, &gw)

@@ -252,7 +252,7 @@ func constructTestDeployer(t *testing.T, mock bool) (DeploymentDeployer, *mocks.
 		tfPluginClient.StateLoader.substrate = sub
 	}
 
-	return NewDeploymentDeployer(&tfPluginClient), cl, sub, ncPool
+	return tfPluginClient.DeploymentDeployer, cl, sub, ncPool
 }
 
 func mustMarshal(t *testing.T, v interface{}) json.RawMessage {

@@ -13,15 +13,15 @@ import (
 // GatewayFQDNDeployer for deploying a GatewayFqdn
 type GatewayFQDNDeployer struct {
 	tfPluginClient *TFPluginClient
-	deployer       Deployer
+	deployer       DeployerInterface
 }
 
 // Generates new gateway fqdn deployer
 func NewGatewayFqdnDeployer(tfPluginClient *TFPluginClient) GatewayFQDNDeployer {
-	newDeployer := NewDeployer(*tfPluginClient, true)
+	deployer := NewDeployer(*tfPluginClient, true)
 	gatewayFQDN := GatewayFQDNDeployer{
 		tfPluginClient: tfPluginClient,
-		deployer:       newDeployer,
+		deployer:       &deployer,
 	}
 
 	return gatewayFQDN
@@ -40,7 +40,7 @@ func (k *GatewayFQDNDeployer) Validate(ctx context.Context, gw *workloads.Gatewa
 func (k *GatewayFQDNDeployer) GenerateVersionlessDeployments(ctx context.Context, gw *workloads.GatewayFQDNProxy) (map[uint32]gridtypes.Deployment, error) {
 	deployments := make(map[uint32]gridtypes.Deployment)
 
-	dl := workloads.NewGridDeployment(k.deployer.twinID, []gridtypes.Workload{})
+	dl := workloads.NewGridDeployment(k.tfPluginClient.TwinID, []gridtypes.Workload{})
 	dl.Workloads = append(dl.Workloads, gw.ZosWorkload())
 
 	deployments[gw.NodeID] = dl

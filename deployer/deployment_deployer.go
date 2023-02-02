@@ -18,18 +18,17 @@ type DeploymentDeployer struct {
 	currentDeployments map[uint64]workloads.Deployment
 
 	tfPluginClient *TFPluginClient
-	deployer       Deployer
+	deployer       DeployerInterface
 }
 
 // NewDeploymentDeployer generates a new deployer for a deployment
 func NewDeploymentDeployer(tfPluginClient *TFPluginClient) DeploymentDeployer {
-	newDeployer := NewDeployer(*tfPluginClient, true)
-	deploymentDeployer := DeploymentDeployer{
+	deployer := NewDeployer(*tfPluginClient, true)
+	return DeploymentDeployer{
 		currentDeployments: make(map[uint64]workloads.Deployment),
 		tfPluginClient:     tfPluginClient,
-		deployer:           newDeployer,
+		deployer:           &deployer,
 	}
-	return deploymentDeployer
 }
 
 // GenerateVersionlessDeployments generates a new deployment without a version

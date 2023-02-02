@@ -57,6 +57,24 @@ func (mr *MockDeployerMockRecorder) Deploy(ctx, oldDeployments, newDeployments, 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Deploy", reflect.TypeOf((*MockDeployer)(nil).Deploy), ctx, newDeployments, newDeploymentsData, newDeploymentSolutionProvider)
 }
 
+// Cancel mocks base method.
+func (m *MockDeployer) Cancel(ctx context.Context,
+	oldDeploymentIDs map[uint32]uint64,
+	newDeployments map[uint32]gridtypes.Deployment,
+) (map[uint32]uint64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Cancel", ctx, newDeployments)
+	ret0, _ := ret[0].(map[uint32]uint64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Cancel indicates an expected call of Cancel.
+func (mr *MockDeployerMockRecorder) Cancel(ctx, oldDeployments, newDeployments interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Cancel", reflect.TypeOf((*MockDeployer)(nil).Cancel), ctx, newDeployments)
+}
+
 // GetDeployments mocks base method.
 func (m *MockDeployer) GetDeployments(ctx context.Context, dls map[uint32]uint64) (map[uint32]gridtypes.Deployment, error) {
 	m.ctrl.T.Helper()
