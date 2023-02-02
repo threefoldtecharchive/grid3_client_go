@@ -11,6 +11,9 @@ import (
 
 // GatewayNameProxy struct for gateway name proxy
 type GatewayNameProxy struct {
+	NodeID uint32
+
+	NameContractID uint64
 	// Name the fully qualified domain name to use (cannot be present with Name)
 	Name string
 
@@ -21,7 +24,13 @@ type GatewayNameProxy struct {
 	Backends []zos.Backend
 
 	// FQDN deployed on the node
-	FQDN string
+	FQDN             string
+	Description      string
+	NodeDeploymentID map[uint32]uint64
+	SolutionType     string
+
+	// computed
+	ContractID uint64
 }
 
 // NewGatewayNameProxyFromZosWorkload generates a gateway name proxy from a zos workload
