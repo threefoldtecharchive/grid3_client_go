@@ -27,7 +27,7 @@ type GatewayNameDeployer struct {
 // Generates new gateway name deployer
 func NewGatewayNameDeployer(tfPluginClient *TFPluginClient) GatewayNameDeployer {
 	gatewayName := GatewayNameDeployer{
-		ncPool: client.NewNodeClientPool(tfPluginClient.RMB),
+		ncPool:   client.NewNodeClientPool(tfPluginClient.RMB),
 		deployer: Deployer{},
 	}
 
@@ -42,11 +42,11 @@ func (k *GatewayNameDeployer) Validate(ctx context.Context, sub subi.SubstrateEx
 }
 
 // GenerateVersionlessDeploymentsAndWorkloads generates deployments for gateway name deployer without versions
-func (k *GatewayNameDeployer) GenerateVersionlessDeployments(ctx context.Context,sub subi.SubstrateExt) (map[uint32]gridtypes.Deployment, error) {
+func (k *GatewayNameDeployer) GenerateVersionlessDeployments(ctx context.Context, sub subi.SubstrateExt) (map[uint32]gridtypes.Deployment, error) {
 	deployments := make(map[uint32]gridtypes.Deployment)
 	var wls []gridtypes.Workload
 
-	err := k.Validate(ctx,sub)
+	err := k.Validate(ctx, sub)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +77,7 @@ func (k *GatewayNameDeployer) Deploy(ctx context.Context, sub subi.SubstrateExt)
 	if err := k.Validate(ctx, sub); err != nil {
 		return err
 	}
-	newDeployments, err := k.GenerateVersionlessDeployments(ctx,sub)
+	newDeployments, err := k.GenerateVersionlessDeployments(ctx, sub)
 	if err != nil {
 		return errors.Wrap(err, "couldn't generate deployments data")
 	}
@@ -105,7 +105,7 @@ func (k *GatewayNameDeployer) Deploy(ctx context.Context, sub subi.SubstrateExt)
 		// create the resource if the contract is created
 		k.ID = uuid.New().String()
 	}
-	k.NodeDeploymentID, err = k.deployer.Deploy(ctx,k.NodeDeploymentID, newDeployments,newDeploymentsData, newDeploymentsSolutionProvider)
+	k.NodeDeploymentID, err = k.deployer.Deploy(ctx, k.NodeDeploymentID, newDeployments, newDeploymentsData, newDeploymentsSolutionProvider)
 	return err
 }
 
@@ -127,7 +127,7 @@ func (k *GatewayNameDeployer) syncContracts(ctx context.Context, sub subi.Substr
 	return nil
 }
 
-func (k *GatewayNameDeployer) sync(ctx context.Context, sub subi.SubstrateExt ) (err error) {
+func (k *GatewayNameDeployer) sync(ctx context.Context, sub subi.SubstrateExt) (err error) {
 	if err := k.syncContracts(ctx, sub); err != nil {
 		return errors.Wrap(err, "couldn't sync contracts")
 	}
@@ -152,7 +152,7 @@ func (k *GatewayNameDeployer) Cancel(ctx context.Context, sub subi.SubstrateExt)
 	newDeployments := make(map[uint32]gridtypes.Deployment)
 	newDeploymentsData := make(map[uint32]workloads.DeploymentData)
 	newDeploymentsSolutionProvider := make(map[uint32]*uint64)
-	k.NodeDeploymentID, err = k.deployer.Deploy(ctx,k.NodeDeploymentID, newDeployments,newDeploymentsData,newDeploymentsSolutionProvider)
+	k.NodeDeploymentID, err = k.deployer.Deploy(ctx, k.NodeDeploymentID, newDeployments, newDeploymentsData, newDeploymentsSolutionProvider)
 	if err != nil {
 		return err
 	}
