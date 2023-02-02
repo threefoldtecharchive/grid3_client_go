@@ -110,6 +110,11 @@ func TestGatewayNameDeployment(t *testing.T) {
 	err = tfPluginClient.GatewayNameDeployer.Cancel(ctx, &gw)
 	assert.NoError(t, err)
 
+	err = tfPluginClient.NetworkDeployer.Cancel(ctx, &network)
+	assert.NoError(t, err)
+	err = tfPluginClient.DeploymentDeployer.Cancel(ctx, &dl)
+	assert.NoError(t, err)
+
 	_, err = tfPluginClient.StateLoader.LoadGatewayNameFromGrid(nodeID, gw.Name)
 	assert.Error(t, err)
 

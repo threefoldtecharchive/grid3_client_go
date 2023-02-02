@@ -94,7 +94,9 @@ func (k *GatewayNameDeployer) Deploy(ctx context.Context, gw *workloads.GatewayN
 			return err
 		}
 	}
-	gw.NodeDeploymentID, err = k.deployer.Deploy(ctx, gw.NodeDeploymentID, newDeployments, newDeploymentsData, newDeploymentsSolutionProvider)
+	oldDeployments := k.tfPluginClient.StateLoader.currentNodeDeployment
+
+	gw.NodeDeploymentID, err = k.deployer.Deploy(ctx, oldDeployments, newDeployments, newDeploymentsData, newDeploymentsSolutionProvider)
 	gw.ContractID = gw.NodeDeploymentID[gw.NodeID]
 
 	k.tfPluginClient.StateLoader.currentNodeDeployment[gw.NodeID] = gw.ContractID
