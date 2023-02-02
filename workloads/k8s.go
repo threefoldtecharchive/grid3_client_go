@@ -32,11 +32,14 @@ type K8sNodeData struct {
 
 // K8sCluster struct for k8s cluster
 type K8sCluster struct {
-	Master      *K8sNodeData
-	Workers     []K8sNodeData
-	Token       string
-	SSHKey      string
-	NetworkName string
+	Master           *K8sNodeData
+	Workers          []K8sNodeData
+	Token            string
+	SSHKey           string
+	NetworkName      string
+	NodesIPRange     map[uint32]gridtypes.IPNet
+	NodeDeploymentID map[uint32]uint64
+	ContractID       uint64
 }
 
 // NewK8sNodeDataFromSchema generates new k8s node data
