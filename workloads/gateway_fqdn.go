@@ -63,32 +63,9 @@ func (g *GatewayFQDNProxy) ZosWorkload() gridtypes.Workload {
 	}
 }
 
-// GenerateWorkloads generates a workload from a fqdn
-func (g *GatewayFQDNProxy) GenerateWorkloads() ([]gridtypes.Workload, error) {
-	return []gridtypes.Workload{
-		{
-			Version: 0,
-			Type:    zos.GatewayFQDNProxyType,
-			Name:    gridtypes.Name(g.Name),
-			// REVISE: whether description should be set here
-			Data: gridtypes.MustMarshal(zos.GatewayFQDNProxy{
-				TLSPassthrough: g.TLSPassthrough,
-				Backends:       g.Backends,
-				FQDN:           g.FQDN,
-			}),
-		},
-	}, nil
-}
-
 // BindWorkloadsToNode for staging workloads to node IDs
 func (g *GatewayFQDNProxy) BindWorkloadsToNode(nodeID uint32) (map[uint32][]gridtypes.Workload, error) {
 	workloadsMap := map[uint32][]gridtypes.Workload{}
-
-	workloads, err := g.GenerateWorkloads()
-	if err != nil {
-		return workloadsMap, err
-	}
-
-	workloadsMap[nodeID] = workloads
+	workloadsMap[nodeID] = append(workloadsMap[nodeID], g.ZosWorkload())
 	return workloadsMap, nil
 }

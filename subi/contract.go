@@ -5,7 +5,7 @@ import (
 	"github.com/threefoldtech/substrate-client"
 )
 
-// ContractImpl is for contract implementation
+// Contract is for contract implementation
 type Contract struct {
 	*substrate.Contract
 }

@@ -1,3 +1,4 @@
+// Package deployer is grid deployer
 package deployer
 
 import (
@@ -15,7 +16,7 @@ type GatewayNameDeployer struct {
 	deployer       DeployerInterface
 }
 
-// Generates new gateway name deployer
+// NewGatewayNameDeployer generates new gateway name deployer
 func NewGatewayNameDeployer(tfPluginClient *TFPluginClient) GatewayNameDeployer {
 	deployer := NewDeployer(*tfPluginClient, true)
 	gatewayName := GatewayNameDeployer{
@@ -46,6 +47,7 @@ func (k *GatewayNameDeployer) GenerateVersionlessDeployments(ctx context.Context
 	return deployments, nil
 }
 
+// InvalidateNameContract invalidates name contract
 func (k *GatewayNameDeployer) InvalidateNameContract(ctx context.Context, gw *workloads.GatewayNameProxy) (err error) {
 	if gw.NameContractID == 0 {
 		return

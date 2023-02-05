@@ -118,22 +118,13 @@ func (k *K8sDeployer) getK8sFreeIP(ipRange gridtypes.IPNet, nodeID uint32) (stri
 
 	for i := 2; i < 255; i++ {
 		hostID := byte(i)
-		if !Contains(k.NodeUsedIPs[nodeID], hostID) {
+		if !workloads.Contains(k.NodeUsedIPs[nodeID], hostID) {
 			k.NodeUsedIPs[nodeID] = append(k.NodeUsedIPs[nodeID], hostID)
 			ip[3] = hostID
 			return ip.String(), nil
 		}
 	}
 	return "", errors.New("all ips are used")
-}
-
-func Contains[T comparable](elements []T, element T) bool {
-	for _, e := range elements {
-		if element == e {
-			return true
-		}
-	}
-	return false
 }
 
 func (k *K8sDeployer) GenerateVersionlessDeployments(ctx context.Context) (map[uint32]gridtypes.Deployment, error) {
@@ -150,10 +141,10 @@ func (k *K8sDeployer) GenerateVersionlessDeployments(ctx context.Context) (map[u
 		SSHKey:      k.SSHKey,
 		NetworkName: k.NetworkName,
 	}
-	masterWorkloads := k.Master.GenerateK8sWorkload(&k8sCluster, true)
+	masterWorkloads := k.Master.ZosWorkload(&k8sCluster, true)
 	nodeWorkloads[k.Master.Node] = append(nodeWorkloads[k.Master.Node], masterWorkloads...)
 	for _, w := range k.Workers {
-		workerWorkloads := w.GenerateK8sWorkload(&k8sCluster, true)
+		workerWorkloads := w.ZosWorkload(&k8sCluster, true)
 		nodeWorkloads[w.Node] = append(nodeWorkloads[w.Node], workerWorkloads...)
 	}
 
@@ -270,7 +261,7 @@ func (k *K8sDeployer) Deploy(ctx context.Context, sub subi.SubstrateExt) error {
 		Name: k.Master.Name,
 		Type: "k8s",
 	}
-	newDeploymentsData := make(map[uint32]workloads.DeploymentData)	///////todo
+	newDeploymentsData := make(map[uint32]workloads.DeploymentData) ///////todo
 	newDeploymentsData[k.Master.Node] = deploymentData
 	newDeploymentsSolutionProvider := make(map[uint32]*uint64)
 	newDeploymentsSolutionProvider[k.Master.Node] = nil
@@ -565,4 +556,3 @@ func (k *K8sDeployer) updateFromRemote(ctx context.Context, sub subi.SubstrateEx
 
 	return nil
 }
-

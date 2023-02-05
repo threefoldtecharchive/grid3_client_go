@@ -94,7 +94,7 @@ func TestNetworkGenerateDeployment(t *testing.T) {
 	dls, err := d.GenerateVersionlessDeployments(context.Background(), &net)
 	assert.NoError(t, err)
 
-	workload := net.GenerateWorkload(net.NodesIPRange[nodeID], d.Keys[nodeID].String(), uint16(d.WGPort[nodeID]), []zos.Peer{})
+	workload := net.ZosWorkload(net.NodesIPRange[nodeID], d.Keys[nodeID].String(), uint16(d.WGPort[nodeID]), []zos.Peer{})
 	networkDl := workloads.NewGridDeployment(twinID, []gridtypes.Workload{workload})
 
 	assert.Equal(t, len(networkDl.Workloads), len(dls[net.Nodes[0]].Workloads))

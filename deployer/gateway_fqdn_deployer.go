@@ -16,7 +16,7 @@ type GatewayFQDNDeployer struct {
 	deployer       DeployerInterface
 }
 
-// Generates new gateway fqdn deployer
+// NewGatewayFqdnDeployer generates new gateway fqdn deployer
 func NewGatewayFqdnDeployer(tfPluginClient *TFPluginClient) GatewayFQDNDeployer {
 	deployer := NewDeployer(*tfPluginClient, true)
 	gatewayFQDN := GatewayFQDNDeployer{
@@ -87,6 +87,7 @@ func (k *GatewayFQDNDeployer) Deploy(ctx context.Context, gw *workloads.GatewayF
 	return err
 }
 
+// Cancel cancels a gateway deployment
 func (k *GatewayFQDNDeployer) Cancel(ctx context.Context, gw *workloads.GatewayFQDNProxy) (err error) {
 	if err := k.Validate(ctx, gw); err != nil {
 		return err

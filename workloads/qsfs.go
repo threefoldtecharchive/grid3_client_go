@@ -333,65 +333,15 @@ func (q *QSFS) ToMap() map[string]interface{} {
 	return res
 }
 
-// GenerateWorkloads generates a workload from a qsfs
-func (q *QSFS) GenerateWorkloads() ([]gridtypes.Workload, error) {
-	k, err := hex.DecodeString(q.EncryptionKey)
-	if err != nil {
-		return []gridtypes.Workload{}, err
-	}
-	mk, err := hex.DecodeString(q.EncryptionKey)
-	if err != nil {
-		// return gridtypes.Workload{}, err
-		return []gridtypes.Workload{}, err
-	}
-	return []gridtypes.Workload{
-		{
-			Version:     0,
-			Name:        gridtypes.Name(q.Name),
-			Type:        zos.QuantumSafeFSType,
-			Description: q.Description,
-			Data: gridtypes.MustMarshal(zos.QuantumSafeFS{
-				Cache: gridtypes.Unit(uint64(q.Cache) * uint64(gridtypes.Megabyte)),
-				Config: zos.QuantumSafeFSConfig{
-					MinimalShards:     q.MinimalShards,
-					ExpectedShards:    q.ExpectedShards,
-					RedundantGroups:   q.RedundantGroups,
-					RedundantNodes:    q.RedundantNodes,
-					MaxZDBDataDirSize: q.MaxZDBDataDirSize,
-					Encryption: zos.Encryption{
-						Algorithm: zos.EncryptionAlgorithm(q.EncryptionAlgorithm),
-						Key:       zos.EncryptionKey(k),
-					},
-					Meta: zos.QuantumSafeMeta{
-						Type: q.Metadata.Type,
-						Config: zos.QuantumSafeConfig{
-							Prefix: q.Metadata.Prefix,
-							Encryption: zos.Encryption{
-								Algorithm: zos.EncryptionAlgorithm(q.EncryptionAlgorithm),
-								Key:       zos.EncryptionKey(mk),
-							},
-							Backends: q.Metadata.Backends.zosBackends(),
-						},
-					},
-					Groups: q.Groups.zosGroups(),
-					Compression: zos.QuantumCompression{
-						Algorithm: q.CompressionAlgorithm,
-					},
-				},
-			}),
-		},
-	}, nil
-}
-
 // BindWorkloadsToNode for staging workloads to node IDs
 func (q *QSFS) BindWorkloadsToNode(nodeID uint32) (map[uint32][]gridtypes.Workload, error) {
 	workloadsMap := map[uint32][]gridtypes.Workload{}
 
-	workloads, err := q.GenerateWorkloads()
+	workload, err := q.ZosWorkload()
 	if err != nil {
 		return workloadsMap, err
 	}
 
-	workloadsMap[nodeID] = workloads
+	workloadsMap[nodeID] = append(workloadsMap[nodeID], workload)
 	return workloadsMap, nil
 }

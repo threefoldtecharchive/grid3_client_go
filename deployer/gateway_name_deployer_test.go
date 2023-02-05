@@ -11,7 +11,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
-	mock "github.com/threefoldtech/grid3-go/mocks"
+	"github.com/threefoldtech/grid3-go/mocks"
 	client "github.com/threefoldtech/grid3-go/node"
 	"github.com/threefoldtech/grid3-go/workloads"
 	"github.com/threefoldtech/substrate-client"
@@ -19,115 +19,98 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
-func TestNameValidateNodeNotReachable(t *testing.T) {
-	ctrl := gomock.NewController(t)
+var nameContractID uint64 = 200
 
+func constructTestNameDeployer(t *testing.T, mock bool) (
+	GatewayNameDeployer,
+	*mocks.RMBMockClient,
+	*mocks.MockSubstrateExt,
+	*mocks.MockNodeClientGetter,
+	*mocks.MockDeployer,
+	*mocks.MockClient,
+) {
+	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	sub := mock.NewMockSubstrateExt(ctrl)
-	cl := mock.NewRMBMockClient(ctrl)
-	pool := mock.NewMockNodeClientGetter(ctrl)
-	identity, err := substrate.NewIdentityFromEd25519Phrase("")
+	tfPluginClient, err := setup()
 	assert.NoError(t, err)
-	sub.
-		EXPECT().
-		GetBalance(
-			identity,
-		).
-		Return(substrate.Balance{Free: types.NewU128(*big.NewInt(20000))}, nil)
+
+	cl := mocks.NewRMBMockClient(ctrl)
+	sub := mocks.NewMockSubstrateExt(ctrl)
+	ncPool := mocks.NewMockNodeClientGetter(ctrl)
+	deployer := mocks.NewMockDeployer(ctrl)
+	gridProxyCl := mocks.NewMockClient(ctrl)
+
+	if mock {
+		tfPluginClient.TwinID = twinID
+
+		tfPluginClient.SubstrateConn = sub
+		tfPluginClient.NcPool = ncPool
+		tfPluginClient.RMB = cl
+		tfPluginClient.GridProxyClient = gridProxyCl
+
+		tfPluginClient.StateLoader.ncPool = ncPool
+		tfPluginClient.StateLoader.substrate = sub
+
+		tfPluginClient.GatewayNameDeployer.deployer = deployer
+		tfPluginClient.GatewayNameDeployer.tfPluginClient = &tfPluginClient
+	}
+
+	return tfPluginClient.GatewayNameDeployer, cl, sub, ncPool, deployer, gridProxyCl
+}
+
+func constructTestName() workloads.GatewayNameProxy {
+	return workloads.GatewayNameProxy{
+		NodeID:         nodeID,
+		Name:           "name",
+		TLSPassthrough: false,
+		Backends:       []zos.Backend{"http://1.1.1.1", "http://2.2.2.2"},
+		FQDN:           "name.com",
+	}
+}
+
+func TestNameValidateNodeNotReachable(t *testing.T) {
+	d, cl, sub, ncPool, _, _ := constructTestNameDeployer(t, true)
+	sub.EXPECT().
+		GetBalance(d.tfPluginClient.Identity).
+		Return(substrate.Balance{
+			Free: types.U128{
+				Int: big.NewInt(100000),
+			},
+		}, nil)
 	cl.
 		EXPECT().
 		Call(
 			gomock.Any(),
-			uint32(10),
+			nodeID,
 			"zos.system.version",
 			nil,
 			gomock.Any(),
 		).
 		Return(errors.New("couldn't reach node"))
-	pool.
+	ncPool.
 		EXPECT().
 		GetNodeClient(
 			gomock.Any(),
-			uint32(10),
+			nodeID,
 		).
-		Return(client.NewNodeClient(10, cl), nil)
+		Return(client.NewNodeClient(nodeID, cl), nil)
 
-	gatewayNameDeployer := NewGatewayNameDeployer(&TFPluginClient{
-		Identity:      identity,
-		NcPool:        pool,
-		SubstrateConn: sub,
-	})
-	gatewayName := workloads.GatewayNameProxy{NodeID: 10}
-	err = gatewayNameDeployer.Validate(context.TODO(), &gatewayName)
+	gatewayName := workloads.GatewayNameProxy{NodeID: nodeID}
+	err := d.Validate(context.TODO(), &gatewayName)
 	assert.Error(t, err)
 }
 
-func TestNameValidateNodeReachable(t *testing.T) {
-	ctrl := gomock.NewController(t)
-
-	defer ctrl.Finish()
-
-	sub := mock.NewMockSubstrateExt(ctrl)
-	cl := mock.NewRMBMockClient(ctrl)
-	pool := mock.NewMockNodeClientGetter(ctrl)
-	identity, err := substrate.NewIdentityFromEd25519Phrase("")
-	assert.NoError(t, err)
-	sub.
-		EXPECT().
-		GetBalance(
-			identity,
-		).
-		Return(substrate.Balance{Free: types.NewU128(*big.NewInt(20000))}, nil)
-	cl.
-		EXPECT().
-		Call(
-			gomock.Any(),
-			uint32(10),
-			"zos.system.version",
-			nil,
-			gomock.Any(),
-		).
-		Return(nil)
-	pool.
-		EXPECT().
-		GetNodeClient(
-			gomock.Any(),
-			uint32(10),
-		).
-		Return(client.NewNodeClient(10, cl), nil)
-
-	gatewayNameDeployer := NewGatewayNameDeployer(&TFPluginClient{
-		Identity:      identity,
-		NcPool:        pool,
-		SubstrateConn: sub,
-	})
-
-	gatewayName := workloads.GatewayNameProxy{NodeID: 10}
-	err = gatewayNameDeployer.Validate(context.TODO(), &gatewayName)
-	assert.NoError(t, err)
-}
-
 func TestNameGenerateDeployment(t *testing.T) {
-	g := workloads.GatewayNameProxy{
-		NodeID: 10,
+	d, _, _, _, _, _ := constructTestNameDeployer(t, true)
+	g := constructTestName()
 
-		Name:           "name",
-		TLSPassthrough: false,
-		Backends:       []zos.Backend{"a", "b"},
-		FQDN:           "name.com",
-	}
-
-	gatewayNameDeployer := NewGatewayNameDeployer(&TFPluginClient{
-		TwinID: 11,
-	})
-
-	dls, err := gatewayNameDeployer.GenerateVersionlessDeployments(context.Background(), &g)
+	dls, err := d.GenerateVersionlessDeployments(context.Background(), &g)
 	assert.NoError(t, err)
 	assert.Equal(t, dls, map[uint32]gridtypes.Deployment{
-		10: {
+		nodeID: {
 			Version: 0,
-			TwinID:  11,
+			TwinID:  twinID,
 			Workloads: []gridtypes.Workload{
 				{
 					Version: 0,
@@ -144,7 +127,7 @@ func TestNameGenerateDeployment(t *testing.T) {
 				WeightRequired: 1,
 				Requests: []gridtypes.SignatureRequest{
 					{
-						TwinID: 11,
+						TwinID: twinID,
 						Weight: 1,
 					},
 				},
@@ -154,409 +137,193 @@ func TestNameGenerateDeployment(t *testing.T) {
 }
 
 func TestNameDeploy(t *testing.T) {
-	ctrl := gomock.NewController(t)
+	d, cl, sub, ncPool, deployer, proxyCl := constructTestNameDeployer(t, true)
+	gw := constructTestName()
 
-	defer ctrl.Finish()
-
-	identity, err := substrate.NewIdentityFromEd25519Phrase("")
+	dls, err := d.GenerateVersionlessDeployments(context.Background(), &gw)
 	assert.NoError(t, err)
-	deployer := mock.NewMockDeployer(ctrl)
-	sub := mock.NewMockSubstrateExt(ctrl)
-	cl := mock.NewRMBMockClient(ctrl)
-	pool := mock.NewMockNodeClientGetter(ctrl)
 
-	gw := workloads.GatewayNameProxy{
-		NodeID:         10,
-		Name:           "name",
-		TLSPassthrough: false,
-		Backends:       []zos.Backend{"https://1.1.1.1", "http://2.2.2.2"},
-		FQDN:           "name.com",
-	}
-	gatewayNameDeployer := NewGatewayNameDeployer(&TFPluginClient{
-		Identity:      identity,
-		NcPool:        pool,
-		SubstrateConn: sub,
-		TwinID:        11,
-		StateLoader:   &StateLoader{currentNodeDeployment: map[uint32]uint64{}},
-	})
-	gatewayNameDeployer.deployer = deployer
+	mockValidation(d.tfPluginClient.Identity, cl, sub, ncPool, proxyCl)
 
-	newDeploymentsSolutionProvider := map[uint32]*uint64{10: nil}
+	newDeploymentsSolutionProvider := map[uint32]*uint64{nodeID: nil}
 	deploymentData := workloads.DeploymentData{
 		Name:        gw.Name,
 		Type:        "Gateway Name",
 		ProjectName: "Gateway",
 	}
-	newDeploymentsData := map[uint32]workloads.DeploymentData{10: deploymentData}
-	dls, err := gatewayNameDeployer.GenerateVersionlessDeployments(context.Background(), &gw)
-	assert.NoError(t, err)
+	newDeploymentsData := map[uint32]workloads.DeploymentData{nodeID: deploymentData}
 
-	sub.
-		EXPECT().
-		GetBalance(
-			identity,
-		).
-		Return(substrate.Balance{Free: types.NewU128(*big.NewInt(20000))}, nil)
 	deployer.EXPECT().Deploy(
 		gomock.Any(),
 		nil,
 		dls,
 		newDeploymentsData,
 		newDeploymentsSolutionProvider,
-	).Return(map[uint32]uint64{10: 100}, nil)
+	).Return(map[uint32]uint64{nodeID: contractID}, nil)
+
 	sub.EXPECT().
-		CreateNameContract(identity, "name").
-		Return(uint64(100), nil)
-	pool.EXPECT().
-		GetNodeClient(sub, uint32(10)).
-		Return(client.NewNodeClient(12, cl), nil)
-	cl.EXPECT().Call(
-		gomock.Any(),
-		uint32(12),
-		"zos.system.version",
-		gomock.Any(),
-		gomock.Any(),
-	).Return(nil)
-	err = gatewayNameDeployer.Deploy(context.Background(), &gw)
+		CreateNameContract(d.tfPluginClient.Identity, gw.Name).
+		Return(contractID, nil)
+
+	err = d.Deploy(context.Background(), &gw)
 	assert.NoError(t, err)
-	assert.Equal(t, gw.NodeDeploymentID, map[uint32]uint64{10: 100})
+	assert.Equal(t, gw.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
 }
 
 func TestNameUpdate(t *testing.T) {
-	ctrl := gomock.NewController(t)
+	d, cl, sub, ncPool, deployer, proxyCl := constructTestNameDeployer(t, true)
 
-	defer ctrl.Finish()
+	gw := constructTestName()
+	gw.NameContractID = nameContractID
 
-	identity, err := substrate.NewIdentityFromEd25519Phrase("")
-	assert.NoError(t, err)
-	deployer := mock.NewMockDeployer(ctrl)
-	sub := mock.NewMockSubstrateExt(ctrl)
-	cl := mock.NewRMBMockClient(ctrl)
-	pool := mock.NewMockNodeClientGetter(ctrl)
-	gatewayNameDeployer := NewGatewayNameDeployer(&TFPluginClient{
-		Identity:      identity,
-		NcPool:        pool,
-		SubstrateConn: sub,
-		TwinID:        11,
-		StateLoader:   &StateLoader{currentNodeDeployment: map[uint32]uint64{}},
-	})
-	gatewayNameDeployer.deployer = deployer
-	gw := workloads.GatewayNameProxy{
-		NodeID:           10,
-		NodeDeploymentID: map[uint32]uint64{10: 100},
-		NameContractID:   200,
-		Name:             "name",
-		TLSPassthrough:   false,
-		Backends:         []zos.Backend{"https://1.1.1.1", "http://2.2.2.2"},
-		FQDN:             "name.com",
-	}
-	newDeploymentsSolutionProvider := map[uint32]*uint64{10: nil}
-	deploymentData := workloads.DeploymentData{
-		Name:        gw.Name,
-		Type:        "Gateway Name",
-		ProjectName: "Gateway",
-	}
-	newDeploymentsData := map[uint32]workloads.DeploymentData{10: deploymentData}
-	dls, err := gatewayNameDeployer.GenerateVersionlessDeployments(context.Background(), &gw)
+	dls, err := d.GenerateVersionlessDeployments(context.Background(), &gw)
 	assert.NoError(t, err)
 
-	sub.
-		EXPECT().
-		GetBalance(
-			identity,
-		).
-		Return(substrate.Balance{Free: types.NewU128(*big.NewInt(20000))}, nil)
+	mockValidation(d.tfPluginClient.Identity, cl, sub, ncPool, proxyCl)
+
 	deployer.EXPECT().Deploy(
 		gomock.Any(),
 		gw.NodeDeploymentID,
 		dls,
-		newDeploymentsData,
-		newDeploymentsSolutionProvider,
-	).Return(map[uint32]uint64{10: 100}, nil)
-	sub.EXPECT().
-		InvalidateNameContract(gomock.Any(), identity, uint64(200), gw.Name).
-		Return(uint64(200), nil)
+		gomock.Any(),
+		gomock.Any(),
+	).Return(map[uint32]uint64{nodeID: contractID}, nil)
 
-	pool.EXPECT().
-		GetNodeClient(sub, uint32(10)).
-		Return(client.NewNodeClient(12, cl), nil)
-	cl.EXPECT().Call(
-		gomock.Any(),
-		uint32(12),
-		"zos.system.version",
-		gomock.Any(),
-		gomock.Any(),
-	).Return(nil)
-	err = gatewayNameDeployer.Deploy(context.Background(), &gw)
+	sub.EXPECT().
+		InvalidateNameContract(gomock.Any(), d.tfPluginClient.Identity, nameContractID, gw.Name).
+		Return(nameContractID, nil)
+
+	err = d.Deploy(context.Background(), &gw)
 	assert.NoError(t, err)
-	assert.Equal(t, gw.NodeDeploymentID, map[uint32]uint64{uint32(10): uint64(100)})
+	assert.Equal(t, gw.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
 }
 
 func TestNameUpdateFailed(t *testing.T) {
-	ctrl := gomock.NewController(t)
+	d, cl, sub, ncPool, deployer, proxyCl := constructTestNameDeployer(t, true)
 
-	defer ctrl.Finish()
+	gw := constructTestName()
+	gw.NameContractID = nameContractID
 
-	identity, err := substrate.NewIdentityFromEd25519Phrase("")
-	assert.NoError(t, err)
-	deployer := mock.NewMockDeployer(ctrl)
-	sub := mock.NewMockSubstrateExt(ctrl)
-	cl := mock.NewRMBMockClient(ctrl)
-	pool := mock.NewMockNodeClientGetter(ctrl)
-	gatewayNameDeployer := NewGatewayNameDeployer(&TFPluginClient{
-		Identity:      identity,
-		NcPool:        pool,
-		SubstrateConn: sub,
-		TwinID:        11,
-		StateLoader:   &StateLoader{currentNodeDeployment: map[uint32]uint64{}},
-	})
-	gatewayNameDeployer.deployer = deployer
-	gw := workloads.GatewayNameProxy{
-		NodeID:           10,
-		NodeDeploymentID: map[uint32]uint64{10: 100},
-		NameContractID:   200,
-		Name:             "name",
-		TLSPassthrough:   false,
-		Backends:         []zos.Backend{"https://1.1.1.1", "http://2.2.2.2"},
-		FQDN:             "name.com",
-	}
-	newDeploymentsSolutionProvider := map[uint32]*uint64{10: nil}
-	deploymentData := workloads.DeploymentData{
-		Name:        gw.Name,
-		Type:        "Gateway Name",
-		ProjectName: "Gateway",
-	}
-	newDeploymentsData := map[uint32]workloads.DeploymentData{10: deploymentData}
-	dls, err := gatewayNameDeployer.GenerateVersionlessDeployments(context.Background(), &gw)
+	dls, err := d.GenerateVersionlessDeployments(context.Background(), &gw)
 	assert.NoError(t, err)
 
-	sub.
-		EXPECT().
-		GetBalance(
-			identity,
-		).
-		Return(substrate.Balance{Free: types.NewU128(*big.NewInt(20000))}, nil)
+	mockValidation(d.tfPluginClient.Identity, cl, sub, ncPool, proxyCl)
+
 	deployer.EXPECT().Deploy(
 		gomock.Any(),
 		gw.NodeDeploymentID,
 		dls,
-		newDeploymentsData,
-		newDeploymentsSolutionProvider,
-	).Return(map[uint32]uint64{10: 100}, errors.New("error"))
-	sub.EXPECT().
-		InvalidateNameContract(gomock.Any(), identity, uint64(200), gw.Name).
-		Return(uint64(200), nil)
-	pool.EXPECT().
-		GetNodeClient(sub, uint32(10)).
-		Return(client.NewNodeClient(12, cl), nil)
-	cl.EXPECT().Call(
-		gomock.Any(),
-		uint32(12),
-		"zos.system.version",
 		gomock.Any(),
 		gomock.Any(),
-	).Return(nil)
+	).Return(map[uint32]uint64{nodeID: contractID}, errors.New("error"))
 
-	err = gatewayNameDeployer.Deploy(context.Background(), &gw)
+	sub.EXPECT().
+		InvalidateNameContract(gomock.Any(), d.tfPluginClient.Identity, nameContractID, gw.Name).
+		Return(nameContractID, nil)
+
+	err = d.Deploy(context.Background(), &gw)
 	assert.Error(t, err)
-	assert.Equal(t, gw.NodeDeploymentID, map[uint32]uint64{uint32(10): uint64(100)})
-	assert.Equal(t, gw.NameContractID, uint64(200))
+	assert.Equal(t, gw.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
+	assert.Equal(t, gw.NameContractID, nameContractID)
 }
 
 func TestNameCancel(t *testing.T) {
-	ctrl := gomock.NewController(t)
-
-	defer ctrl.Finish()
-
-	identity, err := substrate.NewIdentityFromEd25519Phrase("")
-	assert.NoError(t, err)
-	deployer := mock.NewMockDeployer(ctrl)
-	sub := mock.NewMockSubstrateExt(ctrl)
-	gatewayNameDeployer := NewGatewayNameDeployer(&TFPluginClient{
-		Identity:      identity,
-		SubstrateConn: sub,
-		TwinID:        11,
-		StateLoader:   &StateLoader{},
-	})
-	gatewayNameDeployer.deployer = deployer
-	gw := workloads.GatewayNameProxy{
-		NodeID:           10,
-		NodeDeploymentID: map[uint32]uint64{10: 100},
-		NameContractID:   200,
-		Name:             "name",
-		TLSPassthrough:   false,
-		Backends:         []zos.Backend{"https://1.1.1.1", "http://2.2.2.2"},
-		FQDN:             "name.com",
-	}
-	assert.NoError(t, err)
+	d, _, sub, _, deployer, _ := constructTestNameDeployer(t, true)
+	gw := constructTestName()
 
 	deployer.EXPECT().Cancel(
 		gomock.Any(),
 		map[uint32]uint64{},
 		map[uint32]gridtypes.Deployment{},
 	).Return(map[uint32]uint64{}, nil)
+
 	sub.EXPECT().
-		EnsureContractCanceled(identity, uint64(200)).
+		EnsureContractCanceled(d.tfPluginClient.Identity, contractID).
 		Return(nil)
 
-	err = gatewayNameDeployer.Cancel(context.Background(), &gw)
+	err := d.Cancel(context.Background(), &gw)
 	assert.NoError(t, err)
 	assert.Equal(t, gw.NodeDeploymentID, map[uint32]uint64{})
 	assert.Equal(t, gw.NameContractID, uint64(0))
 }
 
 func TestNameCancelDeploymentsFailed(t *testing.T) {
-	ctrl := gomock.NewController(t)
-
-	defer ctrl.Finish()
-
-	identity, err := substrate.NewIdentityFromEd25519Phrase("")
-	assert.NoError(t, err)
-	deployer := mock.NewMockDeployer(ctrl)
-	sub := mock.NewMockSubstrateExt(ctrl)
-	gatewayNameDeployer := NewGatewayNameDeployer(&TFPluginClient{
-		Identity:      identity,
-		SubstrateConn: sub,
-		TwinID:        11,
-		StateLoader:   &StateLoader{},
-	})
-	gatewayNameDeployer.deployer = deployer
-	gw := workloads.GatewayNameProxy{
-		NodeID:           10,
-		NodeDeploymentID: map[uint32]uint64{10: 100},
-		NameContractID:   200,
-		Name:             "name",
-		TLSPassthrough:   false,
-		Backends:         []zos.Backend{"https://1.1.1.1", "http://2.2.2.2"},
-		FQDN:             "name.com",
-	}
-	assert.NoError(t, err)
+	d, _, _, _, deployer, _ := constructTestNameDeployer(t, true)
+	gw := constructTestName()
 
 	deployer.EXPECT().Cancel(
 		gomock.Any(),
 		map[uint32]uint64{},
 		map[uint32]gridtypes.Deployment{},
-	).Return(map[uint32]uint64{10: 100}, errors.New("error"))
-	err = gatewayNameDeployer.Cancel(context.Background(), &gw)
+	).Return(map[uint32]uint64{nodeID: contractID}, errors.New("error"))
+
+	err := d.Cancel(context.Background(), &gw)
 	assert.Error(t, err)
-	assert.Equal(t, gw.NodeDeploymentID, map[uint32]uint64{10: 100})
+	assert.Equal(t, gw.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
 }
 
 func TestNameCancelContractsFailed(t *testing.T) {
-	ctrl := gomock.NewController(t)
+	d, _, sub, _, deployer, _ := constructTestNameDeployer(t, true)
 
-	defer ctrl.Finish()
-
-	identity, err := substrate.NewIdentityFromEd25519Phrase("")
-	assert.NoError(t, err)
-	deployer := mock.NewMockDeployer(ctrl)
-	sub := mock.NewMockSubstrateExt(ctrl)
-	gatewayNameDeployer := NewGatewayNameDeployer(&TFPluginClient{
-		Identity:      identity,
-		SubstrateConn: sub,
-		TwinID:        11,
-		StateLoader:   &StateLoader{},
-	})
-	gatewayNameDeployer.deployer = deployer
-	gw := workloads.GatewayNameProxy{
-		NodeID:           10,
-		NodeDeploymentID: map[uint32]uint64{10: 100},
-		NameContractID:   200,
-		Name:             "name",
-		TLSPassthrough:   false,
-		Backends:         []zos.Backend{"https://1.1.1.1", "http://2.2.2.2"},
-		FQDN:             "name.com",
-	}
-	assert.NoError(t, err)
+	gw := constructTestName()
+	gw.NameContractID = nameContractID
 
 	deployer.EXPECT().Cancel(
 		gomock.Any(),
 		map[uint32]uint64{},
 		map[uint32]gridtypes.Deployment{},
 	).Return(map[uint32]uint64{}, nil)
+
 	sub.EXPECT().
-		EnsureContractCanceled(identity, uint64(200)).
+		EnsureContractCanceled(d.tfPluginClient.Identity, nameContractID).
 		Return(errors.New("error"))
 
-	err = gatewayNameDeployer.Cancel(context.Background(), &gw)
+	err := d.Cancel(context.Background(), &gw)
 	assert.Error(t, err)
 	assert.Equal(t, gw.NodeDeploymentID, map[uint32]uint64{})
-	assert.Equal(t, gw.NameContractID, uint64(200))
+	assert.Equal(t, gw.NameContractID, nameContractID)
 }
 
 func TestNameSyncContracts(t *testing.T) {
-	ctrl := gomock.NewController(t)
+	d, _, sub, _, _, _ := constructTestNameDeployer(t, true)
 
-	defer ctrl.Finish()
+	gw := constructTestName()
+	gw.ContractID = contractID
+	gw.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
 
-	identity, err := substrate.NewIdentityFromEd25519Phrase("")
-	assert.NoError(t, err)
-	deployer := mock.NewMockDeployer(ctrl)
-	sub := mock.NewMockSubstrateExt(ctrl)
-	gatewayNameDeployer := NewGatewayNameDeployer(&TFPluginClient{
-		Identity:      identity,
-		SubstrateConn: sub,
-		TwinID:        11,
-	})
-	gatewayNameDeployer.deployer = deployer
-	gw := workloads.GatewayNameProxy{
-		ContractID:       100,
-		NodeID:           10,
-		NodeDeploymentID: map[uint32]uint64{10: 100},
-		NameContractID:   200,
-		Name:             "name",
-		TLSPassthrough:   false,
-		Backends:         []zos.Backend{"https://1.1.1.1", "http://2.2.2.2"},
-		FQDN:             "name.com",
-	}
 	sub.EXPECT().DeleteInvalidContracts(
 		gw.NodeDeploymentID,
 	).Return(nil)
+
 	sub.EXPECT().IsValidContract(
 		gw.NameContractID,
 	).Return(true, nil)
 
-	err = gatewayNameDeployer.syncContracts(context.Background(), &gw)
+	err := d.syncContracts(context.Background(), &gw)
 	assert.NoError(t, err)
-	assert.Equal(t, gw.NodeDeploymentID, map[uint32]uint64{10: 100})
-	assert.Equal(t, gw.ContractID, uint64(100))
+	assert.Equal(t, gw.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
+	assert.Equal(t, gw.ContractID, contractID)
 }
 
 func TestNameSyncDeletedContracts(t *testing.T) {
-	ctrl := gomock.NewController(t)
+	d, _, sub, _, _, _ := constructTestNameDeployer(t, true)
 
-	defer ctrl.Finish()
+	gw := constructTestName()
+	gw.ContractID = contractID
+	gw.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
 
-	identity, err := substrate.NewIdentityFromEd25519Phrase("")
-	assert.NoError(t, err)
-	deployer := mock.NewMockDeployer(ctrl)
-	sub := mock.NewMockSubstrateExt(ctrl)
-	gatewayNameDeployer := NewGatewayNameDeployer(&TFPluginClient{
-		Identity:      identity,
-		SubstrateConn: sub,
-		TwinID:        11,
-	})
-	gatewayNameDeployer.deployer = deployer
-	gw := workloads.GatewayNameProxy{
-		ContractID:       100,
-		NodeID:           10,
-		NodeDeploymentID: map[uint32]uint64{10: 100},
-		NameContractID:   200,
-		Name:             "name",
-		TLSPassthrough:   false,
-		Backends:         []zos.Backend{"https://1.1.1.1", "http://2.2.2.2"},
-		FQDN:             "name.com",
-	}
 	sub.EXPECT().DeleteInvalidContracts(
 		gw.NodeDeploymentID,
 	).DoAndReturn(func(contracts map[uint32]uint64) error {
-		delete(contracts, 10)
+		delete(contracts, nodeID)
 		return nil
 	})
+
 	sub.EXPECT().IsValidContract(
 		gw.NameContractID,
 	).Return(false, nil)
-	err = gatewayNameDeployer.syncContracts(context.Background(), &gw)
+
+	err := d.syncContracts(context.Background(), &gw)
 	assert.NoError(t, err)
 	assert.Equal(t, gw.NodeDeploymentID, map[uint32]uint64{})
 	assert.Equal(t, gw.NameContractID, uint64(0))
@@ -564,138 +331,93 @@ func TestNameSyncDeletedContracts(t *testing.T) {
 }
 
 func TestNameSyncContractsFailure(t *testing.T) {
-	ctrl := gomock.NewController(t)
+	d, _, sub, _, _, _ := constructTestNameDeployer(t, true)
 
-	defer ctrl.Finish()
+	gw := constructTestName()
+	gw.ContractID = contractID
+	gw.NameContractID = nameContractID
+	gw.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
 
-	identity, err := substrate.NewIdentityFromEd25519Phrase("")
-	assert.NoError(t, err)
-	deployer := mock.NewMockDeployer(ctrl)
-	sub := mock.NewMockSubstrateExt(ctrl)
-	gatewayNameDeployer := NewGatewayNameDeployer(&TFPluginClient{
-		Identity:      identity,
-		SubstrateConn: sub,
-		TwinID:        11,
-	})
-	gatewayNameDeployer.deployer = deployer
-	gw := workloads.GatewayNameProxy{
-		ContractID:       100,
-		NodeID:           10,
-		NodeDeploymentID: map[uint32]uint64{10: 100},
-		NameContractID:   200,
-		Name:             "name",
-		TLSPassthrough:   false,
-		Backends:         []zos.Backend{"https://1.1.1.1", "http://2.2.2.2"},
-		FQDN:             "name.com",
-	}
 	sub.EXPECT().DeleteInvalidContracts(
 		gw.NodeDeploymentID,
-	).Return(errors.New("123"))
+	).Return(errors.New("error"))
 
-	err = gatewayNameDeployer.syncContracts(context.Background(), &gw)
+	err := d.syncContracts(context.Background(), &gw)
 	assert.Error(t, err)
-	assert.Equal(t, gw.NodeDeploymentID, map[uint32]uint64{10: 100})
-	assert.Equal(t, gw.NameContractID, uint64(200))
-	assert.Equal(t, gw.ContractID, uint64(100))
+	assert.Equal(t, gw.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
+	assert.Equal(t, gw.NameContractID, nameContractID)
+	assert.Equal(t, gw.ContractID, contractID)
 }
 
 func TestNameSync(t *testing.T) {
-	ctrl := gomock.NewController(t)
+	d, _, sub, _, deployer, _ := constructTestNameDeployer(t, true)
 
-	defer ctrl.Finish()
+	gw := constructTestName()
+	gw.ContractID = contractID
+	gw.NameContractID = nameContractID
+	gw.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
 
-	identity, err := substrate.NewIdentityFromEd25519Phrase("")
+	dls, err := d.GenerateVersionlessDeployments(context.Background(), &gw)
 	assert.NoError(t, err)
-	deployer := mock.NewMockDeployer(ctrl)
-	sub := mock.NewMockSubstrateExt(ctrl)
-	gatewayNameDeployer := NewGatewayNameDeployer(&TFPluginClient{
-		Identity:      identity,
-		SubstrateConn: sub,
-		TwinID:        11,
-	})
-	gatewayNameDeployer.deployer = deployer
-	gw := workloads.GatewayNameProxy{
-		ContractID:       100,
-		NodeID:           10,
-		NodeDeploymentID: map[uint32]uint64{10: 100},
-		NameContractID:   200,
-		Name:             "name",
-		TLSPassthrough:   false,
-		Backends:         []zos.Backend{"https://1.1.1.1", "http://2.2.2.2"},
-		FQDN:             "name.com",
-	}
-	dls, err := gatewayNameDeployer.GenerateVersionlessDeployments(context.Background(), &gw)
-	assert.NoError(t, err)
-	dl := dls[10]
+
+	dl := dls[nodeID]
+
 	dl.Workloads[0].Result.State = gridtypes.StateOk
 	dl.Workloads[0].Result.Data, err = json.Marshal(zos.GatewayProxyResult{FQDN: "name.com"})
 	assert.NoError(t, err)
+
 	sub.EXPECT().DeleteInvalidContracts(
 		gw.NodeDeploymentID,
 	).Return(nil)
+
 	sub.EXPECT().IsValidContract(
 		gw.NameContractID,
 	).Return(true, nil)
 
 	deployer.EXPECT().
-		GetDeployments(gomock.Any(), map[uint32]uint64{10: 100}).
-		Return(map[uint32]gridtypes.Deployment{10: dl}, nil)
+		GetDeployments(gomock.Any(), map[uint32]uint64{nodeID: contractID}).
+		Return(map[uint32]gridtypes.Deployment{nodeID: dl}, nil)
+
 	gw.FQDN = "123"
-	err = gatewayNameDeployer.sync(context.Background(), &gw)
+	err = d.sync(context.Background(), &gw)
 	assert.Equal(t, gw.FQDN, "name.com")
 	assert.NoError(t, err)
-	assert.Equal(t, gw.NodeDeploymentID, map[uint32]uint64{10: 100})
-	assert.Equal(t, gw.NameContractID, uint64(200))
-	assert.Equal(t, gw.ContractID, uint64(100))
+	assert.Equal(t, gw.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
+	assert.Equal(t, gw.NameContractID, nameContractID)
+	assert.Equal(t, gw.ContractID, contractID)
 }
 
 func TestNameSyncDeletedWorkload(t *testing.T) {
-	ctrl := gomock.NewController(t)
+	d, _, sub, _, deployer, _ := constructTestNameDeployer(t, true)
 
-	defer ctrl.Finish()
+	gw := constructTestName()
+	gw.ContractID = contractID
+	gw.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
 
-	identity, err := substrate.NewIdentityFromEd25519Phrase("")
+	dls, err := d.GenerateVersionlessDeployments(context.Background(), &gw)
 	assert.NoError(t, err)
-	deployer := mock.NewMockDeployer(ctrl)
-	sub := mock.NewMockSubstrateExt(ctrl)
-	gatewayNameDeployer := NewGatewayNameDeployer(&TFPluginClient{
-		Identity:      identity,
-		SubstrateConn: sub,
-		TwinID:        11,
-	})
-	gatewayNameDeployer.deployer = deployer
-	gw := workloads.GatewayNameProxy{
-		ContractID:       100,
-		NodeID:           10,
-		NodeDeploymentID: map[uint32]uint64{10: 100},
-		NameContractID:   200,
-		Name:             "name",
-		TLSPassthrough:   false,
-		Backends:         []zos.Backend{"https://1.1.1.1", "http://2.2.2.2"},
-		FQDN:             "name.com",
-	}
-	dls, err := gatewayNameDeployer.GenerateVersionlessDeployments(context.Background(), &gw)
-	assert.NoError(t, err)
-	dl := dls[10]
+	dl := dls[nodeID]
 	// state is deleted
 
 	sub.EXPECT().DeleteInvalidContracts(
 		gw.NodeDeploymentID,
 	).Return(nil)
+
 	sub.EXPECT().IsValidContract(
 		gw.NameContractID,
 	).Return(true, nil)
 
 	deployer.EXPECT().
-		GetDeployments(gomock.Any(), map[uint32]uint64{10: 100}).
-		Return(map[uint32]gridtypes.Deployment{10: dl}, nil)
+		GetDeployments(gomock.Any(), map[uint32]uint64{nodeID: contractID}).
+		Return(map[uint32]gridtypes.Deployment{nodeID: dl}, nil)
+
 	gw.FQDN = "123"
-	err = gatewayNameDeployer.sync(context.Background(), &gw)
+	err = d.sync(context.Background(), &gw)
 	assert.NoError(t, err)
 	assert.Empty(t, gw.Backends)
 	assert.Empty(t, gw.TLSPassthrough)
 	assert.Empty(t, gw.Name)
 	assert.Empty(t, gw.FQDN)
-	assert.Equal(t, gw.ContractID, uint64(100))
-	assert.Equal(t, gw.NodeDeploymentID, map[uint32]uint64{10: 100})
+	assert.Equal(t, gw.ContractID, contractID)
+	assert.Equal(t, gw.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
 }

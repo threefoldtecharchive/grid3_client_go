@@ -71,8 +71,8 @@ func NewDeployer(
 	}
 }
 
-// TODO: newDeployments should support more than 1 deployment per node ID
 // Deploy deploys or updates a new deployment given the old deployments' IDs
+// TODO: newDeployments should support more than 1 deployment per node ID
 func (d *Deployer) Deploy(ctx context.Context,
 	oldDeploymentIDs map[uint32]uint64,
 	newDeployments map[uint32]gridtypes.Deployment,

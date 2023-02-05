@@ -39,13 +39,13 @@ func (d *DeploymentDeployer) GenerateVersionlessDeployments(ctx context.Context,
 		return nil, errors.Wrap(err, "failed to assign node ips")
 	}
 	for _, disk := range dl.Disks {
-		newDl.Workloads = append(newDl.Workloads, disk.GenerateWorkload())
+		newDl.Workloads = append(newDl.Workloads, disk.ZosWorkload())
 	}
 	for _, zdb := range dl.Zdbs {
-		newDl.Workloads = append(newDl.Workloads, zdb.GenerateWorkload())
+		newDl.Workloads = append(newDl.Workloads, zdb.ZosWorkload())
 	}
 	for _, vm := range dl.Vms {
-		newDl.Workloads = append(newDl.Workloads, vm.GenerateVMWorkload()...)
+		newDl.Workloads = append(newDl.Workloads, vm.ZosWorkload()...)
 	}
 
 	for idx, q := range dl.Qsfs {

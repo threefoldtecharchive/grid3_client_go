@@ -56,7 +56,7 @@ func (k *NetworkDeployer) Validate(ctx context.Context, znet *workloads.ZNet) er
 	return k.invalidateBrokenAttributes(znet)
 }
 
-// GenerateVersionlessDeploymentsAndWorkloads generates deployments for network deployer without versions
+// GenerateVersionlessDeployments generates deployments for network deployer without versions
 func (k *NetworkDeployer) GenerateVersionlessDeployments(ctx context.Context, znet *workloads.ZNet) (map[uint32]gridtypes.Deployment, error) {
 	deployments := make(map[uint32]gridtypes.Deployment)
 
@@ -208,7 +208,7 @@ func (k *NetworkDeployer) GenerateVersionlessDeployments(ctx context.Context, zn
 			}
 		}
 
-		workload := znet.GenerateWorkload(znet.NodesIPRange[nodeID], k.Keys[nodeID].String(), uint16(k.WGPort[nodeID]), peers)
+		workload := znet.ZosWorkload(znet.NodesIPRange[nodeID], k.Keys[nodeID].String(), uint16(k.WGPort[nodeID]), peers)
 		deployment := workloads.NewGridDeployment(k.tfPluginClient.TwinID, []gridtypes.Workload{workload})
 		deployments[nodeID] = deployment
 	}
@@ -228,7 +228,7 @@ func (k *NetworkDeployer) GenerateVersionlessDeployments(ctx context.Context, zn
 			})
 		}
 
-		workload := znet.GenerateWorkload(znet.NodesIPRange[nodeID], k.Keys[nodeID].String(), uint16(k.WGPort[nodeID]), peers)
+		workload := znet.ZosWorkload(znet.NodesIPRange[nodeID], k.Keys[nodeID].String(), uint16(k.WGPort[nodeID]), peers)
 		deployment := workloads.NewGridDeployment(k.tfPluginClient.TwinID, []gridtypes.Workload{workload})
 		deployments[nodeID] = deployment
 	}
@@ -313,7 +313,7 @@ func (k *NetworkDeployer) Cancel(ctx context.Context, znet *workloads.ZNet) erro
 
 	// update state
 	znet.NodeDeploymentID = currentDeployments
-	k.tfPluginClient.StateLoader.networks.updateNetwork(znet.Name, znet.NodesIPRange)
+	k.tfPluginClient.StateLoader.networks.deleteNetwork(znet.Name)
 	k.tfPluginClient.StateLoader.currentNodeNetwork = currentDeployments
 	if err := k.readNodesConfig(ctx, znet); err != nil {
 		return errors.Wrap(err, "couldn't read node's data")

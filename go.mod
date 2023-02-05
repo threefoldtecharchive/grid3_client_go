@@ -34,7 +34,7 @@ require (
 	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/golang/mock v1.6.0
 	github.com/gomodule/redigo v2.0.0+incompatible
-	github.com/google/uuid v1.3.0
+	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/gtank/merlin v0.1.1 // indirect

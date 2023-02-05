@@ -73,32 +73,9 @@ func (g *GatewayNameProxy) ZosWorkload() gridtypes.Workload {
 	}
 }
 
-// GenerateWorkloads generates a workload from a name gateway
-func (g *GatewayNameProxy) GenerateWorkloads() ([]gridtypes.Workload, error) {
-	return []gridtypes.Workload{
-		{
-			Version: 0,
-			Type:    zos.GatewayNameProxyType,
-			Name:    gridtypes.Name(g.Name),
-			// REVISE: whether description should be set here
-			Data: gridtypes.MustMarshal(zos.GatewayNameProxy{
-				Name:           g.Name,
-				TLSPassthrough: g.TLSPassthrough,
-				Backends:       g.Backends,
-			}),
-		},
-	}, nil
-}
-
 // BindWorkloadsToNode for staging workloads with node ID
 func (g *GatewayNameProxy) BindWorkloadsToNode(nodeID uint32) (map[uint32][]gridtypes.Workload, error) {
 	workloadsMap := map[uint32][]gridtypes.Workload{}
-
-	workloads, err := g.GenerateWorkloads()
-	if err != nil {
-		return workloadsMap, err
-	}
-
-	workloadsMap[nodeID] = workloads
+	workloadsMap[nodeID] = append(workloadsMap[nodeID], g.ZosWorkload())
 	return workloadsMap, nil
 }

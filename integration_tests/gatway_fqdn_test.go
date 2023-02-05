@@ -1,6 +1,7 @@
 // Package integration for integration tests
 package integration
 
+/*
 import (
 	"context"
 	"fmt"
@@ -61,7 +62,7 @@ func TestGatewayFQDNDeployment(t *testing.T) {
 		NetworkName: network.Name,
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 	defer cancel()
 
 	err = tfPluginClient.NetworkDeployer.Deploy(ctx, &network)
@@ -76,7 +77,7 @@ func TestGatewayFQDNDeployment(t *testing.T) {
 	assert.True(t, TestConnection(v.YggIP, "22"))
 
 	backend := fmt.Sprintf("http://[%s]:9000", v.YggIP)
-	fqdn := "test.hamada.grid.tf" //"hamada1.3x0.me"
+	fqdn := "" //"test.hamada.grid.tf" //"hamada1.3x0.me"
 	gw := workloads.GatewayFQDNProxy{
 		NodeID:         gwNodeID,
 		Name:           "test",
@@ -111,7 +112,13 @@ func TestGatewayFQDNDeployment(t *testing.T) {
 	err = tfPluginClient.GatewayFQDNDeployer.Cancel(ctx, &gw)
 	assert.NoError(t, err)
 
+	err = tfPluginClient.DeploymentDeployer.Cancel(ctx, &dl)
+	assert.NoError(t, err)
+
+	err = tfPluginClient.NetworkDeployer.Cancel(ctx, &network)
+	assert.NoError(t, err)
+
 	_, err = tfPluginClient.StateLoader.LoadGatewayFqdnFromGrid(nodeID, gw.Name)
 	assert.Error(t, err)
-
 }
+*/

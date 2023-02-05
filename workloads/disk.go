@@ -56,8 +56,8 @@ func (d *Disk) GetName() string {
 	return d.Name
 }
 
-// GenerateWorkloads generates a workload from a disk
-func (d *Disk) GenerateWorkload() gridtypes.Workload {
+// ZosWorkload generates a workload from a disk
+func (d *Disk) ZosWorkload() gridtypes.Workload {
 	return gridtypes.Workload{
 		Name:        gridtypes.Name(d.Name),
 		Version:     0,
@@ -72,6 +72,6 @@ func (d *Disk) GenerateWorkload() gridtypes.Workload {
 // BindWorkloadsToNode for staging workloads with node ID
 func (d *Disk) BindWorkloadsToNode(nodeID uint32) (map[uint32][]gridtypes.Workload, error) {
 	workloadsMap := map[uint32][]gridtypes.Workload{}
-	workloadsMap[nodeID] = []gridtypes.Workload{d.GenerateWorkload()}
+	workloadsMap[nodeID] = []gridtypes.Workload{d.ZosWorkload()}
 	return workloadsMap, nil
 }
