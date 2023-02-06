@@ -12,6 +12,11 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 )
 
+// type K8SDeployerI interface {
+// 	Deploy(ctx context.Context, k8sCluster *workloads.K8sCluster) error
+// 	Cancel(ctx context.Context, k8sCluster *workloads.K8sCluster) (err error)
+// }
+
 // K8s Deployer for deploying k8s
 type K8sDeployer struct {
 	NodeUsedIPs    map[uint32][]byte
@@ -31,6 +36,7 @@ func NewK8sDeployer(tfPluginClient *TFPluginClient) K8sDeployer {
 	return k8sDeployer
 }
 
+// TODO: Separate them in validation file 
 func (k *K8sDeployer) validateToken(ctx context.Context, k8sCluster *workloads.K8sCluster) error {
 	if k8sCluster.Token == "" {
 		return errors.New("empty token is now allowed")
@@ -161,7 +167,7 @@ func (k *K8sDeployer) GenerateVersionlessDeployments(ctx context.Context, k8sClu
 	}
 	deployments := make(map[uint32]gridtypes.Deployment)
 	nodeWorkloads := make(map[uint32][]gridtypes.Workload)
-	masterWorkloads := k8sCluster.Master.GenerateK8sWorkload(k8sCluster, true)
+	masterWorkloads := k8sCluster.Master.GenerateK8sWorkload(k8sCluster, false)
 	nodeWorkloads[k8sCluster.Master.Node] = append(nodeWorkloads[k8sCluster.Master.Node], masterWorkloads...)
 	for _, w := range k8sCluster.Workers {
 		workerWorkloads := w.GenerateK8sWorkload(k8sCluster, true)

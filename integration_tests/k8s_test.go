@@ -3,6 +3,8 @@ package integration
 import (
 	"context"
 	"fmt"
+	"reflect"
+	"strings"
 
 	"net"
 	"testing"
@@ -14,18 +16,21 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 )
 
-// func AssertNodesAreReady(t *testing.T, k8sCluster *workloads.K8sCluster, privateKey string) {
-// 	t.Helper()
+func AssertNodesAreReady(t *testing.T, k8sCluster *workloads.K8sCluster, privateKey string) {
+	t.Helper()
 
-// 	masterYggIP := k8sCluster.Master.YggIP
-// 	assert.NotEmpty(t, masterYggIP)
+	masterYggIP := k8sCluster.Master.YggIP
+	assert.NotEmpty(t, masterYggIP)
 
-// 	time.Sleep(5 * time.Second)
-// 	output, err := RemoteRun("root", masterYggIP, "kubectl get node", privateKey)
-// 	fmt.Printf("output: %v\n", output)
-// 	assert.Empty(t, err)
+	time.Sleep(5 * time.Second)
+	output, err := RemoteRun("root", masterYggIP, "export KUBECONFIG=/etc/rancher/k3s/k3s.yaml && kubectl get node", privateKey)
+	output = strings.TrimSpace(output)
+	assert.Empty(t, err)
 
-// }
+	nodesNumber := reflect.ValueOf(k8sCluster.Workers).Len() + 1
+	numberOfReadynodes := strings.Count(output, "Ready")
+	assert.True(t, numberOfReadynodes == nodesNumber, "number of ready nodes is not equal to number of nodes only %s nodes are ready", numberOfReadynodes)
+}
 
 func TestK8sDeployment(t *testing.T) {
 	tfPluginClient, err := setup()
@@ -57,7 +62,7 @@ func TestK8sDeployment(t *testing.T) {
 		AddWGAccess: true,
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 18*time.Minute)
 	defer cancel()
 
 	err = tfPluginClient.NetworkDeployer.Deploy(ctx, &network)
@@ -149,17 +154,13 @@ func TestK8sDeployment(t *testing.T) {
 	wgConfig := network.AccessWGConfig
 	assert.NotEmpty(t, wgConfig)
 
-	// ssh to master node
-	// AssertNodesAreReady(t, &result, privateKey)
-	// _ , err = RemoteRun("root", masterIP, "kubectl get node",privateKey)
-	// assert.NoError(t,err)
-	// fmt.Printf("err: %v\n", err)
-	// fmt.Printf("output: %v\n", output)
-
 	// Check that master is reachable
 	// testing connection on port 22, waits at max 3mins until it becomes ready otherwise it fails
 	ok := TestConnection(masterIP, "22")
 	assert.True(t, ok)
+
+	// ssh to master node
+	AssertNodesAreReady(t, &result, privateKey)
 
 	// cancel deployments
 	err = tfPluginClient.K8sDeployer.Cancel(ctx, &k8sCluster)
