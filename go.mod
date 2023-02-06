@@ -7,7 +7,7 @@ require (
 	github.com/centrifuge/go-substrate-rpc-client/v4 v4.0.5
 	github.com/goombaio/namegenerator v0.0.0-20181006234301-989e774b106e
 	github.com/hashicorp/go-multierror v1.0.0
-	github.com/joho/godotenv v1.4.0
+	github.com/joho/godotenv v1.5.1
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.7.0
 	github.com/threefoldtech/go-rmb v0.2.0
