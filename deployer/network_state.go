@@ -8,8 +8,8 @@ type networkState map[string]network
 
 // network struct includes subnets and node IPs
 type network struct {
-	subnets               map[uint32]string     `json:"subnets"`
-	nodeDeploymentHostIDs nodeDeploymentHostIDs `json:"node_ips"`
+	subnets               map[uint32]string
+	nodeDeploymentHostIDs nodeDeploymentHostIDs
 }
 
 // nodeDeploymentHostIDs is a map for nodes ID and its deployments' IPs

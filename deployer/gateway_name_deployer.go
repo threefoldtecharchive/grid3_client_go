@@ -1,146 +1,153 @@
+// Package deployer is grid deployer
 package deployer
 
 import (
 	"context"
 
-	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	client "github.com/threefoldtech/grid3-go/node"
-	"github.com/threefoldtech/grid3-go/subi"
 	"github.com/threefoldtech/grid3-go/workloads"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 )
 
+// GatewayNameDeployer for deploying a GatewayName
 type GatewayNameDeployer struct {
-	Gw               workloads.GatewayNameProxy
-	ID               string
-	Node             uint32
-	Description      string
-	NodeDeploymentID map[uint32]uint64
-	NameContractID   uint64
-
-	TFPluginClient *TFPluginClient
-	ncPool         client.NodeClientGetter
-	deployer       Deployer
+	tfPluginClient *TFPluginClient
+	deployer       DeployerInterface
 }
 
-// Generates new gateway name deployer
+// NewGatewayNameDeployer generates new gateway name deployer
 func NewGatewayNameDeployer(tfPluginClient *TFPluginClient) GatewayNameDeployer {
+	deployer := NewDeployer(*tfPluginClient, true)
 	gatewayName := GatewayNameDeployer{
-		ncPool: client.NewNodeClientPool(tfPluginClient.RMB),
-		deployer: Deployer{},
+		tfPluginClient: tfPluginClient,
+		deployer:       &deployer,
 	}
 
-	gatewayName.TFPluginClient = tfPluginClient
-	gatewayName.deployer = NewDeployer(*tfPluginClient, true)
 	return gatewayName
 }
 
 // Validate validates gatewayName deployer
-func (k *GatewayNameDeployer) Validate(ctx context.Context, sub subi.SubstrateExt) error {
-	return client.AreNodesUp(ctx, sub, []uint32{k.Node}, k.ncPool)
+func (k *GatewayNameDeployer) Validate(ctx context.Context, gw *workloads.GatewayNameProxy) error {
+	sub := k.tfPluginClient.SubstrateConn
+	if err := validateAccountBalanceForExtrinsics(sub, k.tfPluginClient.Identity); err != nil {
+		return err
+	}
+	return client.AreNodesUp(ctx, sub, []uint32{gw.NodeID}, k.tfPluginClient.NcPool)
 }
 
-// GenerateVersionlessDeploymentsAndWorkloads generates deployments for gateway name deployer without versions
-func (k *GatewayNameDeployer) GenerateVersionlessDeployments(ctx context.Context,sub subi.SubstrateExt) (map[uint32]gridtypes.Deployment, error) {
+// GenerateVersionlessDeployments generates deployments for gateway name deployer without versions
+func (k *GatewayNameDeployer) GenerateVersionlessDeployments(ctx context.Context, gw *workloads.GatewayNameProxy) (map[uint32]gridtypes.Deployment, error) {
 	deployments := make(map[uint32]gridtypes.Deployment)
-	var wls []gridtypes.Workload
 
-	err := k.Validate(ctx,sub)
-	if err != nil {
-		return nil, err
-	}
+	dl := workloads.NewGridDeployment(k.tfPluginClient.TwinID, []gridtypes.Workload{})
+	dl.Workloads = append(dl.Workloads, gw.ZosWorkload())
 
-	dl := workloads.NewGridDeployment(k.deployer.twinID, wls)
-	wls = append(wls, k.Gw.ZosWorkload())
-	dl.Workloads = wls
-	deployments[k.Node] = dl
-
+	deployments[gw.NodeID] = dl
 	return deployments, nil
 }
 
-func (k *GatewayNameDeployer) InvalidateNameContract(ctx context.Context, sub subi.SubstrateExt) (err error) {
-	if k.NameContractID == 0 {
+// InvalidateNameContract invalidates name contract
+func (k *GatewayNameDeployer) InvalidateNameContract(ctx context.Context, gw *workloads.GatewayNameProxy) (err error) {
+	if gw.NameContractID == 0 {
 		return
 	}
 
-	k.NameContractID, err = sub.InvalidateNameContract(
+	gw.NameContractID, err = k.tfPluginClient.SubstrateConn.InvalidateNameContract(
 		ctx,
-		k.TFPluginClient.Identity,
-		k.NameContractID,
-		k.Gw.Name,
+		k.tfPluginClient.Identity,
+		gw.NameContractID,
+		gw.Name,
 	)
 	return
 }
 
-func (k *GatewayNameDeployer) Deploy(ctx context.Context, sub subi.SubstrateExt) error {
-	if err := k.Validate(ctx, sub); err != nil {
+// Deploy deploys the GatewayName deployments using the deployer
+func (k *GatewayNameDeployer) Deploy(ctx context.Context, gw *workloads.GatewayNameProxy) error {
+	if err := k.Validate(ctx, gw); err != nil {
 		return err
 	}
-	newDeployments, err := k.GenerateVersionlessDeployments(ctx,sub)
+	newDeployments, err := k.GenerateVersionlessDeployments(ctx, gw)
 	if err != nil {
 		return errors.Wrap(err, "couldn't generate deployments data")
 	}
 
+	if len(gw.SolutionType) == 0 {
+		gw.SolutionType = "Gateway"
+	}
+
 	deploymentData := workloads.DeploymentData{
-		Name: k.Gw.Name,
-		Type: "Gateway Name",
+		Name:        gw.Name,
+		Type:        "Gateway Name",
+		ProjectName: gw.SolutionType,
 	}
 	newDeploymentsData := make(map[uint32]workloads.DeploymentData)
 	newDeploymentsSolutionProvider := make(map[uint32]*uint64)
 
-	newDeploymentsData[k.Node] = deploymentData
-	newDeploymentsSolutionProvider[k.Node] = nil
+	newDeploymentsData[gw.NodeID] = deploymentData
+	newDeploymentsSolutionProvider[gw.NodeID] = nil
 
-	if err := k.InvalidateNameContract(ctx, sub); err != nil {
+	if err := k.InvalidateNameContract(ctx, gw); err != nil {
 		return err
 	}
-	if k.NameContractID == 0 {
-		k.NameContractID, err = sub.CreateNameContract(k.TFPluginClient.Identity, k.Gw.Name)
+	if gw.NameContractID == 0 {
+		gw.NameContractID, err = k.tfPluginClient.SubstrateConn.CreateNameContract(k.tfPluginClient.Identity, gw.Name)
 		if err != nil {
 			return err
 		}
 	}
-	if k.ID == "" {
-		// create the resource if the contract is created
-		k.ID = uuid.New().String()
-	}
-	k.NodeDeploymentID, err = k.deployer.Deploy(ctx,k.NodeDeploymentID, newDeployments,newDeploymentsData, newDeploymentsSolutionProvider)
+	oldDeployments := k.tfPluginClient.StateLoader.currentNodeDeployment
+
+	gw.NodeDeploymentID, err = k.deployer.Deploy(ctx, oldDeployments, newDeployments, newDeploymentsData, newDeploymentsSolutionProvider)
+	gw.ContractID = gw.NodeDeploymentID[gw.NodeID]
+
+	k.tfPluginClient.StateLoader.currentNodeDeployment[gw.NodeID] = gw.ContractID
+
 	return err
 }
 
-func (k *GatewayNameDeployer) syncContracts(ctx context.Context, sub subi.SubstrateExt) (err error) {
-	if err := sub.DeleteInvalidContracts(k.NodeDeploymentID); err != nil {
+func (k *GatewayNameDeployer) syncContracts(ctx context.Context, gw *workloads.GatewayNameProxy) (err error) {
+	if err := k.tfPluginClient.SubstrateConn.DeleteInvalidContracts(gw.NodeDeploymentID); err != nil {
 		return err
 	}
-	valid, err := sub.IsValidContract(k.NameContractID)
+	valid, err := k.tfPluginClient.SubstrateConn.IsValidContract(gw.NameContractID)
 	if err != nil {
 		return err
 	}
 	if !valid {
-		k.NameContractID = 0
+		gw.NameContractID = 0
 	}
-	if k.NameContractID == 0 && len(k.NodeDeploymentID) == 0 {
+	if gw.NameContractID == 0 && len(gw.NodeDeploymentID) == 0 {
 		// delete resource in case nothing is active (reflects only on read)
-		k.ID = ""
+		gw.ContractID = 0
 	}
 	return nil
 }
 
-func (k *GatewayNameDeployer) sync(ctx context.Context, sub subi.SubstrateExt ) (err error) {
-	if err := k.syncContracts(ctx, sub); err != nil {
+// Sync syncs the gateway deployments
+func (k *GatewayNameDeployer) sync(ctx context.Context, gw *workloads.GatewayNameProxy) (err error) {
+	if err := k.syncContracts(ctx, gw); err != nil {
 		return errors.Wrap(err, "couldn't sync contracts")
 	}
-	dls, err := k.deployer.GetDeployments(ctx, k.NodeDeploymentID)
+	dls, err := k.deployer.GetDeployments(ctx, gw.NodeDeploymentID)
 	if err != nil {
 		return errors.Wrap(err, "couldn't get deployment objects")
 	}
-	dl := dls[k.Node]
-	wl, _ := dl.Get(gridtypes.Name(k.Gw.Name))
-	k.Gw = workloads.GatewayNameProxy{}
+	dl := dls[gw.NodeID]
+	wl, _ := dl.Get(gridtypes.Name(gw.Name))
+
+	gwWorkload := workloads.GatewayNameProxy{}
+	gw.Backends = gwWorkload.Backends
+	gw.Name = gwWorkload.Name
+	gw.FQDN = gwWorkload.FQDN
+	gw.TLSPassthrough = gwWorkload.TLSPassthrough
 	// if the node acknowledges it, we are golden
 	if wl != nil && wl.Result.State.IsOkay() {
-		k.Gw, err = workloads.NewGatewayNameProxyFromZosWorkload(*wl.Workload)
+		gwWorkload, err := workloads.NewGatewayNameProxyFromZosWorkload(*wl.Workload)
+		gw.Backends = gwWorkload.Backends
+		gw.Name = gwWorkload.Name
+		gw.FQDN = gwWorkload.FQDN
+		gw.TLSPassthrough = gwWorkload.TLSPassthrough
 		if err != nil {
 			return err
 		}
@@ -148,19 +155,29 @@ func (k *GatewayNameDeployer) sync(ctx context.Context, sub subi.SubstrateExt ) 
 	return nil
 }
 
-func (k *GatewayNameDeployer) Cancel(ctx context.Context, sub subi.SubstrateExt) (err error) {
+// Cancel cancels the gatewayName deployment
+func (k *GatewayNameDeployer) Cancel(ctx context.Context, gw *workloads.GatewayNameProxy) (err error) {
+	oldDeployments := k.tfPluginClient.StateLoader.currentNodeDeployment
+
+	// construct new deployments to have all old deployments except the given one
 	newDeployments := make(map[uint32]gridtypes.Deployment)
-	newDeploymentsData := make(map[uint32]workloads.DeploymentData)
-	newDeploymentsSolutionProvider := make(map[uint32]*uint64)
-	k.NodeDeploymentID, err = k.deployer.Deploy(ctx,k.NodeDeploymentID, newDeployments,newDeploymentsData,newDeploymentsSolutionProvider)
+	for nodeID := range oldDeployments {
+		if gw.NodeID != nodeID {
+			newDeployments[nodeID] = gridtypes.Deployment{}
+		}
+	}
+
+	gw.NodeDeploymentID, err = k.deployer.Cancel(ctx, oldDeployments, newDeployments)
+
 	if err != nil {
 		return err
 	}
-	if k.NameContractID != 0 {
-		if err := sub.EnsureContractCanceled(k.TFPluginClient.Identity, k.NameContractID); err != nil {
+
+	if gw.NameContractID != 0 {
+		if err := k.tfPluginClient.SubstrateConn.EnsureContractCanceled(k.tfPluginClient.Identity, gw.NameContractID); err != nil {
 			return err
 		}
-		k.NameContractID = 0
+		gw.NameContractID = 0
 	}
 	return nil
 }

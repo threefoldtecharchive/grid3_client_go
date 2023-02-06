@@ -137,6 +137,7 @@ func (k *K8sDeployer) getK8sFreeIP(ipRange gridtypes.IPNet, nodeID uint32) (stri
 	return "", errors.New("all ips are used")
 }
 
+
 func (k *K8sDeployer) assignNodesIPs(k8sCluster *workloads.K8sCluster) error {
 	masterNodeRange := k8sCluster.NodesIPRange[k8sCluster.Master.Node]
 	if k8sCluster.Master.IP == "" || !masterNodeRange.Contains(net.ParseIP(k8sCluster.Master.IP)) {
@@ -167,10 +168,23 @@ func (k *K8sDeployer) GenerateVersionlessDeployments(ctx context.Context, k8sClu
 	}
 	deployments := make(map[uint32]gridtypes.Deployment)
 	nodeWorkloads := make(map[uint32][]gridtypes.Workload)
+
 	masterWorkloads := k8sCluster.Master.GenerateK8sWorkload(k8sCluster, false)
 	nodeWorkloads[k8sCluster.Master.Node] = append(nodeWorkloads[k8sCluster.Master.Node], masterWorkloads...)
 	for _, w := range k8sCluster.Workers {
 		workerWorkloads := w.GenerateK8sWorkload(k8sCluster, true)
+	k8sCluster := wl.K8sCluster{
+		Master:      k.Master,
+		Workers:     k.Workers,
+		Token:       k.Token,
+		SSHKey:      k.SSHKey,
+		NetworkName: k.NetworkName,
+	}
+	masterWorkloads := k.Master.ZosWorkload(&k8sCluster, true)
+	nodeWorkloads[k.Master.Node] = append(nodeWorkloads[k.Master.Node], masterWorkloads...)
+	for _, w := range k.Workers {
+		workerWorkloads := w.ZosWorkload(&k8sCluster, true)
+
 		nodeWorkloads[w.Node] = append(nodeWorkloads[w.Node], workerWorkloads...)
 	}
 

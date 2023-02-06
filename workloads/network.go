@@ -86,8 +86,8 @@ func GetZNetWorkloadData(wl gridtypes.Workload) (*zos.Network, error) {
 	return data, nil
 }
 
-// GenerateWorkloads generates a workload from a znet
-func (znet *ZNet) GenerateWorkload(subnet gridtypes.IPNet, wgPrivateKey string, wgListenPort uint16, peers []zos.Peer) gridtypes.Workload {
+// ZosWorkload generates a zos workload from a network
+func (znet *ZNet) ZosWorkload(subnet gridtypes.IPNet, wgPrivateKey string, wgListenPort uint16, peers []zos.Peer) gridtypes.Workload {
 	return gridtypes.Workload{
 		Version:     0,
 		Type:        zos.NetworkType,

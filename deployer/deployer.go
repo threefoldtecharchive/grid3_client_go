@@ -22,6 +22,31 @@ import (
 )
 
 
+// DeployerInterface to be used for any deployer
+type DeployerInterface interface {
+	Deploy(ctx context.Context,
+		oldDeploymentIDs map[uint32]uint64,
+		newDeployments map[uint32]gridtypes.Deployment,
+		newDeploymentsData map[uint32]workloads.DeploymentData,
+		newDeploymentSolutionProvider map[uint32]*uint64,
+	) (map[uint32]uint64, error)
+
+	Cancel(ctx context.Context,
+		oldDeploymentIDs map[uint32]uint64,
+		newDeployments map[uint32]gridtypes.Deployment,
+	) (map[uint32]uint64, error)
+
+	GetDeployments(ctx context.Context, dls map[uint32]uint64) (map[uint32]gridtypes.Deployment, error)
+
+	Wait(
+		ctx context.Context,
+		nodeClient *client.NodeClient,
+		deploymentID uint64,
+		workloadVersions map[string]uint32,
+	) error
+}
+
+
 // Deployer to be used for any deployer
 type Deployer struct {
 	identity        substrate.Identity
@@ -48,8 +73,8 @@ func NewDeployer(
 	}
 }
 
-// TODO: newDeployments should support more than 1 deployment per node ID
 // Deploy deploys or updates a new deployment given the old deployments' IDs
+// TODO: newDeployments should support more than 1 deployment per node ID
 func (d *Deployer) Deploy(ctx context.Context,
 	oldDeploymentIDs map[uint32]uint64,
 	newDeployments map[uint32]gridtypes.Deployment,

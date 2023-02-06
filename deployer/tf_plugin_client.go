@@ -49,7 +49,7 @@ type TFPluginClient struct {
 	NetworkDeployer     NetworkDeployer
 	GatewayFQDNDeployer GatewayFQDNDeployer
 	K8sDeployer         K8sDeployer
-	//gatewayNameDeployer GatewayNameDeployer
+	GatewayNameDeployer GatewayNameDeployer
 
 	StateLoader *StateLoader
 }
@@ -164,6 +164,7 @@ func NewTFPluginClient(mnemonics string,
 	tfPluginClient.NetworkDeployer = NewNetworkDeployer(&tfPluginClient)
 	tfPluginClient.GatewayFQDNDeployer = NewGatewayFqdnDeployer(&tfPluginClient)
 	tfPluginClient.K8sDeployer = NewK8sDeployer(&tfPluginClient)
+	tfPluginClient.GatewayNameDeployer = NewGatewayNameDeployer(&tfPluginClient)
 
 	tfPluginClient.StateLoader = NewStateLoader(tfPluginClient.NcPool, tfPluginClient.SubstrateConn)
 

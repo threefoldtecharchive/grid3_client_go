@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/centrifuge/go-substrate-rpc-client/v4 v4.0.5
-	github.com/goombaio/namegenerator v0.0.0-20181006234301-989e774b106e
+	github.com/google/go-querystring v1.1.0
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/joho/godotenv v1.4.0
 	github.com/pkg/errors v0.9.1
@@ -25,6 +25,8 @@ require (
 	golang.org/x/tools v0.1.10 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 )
+require golang.org/x/term v0.4.0 // indirect
+
 
 require (
 	github.com/ChainSafe/go-schnorrkel v1.0.0 // indirect

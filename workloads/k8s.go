@@ -133,8 +133,10 @@ func (k *K8sNodeData) HasWorkload(workload gridtypes.Workload) bool {
 	return false
 }
 
+
 // GenerateK8sWorkload generates a k8s workload from a k8s data
 func (k *K8sNodeData) GenerateK8sWorkload(cluster *K8sCluster, isWorker bool) []gridtypes.Workload {
+
 	diskName := fmt.Sprintf("%sdisk", k.Name)
 	K8sWorkloads := make([]gridtypes.Workload, 0)
 	diskWorkload := gridtypes.Workload{
@@ -230,10 +232,10 @@ func (k *K8sCluster) ValidateNames() error {
 // GenerateWorkloads generates k8s workloads from a k8s cluster
 func (k *K8sCluster) GenerateWorkloads() ([]gridtypes.Workload, error) {
 	k8sWorkloads := []gridtypes.Workload{}
-	k8sWorkloads = append(k8sWorkloads, k.Master.GenerateK8sWorkload(k, false)...)
+	k8sWorkloads = append(k8sWorkloads, k.Master.ZosWorkload(k, false)...)
 
 	for _, worker := range k.Workers {
-		k8sWorkloads = append(k8sWorkloads, worker.GenerateK8sWorkload(k, true)...)
+		k8sWorkloads = append(k8sWorkloads, worker.ZosWorkload(k, true)...)
 	}
 
 	return k8sWorkloads, nil

@@ -90,8 +90,8 @@ func (z *ZDB) ToMap() map[string]interface{} {
 	return res
 }
 
-// GenerateWorkloads generates a workload from a zdb
-func (z *ZDB) GenerateWorkload() gridtypes.Workload {
+// ZosWorkload generates a workload from a zdb
+func (z *ZDB) ZosWorkload() gridtypes.Workload {
 	return gridtypes.Workload{
 		Name:        gridtypes.Name(z.Name),
 		Type:        zos.ZDBType,
@@ -109,6 +109,6 @@ func (z *ZDB) GenerateWorkload() gridtypes.Workload {
 // BindWorkloadsToNode for staging workloads to node IDs
 func (z *ZDB) BindWorkloadsToNode(nodeID uint32) (map[uint32][]gridtypes.Workload, error) {
 	workloadsMap := map[uint32][]gridtypes.Workload{}
-	workloadsMap[nodeID] = []gridtypes.Workload{z.GenerateWorkload()}
+	workloadsMap[nodeID] = []gridtypes.Workload{z.ZosWorkload()}
 	return workloadsMap, nil
 }

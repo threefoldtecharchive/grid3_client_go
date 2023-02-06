@@ -48,8 +48,12 @@ type Mount struct {
 
 // NewVMFromSchema generates a new vm from a map of its data
 func NewVMFromSchema(vm map[string]interface{}) *VM {
-	mounts := make([]Mount, 0)
+	var mounts []Mount
 	mountPoints := vm["mounts"].([]interface{})
+
+	if len(mountPoints) > 0 {
+		mounts = make([]Mount, 0)
+	}
 	for _, mountPoint := range mountPoints {
 		point := mountPoint.(map[string]interface{})
 		mount := Mount{DiskName: point["disk_name"].(string), MountPoint: point["mount_point"].(string)}
@@ -173,8 +177,8 @@ func pubIP(dl *gridtypes.Deployment, name gridtypes.Name) zos.PublicIPResult {
 	return pubIPResult
 }
 
-// GenerateVMWorkload generates a vm workloads
-func (vm *VM) GenerateVMWorkload() []gridtypes.Workload {
+// ZosWorkload generates zos vm workloads
+func (vm *VM) ZosWorkload() []gridtypes.Workload {
 	workloads := make([]gridtypes.Workload, 0)
 	publicIPName := ""
 	if vm.PublicIP || vm.PublicIP6 {
@@ -186,12 +190,8 @@ func (vm *VM) GenerateVMWorkload() []gridtypes.Workload {
 		mounts = append(mounts, zos.MachineMount{Name: gridtypes.Name(mount.DiskName), Mountpoint: mount.MountPoint})
 	}
 	for _, zlog := range vm.Zlogs {
-		zlogWorkload, err := zlog.GenerateWorkloads()
-		if err != nil {
-			continue
-		}
-
-		workloads = append(workloads, zlogWorkload...)
+		zlogWorkload := zlog.ZosWorkload()
+		workloads = append(workloads, zlogWorkload)
 	}
 	workload := gridtypes.Workload{
 		Version: 0,
@@ -316,68 +316,9 @@ func (vm *VM) Match(vm2 *VM) {
 	vm.FlistChecksum = vm2.FlistChecksum
 }
 
-// GenerateWorkloads generates a workload from a vm
-func (vm *VM) GenerateWorkloads() ([]gridtypes.Workload, error) {
-	workloads := make([]gridtypes.Workload, 0)
-	publicIPName := ""
-	if vm.PublicIP || vm.PublicIP6 {
-		publicIPName = fmt.Sprintf("%sip", vm.Name)
-		workloads = append(workloads, ConstructPublicIPWorkload(publicIPName, vm.PublicIP, vm.PublicIP6))
-	}
-	mounts := make([]zos.MachineMount, 0)
-	for _, mount := range vm.Mounts {
-		mounts = append(mounts, zos.MachineMount{Name: gridtypes.Name(mount.DiskName), Mountpoint: mount.MountPoint})
-	}
-	for _, zlog := range vm.Zlogs {
-		zlogWorkload, err := zlog.GenerateWorkloads()
-		if err != nil {
-			continue
-		}
-
-		workloads = append(workloads, zlogWorkload...)
-	}
-
-	workload := gridtypes.Workload{
-		Version: 0,
-		Name:    gridtypes.Name(vm.Name),
-		Type:    zos.ZMachineType,
-		Data: gridtypes.MustMarshal(zos.ZMachine{
-			FList: vm.Flist,
-			Network: zos.MachineNetwork{
-				Interfaces: []zos.MachineInterface{
-					{
-						Network: gridtypes.Name(vm.NetworkName),
-						IP:      net.ParseIP(vm.IP),
-					},
-				},
-				PublicIP:  gridtypes.Name(publicIPName),
-				Planetary: vm.Planetary,
-			},
-			ComputeCapacity: zos.MachineCapacity{
-				CPU:    uint8(vm.CPU),
-				Memory: gridtypes.Unit(uint(vm.Memory)) * gridtypes.Megabyte,
-			},
-			Size:       gridtypes.Unit(vm.RootfsSize) * gridtypes.Megabyte,
-			Entrypoint: vm.Entrypoint,
-			Corex:      vm.Corex,
-			Mounts:     mounts,
-			Env:        vm.EnvVars,
-		}),
-		Description: vm.Description,
-	}
-	workloads = append(workloads, workload)
-	return workloads, nil
-}
-
 // BindWorkloadsToNode for staging workloads to node IDs
 func (vm *VM) BindWorkloadsToNode(nodeID uint32) (map[uint32][]gridtypes.Workload, error) {
 	workloadsMap := map[uint32][]gridtypes.Workload{}
-
-	workloads, err := vm.GenerateWorkloads()
-	if err != nil {
-		return workloadsMap, err
-	}
-
-	workloadsMap[nodeID] = workloads
+	workloadsMap[nodeID] = append(workloadsMap[nodeID], vm.ZosWorkload()...)
 	return workloadsMap, nil
 }

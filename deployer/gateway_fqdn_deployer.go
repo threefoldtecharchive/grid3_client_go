@@ -13,15 +13,15 @@ import (
 // GatewayFQDNDeployer for deploying a GatewayFqdn
 type GatewayFQDNDeployer struct {
 	tfPluginClient *TFPluginClient
-	deployer       Deployer
+	deployer       DeployerInterface
 }
 
-// Generates new gateway fqdn deployer
+// NewGatewayFqdnDeployer generates new gateway fqdn deployer
 func NewGatewayFqdnDeployer(tfPluginClient *TFPluginClient) GatewayFQDNDeployer {
-	newDeployer := NewDeployer(*tfPluginClient, true)
+	deployer := NewDeployer(*tfPluginClient, true)
 	gatewayFQDN := GatewayFQDNDeployer{
 		tfPluginClient: tfPluginClient,
-		deployer:       newDeployer,
+		deployer:       &deployer,
 	}
 
 	return gatewayFQDN
@@ -40,7 +40,7 @@ func (k *GatewayFQDNDeployer) Validate(ctx context.Context, gw *workloads.Gatewa
 func (k *GatewayFQDNDeployer) GenerateVersionlessDeployments(ctx context.Context, gw *workloads.GatewayFQDNProxy) (map[uint32]gridtypes.Deployment, error) {
 	deployments := make(map[uint32]gridtypes.Deployment)
 
-	dl := workloads.NewGridDeployment(k.deployer.twinID, []gridtypes.Workload{})
+	dl := workloads.NewGridDeployment(k.tfPluginClient.TwinID, []gridtypes.Workload{})
 	dl.Workloads = append(dl.Workloads, gw.ZosWorkload())
 
 	deployments[gw.NodeID] = dl
@@ -87,6 +87,7 @@ func (k *GatewayFQDNDeployer) Deploy(ctx context.Context, gw *workloads.GatewayF
 	return err
 }
 
+// Cancel cancels a gateway deployment
 func (k *GatewayFQDNDeployer) Cancel(ctx context.Context, gw *workloads.GatewayFQDNProxy) (err error) {
 	if err := k.Validate(ctx, gw); err != nil {
 		return err
@@ -111,7 +112,6 @@ func (k *GatewayFQDNDeployer) syncContracts(ctx context.Context, gw *workloads.G
 		return err
 	}
 	if len(gw.NodeDeploymentID) == 0 {
-		// delete resource in case nothing is active (reflects only on read)
 		gw.ContractID = 0
 	}
 	return nil
@@ -131,9 +131,19 @@ func (k *GatewayFQDNDeployer) Sync(ctx context.Context, gw *workloads.GatewayFQD
 	dl := dls[gw.NodeID]
 	wl, _ := dl.Get(gridtypes.Name(gw.Name))
 
+	gwWorkload := workloads.GatewayFQDNProxy{}
+	gw.Backends = gwWorkload.Backends
+	gw.Name = gwWorkload.Name
+	gw.FQDN = gwWorkload.FQDN
+	gw.TLSPassthrough = gwWorkload.TLSPassthrough
+
 	if wl != nil && wl.Result.State.IsOkay() {
-		gwWl, err := workloads.NewGatewayFQDNProxyFromZosWorkload(*wl.Workload)
-		gw = &gwWl
+		gwWorkload, err := workloads.NewGatewayFQDNProxyFromZosWorkload(*wl.Workload)
+		gw.Backends = gwWorkload.Backends
+		gw.Name = gwWorkload.Name
+		gw.FQDN = gwWorkload.FQDN
+		gw.TLSPassthrough = gwWorkload.TLSPassthrough
+
 		if err != nil {
 			return err
 		}

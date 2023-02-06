@@ -22,22 +22,18 @@ type NetworkDeployer struct {
 	Keys   map[uint32]wgtypes.Key
 
 	tfPluginClient *TFPluginClient
-	deployer       Deployer
+	deployer       DeployerInterface
 }
 
 // NewNetworkDeployer generates a new network deployer
 func NewNetworkDeployer(tfPluginClient *TFPluginClient) NetworkDeployer {
-	netDeployer := NetworkDeployer{
+	deployer := NewDeployer(*tfPluginClient, true)
+	return NetworkDeployer{
 		Keys:           make(map[uint32]wgtypes.Key),
 		WGPort:         make(map[uint32]int),
 		tfPluginClient: tfPluginClient,
-		deployer:       Deployer{},
+		deployer:       &deployer,
 	}
-
-	netDeployer.tfPluginClient = tfPluginClient
-	netDeployer.deployer = NewDeployer(*tfPluginClient, true)
-
-	return netDeployer
 }
 
 // Validate validates a network deployer
@@ -52,7 +48,7 @@ func (k *NetworkDeployer) Validate(ctx context.Context, znet *workloads.ZNet) er
 		return err
 	}
 
-	err := client.AreNodesUp(ctx, sub, znet.Nodes, k.deployer.ncPool)
+	err := client.AreNodesUp(ctx, sub, znet.Nodes, k.tfPluginClient.NcPool)
 	if err != nil {
 		return err
 	}
@@ -60,7 +56,7 @@ func (k *NetworkDeployer) Validate(ctx context.Context, znet *workloads.ZNet) er
 	return k.invalidateBrokenAttributes(znet)
 }
 
-// GenerateVersionlessDeploymentsAndWorkloads generates deployments for network deployer without versions
+// GenerateVersionlessDeployments generates deployments for network deployer without versions
 func (k *NetworkDeployer) GenerateVersionlessDeployments(ctx context.Context, znet *workloads.ZNet) (map[uint32]gridtypes.Deployment, error) {
 	deployments := make(map[uint32]gridtypes.Deployment)
 
@@ -73,7 +69,7 @@ func (k *NetworkDeployer) GenerateVersionlessDeployments(ctx context.Context, zn
 	var ipv4Node uint32
 
 	for _, nodeID := range znet.Nodes {
-		nodeClient, err := k.deployer.ncPool.GetNodeClient(sub, nodeID)
+		nodeClient, err := k.tfPluginClient.NcPool.GetNodeClient(sub, nodeID)
 		if err != nil {
 			return nil, errors.Wrapf(err, "couldn't get node %d client", nodeID)
 		}
@@ -112,7 +108,7 @@ func (k *NetworkDeployer) GenerateVersionlessDeployments(ctx context.Context, zn
 		}
 
 		if endpoints[znet.PublicNodeID] == "" { // old or new outsider
-			cl, err := k.deployer.ncPool.GetNodeClient(sub, znet.PublicNodeID)
+			cl, err := k.tfPluginClient.NcPool.GetNodeClient(sub, znet.PublicNodeID)
 			if err != nil {
 				return nil, errors.Wrapf(err, "couldn't get node %d client", znet.PublicNodeID)
 			}
@@ -212,7 +208,7 @@ func (k *NetworkDeployer) GenerateVersionlessDeployments(ctx context.Context, zn
 			}
 		}
 
-		workload := znet.GenerateWorkload(znet.NodesIPRange[nodeID], k.Keys[nodeID].String(), uint16(k.WGPort[nodeID]), peers)
+		workload := znet.ZosWorkload(znet.NodesIPRange[nodeID], k.Keys[nodeID].String(), uint16(k.WGPort[nodeID]), peers)
 		deployment := workloads.NewGridDeployment(k.tfPluginClient.TwinID, []gridtypes.Workload{workload})
 		deployments[nodeID] = deployment
 	}
@@ -232,7 +228,7 @@ func (k *NetworkDeployer) GenerateVersionlessDeployments(ctx context.Context, zn
 			})
 		}
 
-		workload := znet.GenerateWorkload(znet.NodesIPRange[nodeID], k.Keys[nodeID].String(), uint16(k.WGPort[nodeID]), peers)
+		workload := znet.ZosWorkload(znet.NodesIPRange[nodeID], k.Keys[nodeID].String(), uint16(k.WGPort[nodeID]), peers)
 		deployment := workloads.NewGridDeployment(k.tfPluginClient.TwinID, []gridtypes.Workload{workload})
 		deployments[nodeID] = deployment
 	}
@@ -317,7 +313,7 @@ func (k *NetworkDeployer) Cancel(ctx context.Context, znet *workloads.ZNet) erro
 
 	// update state
 	znet.NodeDeploymentID = currentDeployments
-	k.tfPluginClient.StateLoader.networks.updateNetwork(znet.Name, znet.NodesIPRange)
+	k.tfPluginClient.StateLoader.networks.deleteNetwork(znet.Name)
 	k.tfPluginClient.StateLoader.currentNodeNetwork = currentDeployments
 	if err := k.readNodesConfig(ctx, znet); err != nil {
 		return errors.Wrap(err, "couldn't read node's data")
@@ -329,7 +325,7 @@ func (k *NetworkDeployer) Cancel(ctx context.Context, znet *workloads.ZNet) erro
 // invalidateBrokenAttributes removes outdated attrs and deleted contracts
 func (k *NetworkDeployer) invalidateBrokenAttributes(znet *workloads.ZNet) error {
 	for node, contractID := range znet.NodeDeploymentID {
-		contract, err := k.deployer.SubstrateConn.GetContract(contractID)
+		contract, err := k.tfPluginClient.SubstrateConn.GetContract(contractID)
 		if (err == nil && !contract.IsCreated()) || errors.Is(err, substrate.ErrNotFound) {
 			delete(znet.NodeDeploymentID, node)
 			delete(znet.NodesIPRange, node)
@@ -349,7 +345,7 @@ func (k *NetworkDeployer) invalidateBrokenAttributes(znet *workloads.ZNet) error
 	}
 	if znet.PublicNodeID != 0 {
 		// TODO: add a check that the node is still public
-		cl, err := k.deployer.ncPool.GetNodeClient(k.deployer.SubstrateConn, znet.PublicNodeID)
+		cl, err := k.tfPluginClient.NcPool.GetNodeClient(k.tfPluginClient.SubstrateConn, znet.PublicNodeID)
 		if err != nil {
 			// whatever the error, delete it and it will get reassigned later
 			znet.PublicNodeID = 0
@@ -406,7 +402,7 @@ func (k *NetworkDeployer) assignNodesIPs(nodes []uint32, znet *workloads.ZNet) e
 func (k *NetworkDeployer) assignNodesWGPort(ctx context.Context, sub subi.SubstrateExt, nodes []uint32) error {
 	for _, nodeID := range nodes {
 		if _, ok := k.WGPort[nodeID]; !ok {
-			cl, err := k.deployer.ncPool.GetNodeClient(sub, nodeID)
+			cl, err := k.tfPluginClient.NcPool.GetNodeClient(sub, nodeID)
 			if err != nil {
 				return errors.Wrap(err, "could not get node client")
 			}

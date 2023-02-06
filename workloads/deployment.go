@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/threefoldtech/substrate-client"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
@@ -37,6 +36,7 @@ type Deployment struct {
 	ContractID uint64
 }
 
+// NewDeployment generates a new deployment
 func NewDeployment(name string, nodeID uint32,
 	solutionType string, solutionProvider *uint64,
 	NetworkName string,
@@ -123,32 +123,29 @@ func (d *Deployment) Match(disks []Disk, qsfs []QSFS, zdbs []ZDB, vms []VM) {
 	}
 }
 
-// ConstructGridDeployment generates a new grid deployment from a deployment
-func (d *Deployment) ConstructGridDeployment(twin uint32) (gridtypes.Deployment, error) {
+// ZosDeployment generates a new zos deployment from a deployment
+func (d *Deployment) ZosDeployment(twin uint32) (gridtypes.Deployment, error) {
 	wls := []gridtypes.Workload{}
 
 	for _, d := range d.Disks {
-		wls = append(wls, d.GenerateWorkload())
+		wls = append(wls, d.ZosWorkload())
 	}
 
 	for _, z := range d.Zdbs {
-		wls = append(wls, z.GenerateWorkload())
+		wls = append(wls, z.ZosWorkload())
 	}
 
 	for _, v := range d.Vms {
-		vmWls, err := v.GenerateWorkloads()
-		if err != nil {
-			return gridtypes.Deployment{}, err
-		}
+		vmWls := v.ZosWorkload()
 		wls = append(wls, vmWls...)
 	}
 
 	for _, q := range d.Qsfs {
-		qWls, err := q.GenerateWorkloads()
+		qWls, err := q.ZosWorkload()
 		if err != nil {
 			return gridtypes.Deployment{}, err
 		}
-		wls = append(wls, qWls...)
+		wls = append(wls, qWls)
 	}
 
 	return gridtypes.Deployment{
@@ -169,7 +166,7 @@ func (d *Deployment) ConstructGridDeployment(twin uint32) (gridtypes.Deployment,
 	}, nil
 }
 
-// NewDeployment generates a new deployment
+// NewGridDeployment generates a new grid deployment
 func NewGridDeployment(twin uint32, workloads []gridtypes.Workload) gridtypes.Deployment {
 	return gridtypes.Deployment{
 		Version: 0,
@@ -206,25 +203,4 @@ func GetUsedIPs(dl gridtypes.Deployment) ([]byte, error) {
 		}
 	}
 	return usedIPs, nil
-}
-
-// GatewayWorkloadGenerator is an interface for a gateway workload generator
-type GatewayWorkloadGenerator interface {
-	ZosWorkload() gridtypes.Workload
-}
-
-// NewDeploymentWithGateway generates a new deployment with a gateway workload
-func NewDeploymentWithGateway(identity substrate.Identity, twinID uint32, version uint32, gw GatewayWorkloadGenerator) (gridtypes.Deployment, error) {
-	dl := NewGridDeployment(twinID, []gridtypes.Workload{})
-	dl.Version = version
-
-	dl.Workloads = append(dl.Workloads, gw.ZosWorkload())
-	dl.Workloads[0].Version = version
-
-	err := dl.Sign(twinID, identity)
-	if err != nil {
-		return gridtypes.Deployment{}, err
-	}
-
-	return dl, nil
 }

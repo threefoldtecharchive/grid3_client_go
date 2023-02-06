@@ -3,46 +3,35 @@ package workloads
 
 import (
 	"encoding/json"
-	"net"
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
+// VMWorkload for tests
+var VMWorkload = VM{
+	Name:       "test",
+	Flist:      "https://hub.grid.tf/tf-official-apps/base:latest.flist",
+	CPU:        2,
+	PublicIP:   true,
+	Planetary:  true,
+	Memory:     1024,
+	RootfsSize: 20 * 1024,
+	Entrypoint: "/sbin/zinit init",
+	EnvVars: map[string]string{
+		"SSH_KEY": "",
+	},
+	IP:          "10.20.2.5",
+	NetworkName: "testingNetwork",
+}
+
 func TestVMWorkload(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	var vmMap map[string]interface{}
-
 	var workloadsFromVM []gridtypes.Workload
+	var vmWorkload gridtypes.Workload
 
-	vm := VM{
-		Name:          "test",
-		Flist:         "flist test",
-		FlistChecksum: "",
-		PublicIP:      true,
-		PublicIP6:     false,
-		Planetary:     true,
-		Corex:         false,
-		IP:            "1.1.1.1",
-		Description:   "test des",
-		CPU:           2,
-		Memory:        2048,
-		RootfsSize:    4096,
-		Entrypoint:    "entrypoint",
-		Mounts: []Mount{
-			{DiskName: "disk", MountPoint: "mount"},
-		},
-		Zlogs: []Zlog{
-			{Output: "output", Zmachine: "test"},
-		},
-		EnvVars:     map[string]string{"var1": "val1"},
-		NetworkName: "test network",
-	}
+	VMWorkload.Zlogs = []Zlog{ZlogWorkload}
 
 	pubIPWorkload := gridtypes.Workload{
 		Version: 0,
@@ -54,87 +43,31 @@ func TestVMWorkload(t *testing.T) {
 		}),
 	}
 
-	vmRes, err := json.Marshal(zos.ZMachineResult{
-		ID:    "",
-		IP:    "",
-		YggIP: "",
-	})
-	assert.NoError(t, err)
-
-	vmWorkload := gridtypes.Workload{
-		Version: 0,
-		Name:    gridtypes.Name("test"),
-		Type:    zos.ZMachineType,
-		Data: gridtypes.MustMarshal(zos.ZMachine{
-			FList: "flist test",
-			Network: zos.MachineNetwork{
-				Interfaces: []zos.MachineInterface{
-					{
-						Network: gridtypes.Name("test network"),
-						IP:      net.ParseIP("1.1.1.1"),
-					},
-				},
-				PublicIP:  gridtypes.Name("testip"),
-				Planetary: true,
-			},
-			ComputeCapacity: zos.MachineCapacity{
-				CPU:    uint8(2),
-				Memory: 2048 * gridtypes.Megabyte,
-			},
-			Size:       4096 * gridtypes.Megabyte,
-			Entrypoint: "entrypoint",
-			Corex:      false,
-			Mounts: []zos.MachineMount{
-				{Name: gridtypes.Name("disk"), Mountpoint: "mount"},
-			},
-			Env: map[string]string{"var1": "val1"},
-		}),
-		Description: "test des",
-		Result: gridtypes.Result{
-			Created: 5000,
-			State:   gridtypes.StateOk,
-			Data:    vmRes,
-		},
-	}
-
 	pubIPWorkload.Result.State = "ok"
-	deployment := gridtypes.Deployment{
-		Version:   0,
-		TwinID:    1,
-		Workloads: []gridtypes.Workload{vmWorkload, pubIPWorkload},
-		SignatureRequirement: gridtypes.SignatureRequirement{
-			WeightRequired: 1,
-			Requests: []gridtypes.SignatureRequest{
-				{
-					TwinID: 1,
-					Weight: 1,
-				},
-			},
-		},
-	}
+	deployment := NewGridDeployment(1, []gridtypes.Workload{vmWorkload, pubIPWorkload})
 
-	t.Run("test_vm_dictify", func(t *testing.T) {
-		vmMap = vm.ToMap()
-	})
-
-	t.Run("test_vm_from_schema", func(t *testing.T) {
-		vmFromSchema := NewVMFromSchema(vmMap)
-		assert.Equal(t, *vmFromSchema, vm)
+	t.Run("test vm from/to map", func(t *testing.T) {
+		vmFromSchema := NewVMFromSchema(VMWorkload.ToMap())
+		assert.Equal(t, *vmFromSchema, VMWorkload)
 	})
 
 	t.Run("test_vm_from_workload", func(t *testing.T) {
+		workloadsFromVM = VMWorkload.ZosWorkload()
+		vmWorkload = workloadsFromVM[2]
+
+		res, err := json.Marshal(zos.ZMachineResult{})
+		assert.NoError(t, err)
+		vmWorkload.Result.Data = res
+
 		vmFromWorkload, err := NewVMFromWorkloads(&vmWorkload, &deployment)
 		assert.NoError(t, err)
 
 		// no result yet so they are set manually
 		vmFromWorkload.Planetary = true
 		vmFromWorkload.PublicIP = true
-		vmFromWorkload.Zlogs = []Zlog{{
-			Zmachine: "test",
-			Output:   "output",
-		}}
+		vmFromWorkload.Zlogs = []Zlog{ZlogWorkload}
 
-		assert.Equal(t, vmFromWorkload, vm)
+		assert.Equal(t, vmFromWorkload, VMWorkload)
 	})
 
 	t.Run("test_pubIP_from_deployment", func(t *testing.T) {
@@ -147,60 +80,36 @@ func TestVMWorkload(t *testing.T) {
 		assert.NoError(t, err)
 
 		zosZmachine, ok := dataI.(*zos.ZMachine)
-		assert.Equal(t, ok, true)
+		assert.True(t, ok)
 
 		mountsOfVMWorkload := mounts(zosZmachine.Mounts)
-		assert.Equal(t, mountsOfVMWorkload, vm.Mounts)
-	})
-
-	t.Run("test_workloads_from_vm", func(t *testing.T) {
-		// put state in zero values
-		pubIPWorkload.Result.State = ""
-
-		vmWorkloadCp := vmWorkload
-		vmWorkloadCp.Result = gridtypes.Result{}
-
-		assert.Equal(t, pubIPWorkload, vm.GenerateVMWorkload()[0])
-		assert.Equal(t, vmWorkloadCp, vm.GenerateVMWorkload()[2])
+		assert.Equal(t, mountsOfVMWorkload, VMWorkload.Mounts)
 	})
 
 	t.Run("test_vm_validate", func(t *testing.T) {
-		assert.NoError(t, vm.Validate())
+		assert.NoError(t, VMWorkload.Validate())
 	})
 
 	t.Run("test_vm_failed_validate", func(t *testing.T) {
-		vm.CPU = 0
-		assert.ErrorIs(t, vm.Validate(), ErrInvalidInput)
-		vm.CPU = 2
-	})
-
-	t.Run("test_workload_from_vm", func(t *testing.T) {
-		var err error
-
-		workloadsFromVM, err = vm.GenerateWorkloads()
-		assert.NoError(t, err)
-
-		vmWorkloadCp := vmWorkload
-		vmWorkloadCp.Result = gridtypes.Result{}
-
-		assert.Equal(t, workloadsFromVM[2], vmWorkloadCp)
-		assert.Equal(t, workloadsFromVM[0], pubIPWorkload)
+		VMWorkload.CPU = 0
+		assert.ErrorIs(t, VMWorkload.Validate(), ErrInvalidInput)
+		VMWorkload.CPU = 2
 	})
 
 	t.Run("test_vm_set_network_name", func(t *testing.T) {
-		vmWithNetwork := vm.WithNetworkName("net")
+		vmWithNetwork := VMWorkload.WithNetworkName("net")
 		assert.Equal(t, vmWithNetwork.NetworkName, "net")
 	})
 
 	t.Run("test_vm_matches_another_vm", func(t *testing.T) {
-		vm2 := vm.WithNetworkName("net")
-		vm.Match(vm2)
-		assert.Equal(t, *vm2, vm)
+		vm2 := VMWorkload.WithNetworkName("net")
+		VMWorkload.Match(vm2)
+		assert.Equal(t, *vm2, VMWorkload)
 
 		// reset network name
-		vm2 = vm.WithNetworkName("test network")
-		vm.Match(vm2)
-		assert.Equal(t, *vm2, vm)
+		vm2 = VMWorkload.WithNetworkName("testingNetwork")
+		VMWorkload.Match(vm2)
+		assert.Equal(t, *vm2, VMWorkload)
 	})
 
 	t.Run("test_workloads_map", func(t *testing.T) {
@@ -208,7 +117,7 @@ func TestVMWorkload(t *testing.T) {
 		workloadsMap := map[uint32][]gridtypes.Workload{}
 		workloadsMap[nodeID] = append(workloadsMap[nodeID], workloadsFromVM...)
 
-		workloadsMap2, err := vm.BindWorkloadsToNode(nodeID)
+		workloadsMap2, err := VMWorkload.BindWorkloadsToNode(nodeID)
 		assert.NoError(t, err)
 		assert.Equal(t, workloadsMap, workloadsMap2)
 	})

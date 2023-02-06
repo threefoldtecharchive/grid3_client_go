@@ -115,7 +115,7 @@ type NodeFilter struct {
 	PublicIPs bool `url:"ipv4,omitempty"`
 	Gateway   bool `url:"domain,omitempty"`
 
-	FarmId   string `url:"farm_ids,omitempty"`
+	FarmID   string `url:"farm_ids,omitempty"`
 	FarmName string `url:"farm_name,omitempty"`
 	Country  string `url:"country,omitempty"`
 	City     string `url:"city,omitempty"`

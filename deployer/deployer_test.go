@@ -42,6 +42,25 @@ func setup() (TFPluginClient, error) {
 	return NewTFPluginClient(mnemonics, "sr25519", network, "", "", true, "", true)
 }
 
+type gatewayWorkloadGenerator interface {
+	ZosWorkload() gridtypes.Workload
+}
+
+func newDeploymentWithGateway(identity substrate.Identity, twinID uint32, version uint32, gw gatewayWorkloadGenerator) (gridtypes.Deployment, error) {
+	dl := workloads.NewGridDeployment(twinID, []gridtypes.Workload{})
+	dl.Version = version
+
+	dl.Workloads = append(dl.Workloads, gw.ZosWorkload())
+	dl.Workloads[0].Version = version
+
+	err := dl.Sign(twinID, identity)
+	if err != nil {
+		return gridtypes.Deployment{}, err
+	}
+
+	return dl, nil
+}
+
 func deploymentWithNameGateway(identity substrate.Identity, twinID uint32, TLSPassthrough bool, version uint32, backendURL string) (gridtypes.Deployment, error) {
 	gw := workloads.GatewayNameProxy{
 		Name:           "name",
@@ -49,7 +68,7 @@ func deploymentWithNameGateway(identity substrate.Identity, twinID uint32, TLSPa
 		Backends:       []zos.Backend{zos.Backend(backendURL)},
 	}
 
-	return workloads.NewDeploymentWithGateway(identity, twinID, version, &gw)
+	return newDeploymentWithGateway(identity, twinID, version, &gw)
 }
 
 func deploymentWithFQDN(identity substrate.Identity, twinID uint32, version uint32) (gridtypes.Deployment, error) {
@@ -59,7 +78,7 @@ func deploymentWithFQDN(identity substrate.Identity, twinID uint32, version uint
 		Backends: []zos.Backend{zos.Backend(backendURLWithoutTLSPassthrough)},
 	}
 
-	return workloads.NewDeploymentWithGateway(identity, twinID, version, &gw)
+	return newDeploymentWithGateway(identity, twinID, version, &gw)
 }
 
 func hash(dl *gridtypes.Deployment) (string, error) {
