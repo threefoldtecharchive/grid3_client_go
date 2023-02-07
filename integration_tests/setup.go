@@ -72,6 +72,7 @@ func RemoteRun(user string, addr string, cmd string, privateKey string) (string,
 	if err != nil {
 		return "", errors.Wrapf(err, "could not start ssh connection")
 	}
+	defer client.Close()
 
 	session, err := client.NewSession()
 	if err != nil {

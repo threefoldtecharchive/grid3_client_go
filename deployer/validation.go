@@ -47,6 +47,7 @@ func validateRedis(tfPluginClient *TFPluginClient) error {
 	if err != nil {
 		return errors.Wrap(err, errMsg)
 	}
+	defer cl.Close()
 	c, err := cl.Dial()
 	if err != nil {
 		return errors.Wrap(err, errMsg)
