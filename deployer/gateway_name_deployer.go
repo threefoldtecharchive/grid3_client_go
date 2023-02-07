@@ -98,10 +98,14 @@ func (k *GatewayNameDeployer) Deploy(ctx context.Context, gw *workloads.GatewayN
 	}
 	oldDeployments := k.tfPluginClient.StateLoader.currentNodeDeployment
 
-	gw.NodeDeploymentID, err = k.deployer.Deploy(ctx, oldDeployments, newDeployments, newDeploymentsData, newDeploymentsSolutionProvider)
-	gw.ContractID = gw.NodeDeploymentID[gw.NodeID]
+	currentDeployments, err := k.deployer.Deploy(ctx, oldDeployments, newDeployments, newDeploymentsData, newDeploymentsSolutionProvider)
 
-	k.tfPluginClient.StateLoader.currentNodeDeployment[gw.NodeID] = gw.ContractID
+	// update state
+	if err == nil {
+		gw.ContractID = currentDeployments[gw.NodeID]
+		gw.NodeDeploymentID = currentDeployments
+		k.tfPluginClient.StateLoader.currentNodeDeployment[gw.NodeID] = gw.ContractID
+	}
 
 	return err
 }
@@ -167,10 +171,15 @@ func (k *GatewayNameDeployer) Cancel(ctx context.Context, gw *workloads.GatewayN
 		}
 	}
 
-	gw.NodeDeploymentID, err = k.deployer.Cancel(ctx, oldDeployments, newDeployments)
+	currentDeployments, err := k.deployer.Cancel(ctx, oldDeployments, newDeployments)
 
 	if err != nil {
 		return err
+	}
+	gw.ContractID = currentDeployments[gw.NodeID]
+	if gw.ContractID == 0 {
+		delete(k.tfPluginClient.StateLoader.currentNodeDeployment, gw.NodeID)
+		delete(gw.NodeDeploymentID, gw.NodeID)
 	}
 
 	if gw.NameContractID != 0 {

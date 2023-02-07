@@ -200,9 +200,10 @@ func TestNameUpdate(t *testing.T) {
 
 func TestNameUpdateFailed(t *testing.T) {
 	d, cl, sub, ncPool, deployer, proxyCl := constructTestNameDeployer(t, true)
-
+	d.tfPluginClient.StateLoader.currentNodeDeployment = map[uint32]uint64{nodeID: contractID}
 	gw := constructTestName()
 	gw.NameContractID = nameContractID
+	gw.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
 
 	dls, err := d.GenerateVersionlessDeployments(context.Background(), &gw)
 	assert.NoError(t, err)
@@ -211,7 +212,7 @@ func TestNameUpdateFailed(t *testing.T) {
 
 	deployer.EXPECT().Deploy(
 		gomock.Any(),
-		gw.NodeDeploymentID,
+		map[uint32]uint64{nodeID: contractID},
 		dls,
 		gomock.Any(),
 		gomock.Any(),
@@ -230,15 +231,18 @@ func TestNameUpdateFailed(t *testing.T) {
 func TestNameCancel(t *testing.T) {
 	d, _, sub, _, deployer, _ := constructTestNameDeployer(t, true)
 	gw := constructTestName()
+	gw.NameContractID = nameContractID
+	gw.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
+	d.tfPluginClient.StateLoader.currentNodeDeployment = map[uint32]uint64{nodeID: contractID}
 
 	deployer.EXPECT().Cancel(
 		gomock.Any(),
-		map[uint32]uint64{},
+		map[uint32]uint64{nodeID: contractID},
 		map[uint32]gridtypes.Deployment{},
 	).Return(map[uint32]uint64{}, nil)
 
 	sub.EXPECT().
-		EnsureContractCanceled(d.tfPluginClient.Identity, contractID).
+		EnsureContractCanceled(d.tfPluginClient.Identity, nameContractID).
 		Return(nil)
 
 	err := d.Cancel(context.Background(), &gw)
@@ -250,10 +254,12 @@ func TestNameCancel(t *testing.T) {
 func TestNameCancelDeploymentsFailed(t *testing.T) {
 	d, _, _, _, deployer, _ := constructTestNameDeployer(t, true)
 	gw := constructTestName()
+	gw.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
+	d.tfPluginClient.StateLoader.currentNodeDeployment = map[uint32]uint64{nodeID: contractID}
 
 	deployer.EXPECT().Cancel(
 		gomock.Any(),
-		map[uint32]uint64{},
+		map[uint32]uint64{nodeID: contractID},
 		map[uint32]gridtypes.Deployment{},
 	).Return(map[uint32]uint64{nodeID: contractID}, errors.New("error"))
 
@@ -267,10 +273,12 @@ func TestNameCancelContractsFailed(t *testing.T) {
 
 	gw := constructTestName()
 	gw.NameContractID = nameContractID
+	gw.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
+	d.tfPluginClient.StateLoader.currentNodeDeployment = map[uint32]uint64{nodeID: contractID}
 
 	deployer.EXPECT().Cancel(
 		gomock.Any(),
-		map[uint32]uint64{},
+		map[uint32]uint64{nodeID: contractID},
 		map[uint32]gridtypes.Deployment{},
 	).Return(map[uint32]uint64{}, nil)
 
@@ -281,6 +289,7 @@ func TestNameCancelContractsFailed(t *testing.T) {
 	err := d.Cancel(context.Background(), &gw)
 	assert.Error(t, err)
 	assert.Equal(t, gw.NodeDeploymentID, map[uint32]uint64{})
+	assert.Empty(t, d.tfPluginClient.StateLoader.currentNodeDeployment)
 	assert.Equal(t, gw.NameContractID, nameContractID)
 }
 

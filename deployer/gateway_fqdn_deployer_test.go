@@ -191,6 +191,7 @@ func TestUpdateFQDNFailed(t *testing.T) {
 	d, cl, sub, ncPool, deployer, proxyCl := constructTestFQDNDeployer(t, true)
 
 	gw := constructTestFQDN()
+	gw.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
 
 	dls, err := d.GenerateVersionlessDeployments(context.Background(), &gw)
 	assert.NoError(t, err)
@@ -214,6 +215,8 @@ func TestCancelFQDN(t *testing.T) {
 	d, cl, sub, ncPool, deployer, proxyCl := constructTestFQDNDeployer(t, true)
 
 	gw := constructTestFQDN()
+	gw.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
+	d.tfPluginClient.StateLoader.currentNodeDeployment = map[uint32]uint64{nodeID: contractID}
 
 	mockValidation(d.tfPluginClient.Identity, cl, sub, ncPool, proxyCl)
 
@@ -226,12 +229,15 @@ func TestCancelFQDN(t *testing.T) {
 	err := d.Cancel(context.Background(), &gw)
 	assert.NoError(t, err)
 	assert.Equal(t, gw.NodeDeploymentID, map[uint32]uint64{})
+	assert.Equal(t, d.tfPluginClient.StateLoader.currentNodeDeployment, map[uint32]uint64{})
 }
 
 func TestCancelFQDNFailed(t *testing.T) {
 	d, cl, sub, ncPool, deployer, proxyCl := constructTestFQDNDeployer(t, true)
 
 	gw := constructTestFQDN()
+	gw.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
+	d.tfPluginClient.StateLoader.currentNodeDeployment = map[uint32]uint64{nodeID: contractID}
 
 	mockValidation(d.tfPluginClient.Identity, cl, sub, ncPool, proxyCl)
 
@@ -244,6 +250,7 @@ func TestCancelFQDNFailed(t *testing.T) {
 	err := d.Cancel(context.Background(), &gw)
 	assert.Error(t, err)
 	assert.Equal(t, gw.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
+	assert.Equal(t, d.tfPluginClient.StateLoader.currentNodeDeployment, map[uint32]uint64{nodeID: contractID})
 }
 
 func TestSyncFQDNContracts(t *testing.T) {
