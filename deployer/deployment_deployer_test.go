@@ -4,14 +4,18 @@ package deployer
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log"
+	"math/big"
 	"testing"
 
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/threefoldtech/grid3-go/mocks"
 	client "github.com/threefoldtech/grid3-go/node"
 	"github.com/threefoldtech/grid3-go/workloads"
+	"github.com/threefoldtech/substrate-client"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
@@ -95,10 +99,12 @@ func constructTestDeployment() workloads.Deployment {
 			},
 			Zlogs: []workloads.Zlog{
 				{
-					Output: "redis://codescalers1.com",
+					Zmachine: "vm1",
+					Output:   "redis://codescalers1.com",
 				},
 				{
-					Output: "redis://threefold1.io",
+					Zmachine: "vm1",
+					Output:   "redis://threefold1.io",
 				},
 			},
 			EnvVars: map[string]string{
@@ -136,10 +142,12 @@ func constructTestDeployment() workloads.Deployment {
 			},
 			Zlogs: []workloads.Zlog{
 				{
-					Output: "redis://codescalers.com",
+					Zmachine: "vm2",
+					Output:   "redis://codescalers.com",
 				},
 				{
-					Output: "redis://threefold.io",
+					Zmachine: "vm2",
+					Output:   "redis://threefold.io",
 				},
 			},
 			EnvVars: map[string]string{
@@ -232,7 +240,7 @@ func constructTestDeployment() workloads.Deployment {
 	}
 }
 
-func constructTestDeployer(t *testing.T, mock bool) (DeploymentDeployer, *mocks.RMBMockClient, *mocks.MockSubstrateExt, *mocks.MockNodeClientGetter) {
+func constructTestDeployer(t *testing.T, mock bool) (DeploymentDeployer, *mocks.RMBMockClient, *mocks.MockSubstrateExt, *mocks.MockNodeClientGetter, *mocks.MockDeployer) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -242,6 +250,7 @@ func constructTestDeployer(t *testing.T, mock bool) (DeploymentDeployer, *mocks.
 	cl := mocks.NewRMBMockClient(ctrl)
 	sub := mocks.NewMockSubstrateExt(ctrl)
 	ncPool := mocks.NewMockNodeClientGetter(ctrl)
+	deployer := mocks.NewMockDeployer(ctrl)
 
 	if mock {
 		tfPluginClient.SubstrateConn = sub
@@ -252,9 +261,10 @@ func constructTestDeployer(t *testing.T, mock bool) (DeploymentDeployer, *mocks.
 		tfPluginClient.StateLoader.substrate = sub
 
 		tfPluginClient.DeploymentDeployer.tfPluginClient = &tfPluginClient
+		tfPluginClient.DeploymentDeployer.deployer = deployer
 	}
 
-	return tfPluginClient.DeploymentDeployer, cl, sub, ncPool
+	return tfPluginClient.DeploymentDeployer, cl, sub, ncPool, deployer
 }
 
 func mustMarshal(t *testing.T, v interface{}) json.RawMessage {
@@ -268,9 +278,9 @@ func musUnmarshal(t *testing.T, bs json.RawMessage, v interface{}) {
 	assert.NoError(t, err)
 }
 
-func TestValidate(t *testing.T) {
+func TestDeploymentValidate(t *testing.T) {
 	dl := constructTestDeployment()
-	d, _, _, _ := constructTestDeployer(t, false)
+	d, _, _, _, _ := constructTestDeployer(t, false)
 
 	network := dl.NetworkName
 	checksum := dl.Vms[0].FlistChecksum
@@ -285,17 +295,22 @@ func TestValidate(t *testing.T) {
 
 func TestDeploymentSyncDeletedContract(t *testing.T) {
 	dl := constructTestDeployment()
-	d, _, sub, _ := constructTestDeployer(t, false)
+	d, _, sub, _, deployer := constructTestDeployer(t, true)
 
 	sub.EXPECT().IsValidContract(dl.ContractID).Return(false, nil).AnyTimes()
 
-	contractID, err := d.syncContract(dl.ContractID)
+	err := d.syncContract(context.Background(), &dl)
 	assert.NoError(t, err)
-	assert.Equal(t, contractID, uint64(0))
+	assert.Equal(t, dl.ContractID, uint64(0))
+	dl.ContractID = contractID
 
-	assert.NoError(t, d.Sync(context.Background()))
+	d.tfPluginClient.StateLoader.currentNodeDeployment = map[uint32]uint64{dl.NodeID: dl.ContractID}
+	deployer.EXPECT().
+		GetDeployments(gomock.Any(), map[uint32]uint64{nodeID: contractID}).
+		Return(map[uint32]gridtypes.Deployment{}, nil)
 
-	dl = d.currentDeployments[dl.ContractID]
+	assert.NoError(t, d.Sync(context.Background(), &dl))
+
 	assert.Equal(t, dl.ContractID, uint64(0))
 	assert.Empty(t, dl.Vms)
 	assert.Empty(t, dl.Disks)
@@ -305,7 +320,7 @@ func TestDeploymentSyncDeletedContract(t *testing.T) {
 
 func TestDeploymentGenerateDeployment(t *testing.T) {
 	dl := constructTestDeployment()
-	d, cl, sub, ncPool := constructTestDeployer(t, true)
+	d, cl, sub, ncPool, _ := constructTestDeployer(t, true)
 
 	gridDl, err := dl.ZosDeployment(twinID)
 	assert.NoError(t, err)
@@ -338,17 +353,21 @@ func TestDeploymentGenerateDeployment(t *testing.T) {
 
 func TestDeploymentSync(t *testing.T) {
 	dl := constructTestDeployment()
-	d, cl, sub, ncPool := constructTestDeployer(t, true)
+	d, cl, sub, ncPool, deployer := constructTestDeployer(t, true)
 
 	net := constructTestNetwork()
 	workload := net.ZosWorkload(net.NodesIPRange[nodeID], "", uint16(0), []zos.Peer{})
 	networkDl := workloads.NewGridDeployment(twinID, []gridtypes.Workload{workload})
 
 	d.tfPluginClient.StateLoader.currentNodeNetwork[nodeID] = contractID
-	d.tfPluginClient.StateLoader.networks = networkState{net.Name: network{subnets: map[uint32]string{nodeID: net.IPRange.String()}}}
-
-	// invalidate contract
-	sub.EXPECT().IsValidContract(dl.ContractID).Return(false, nil).AnyTimes()
+	d.tfPluginClient.StateLoader.networks = networkState{
+		net.Name: network{
+			subnets: map[uint32]string{
+				nodeID: net.IPRange.String(),
+			},
+			nodeDeploymentHostIDs: make(nodeDeploymentHostIDs),
+		},
+	}
 
 	ncPool.EXPECT().
 		GetNodeClient(sub, uint32(nodeID)).
@@ -479,12 +498,173 @@ func TestDeploymentSync(t *testing.T) {
 	_, err = workloads.GetUsedIPs(gridDl)
 	assert.NoError(t, err)
 
+	deployer.EXPECT().
+		GetDeployments(gomock.Any(), map[uint32]uint64{}).
+		Return(map[uint32]gridtypes.Deployment{nodeID: gridDl}, nil)
 	//manager.EXPECT().Commit(context.Background()).AnyTimes()
-	assert.NoError(t, d.Sync(context.Background()))
+	assert.NoError(t, d.Sync(context.Background(), &dl))
 	assert.Equal(t, dl.Vms, cp.Vms)
 	assert.Equal(t, dl.Disks, cp.Disks)
 	assert.Equal(t, dl.Qsfs, cp.Qsfs)
 	assert.Equal(t, dl.Zdbs, cp.Zdbs)
 	assert.Equal(t, dl.ContractID, cp.ContractID)
 	assert.Equal(t, dl.NodeID, cp.NodeID)
+}
+
+func TestDeploymentDeploy(t *testing.T) {
+	dl := constructTestDeployment()
+	d, _, sub, _, deployer := constructTestDeployer(t, true)
+	dl.SolutionType = "Virtual Machine"
+
+	net := constructTestNetwork()
+
+	dl.ContractID = 0
+	d.tfPluginClient.StateLoader.currentNodeNetwork[nodeID] = contractID
+	d.tfPluginClient.StateLoader.networks = networkState{
+		net.Name: network{
+			subnets: map[uint32]string{
+				nodeID: net.IPRange.String(),
+			},
+			nodeDeploymentHostIDs: make(nodeDeploymentHostIDs),
+		},
+	}
+	dls, err := d.GenerateVersionlessDeployments(context.Background(), &dl)
+	assert.NoError(t, err)
+	newDeploymentsSolutionProvider := map[uint32]*uint64{nodeID: nil}
+	deploymentData := workloads.DeploymentData{
+		Name:        dl.Name,
+		Type:        "vm",
+		ProjectName: "Virtual Machine",
+	}
+	newDeploymentsData := map[uint32]workloads.DeploymentData{nodeID: deploymentData}
+	t.Run("Validation failed", func(t *testing.T) {
+		sub.EXPECT().
+			GetBalance(d.tfPluginClient.Identity).
+			Return(substrate.Balance{
+				Free: types.U128{
+					Int: big.NewInt(10),
+				},
+			}, nil)
+
+		assert.Error(t, d.Deploy(context.Background(), &dl))
+
+		// nothing should change
+		assert.Empty(t, dl.NodeDeploymentID)
+		assert.Empty(t, dl.ContractID)
+		assert.Empty(t, d.tfPluginClient.StateLoader.currentNodeDeployment)
+	})
+	t.Run("Deploying failed", func(t *testing.T) {
+		sub.EXPECT().
+			GetBalance(d.tfPluginClient.Identity).
+			Return(substrate.Balance{
+				Free: types.U128{
+					Int: big.NewInt(100000),
+				},
+			}, nil)
+
+		deployer.EXPECT().Deploy(
+			gomock.Any(),
+			map[uint32]uint64{},
+			dls,
+			newDeploymentsData,
+			newDeploymentsSolutionProvider,
+		).Return(map[uint32]uint64{}, errors.New("error"))
+
+		assert.Error(t, d.Deploy(context.Background(), &dl))
+
+		// nothing should change
+		assert.Empty(t, dl.NodeDeploymentID)
+		assert.Empty(t, dl.ContractID)
+		assert.Empty(t, d.tfPluginClient.StateLoader.currentNodeDeployment)
+	})
+	t.Run("Deploying succeeded", func(t *testing.T) {
+		sub.EXPECT().
+			GetBalance(d.tfPluginClient.Identity).
+			Return(substrate.Balance{
+				Free: types.U128{
+					Int: big.NewInt(100000),
+				},
+			}, nil)
+
+		deployer.EXPECT().Deploy(
+			gomock.Any(),
+			map[uint32]uint64{},
+			dls,
+			newDeploymentsData,
+			newDeploymentsSolutionProvider,
+		).Return(map[uint32]uint64{nodeID: contractID}, nil)
+		assert.NoError(t, d.Deploy(context.Background(), &dl))
+
+		// should reflect on deployment and state
+		assert.Equal(t, dl.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
+		assert.Equal(t, dl.ContractID, contractID)
+		assert.Equal(t, d.tfPluginClient.StateLoader.currentNodeDeployment, map[uint32]uint64{nodeID: contractID})
+	})
+
+}
+
+func TestDeploymentCancel(t *testing.T) {
+	dl := constructTestDeployment()
+	d, _, sub, _, deployer := constructTestDeployer(t, true)
+	dl.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
+
+	d.tfPluginClient.StateLoader.currentNodeDeployment = map[uint32]uint64{nodeID: contractID}
+	t.Run("Validation failed", func(t *testing.T) {
+		sub.EXPECT().
+			GetBalance(d.tfPluginClient.Identity).
+			Return(substrate.Balance{
+				Free: types.U128{
+					Int: big.NewInt(10),
+				},
+			}, nil)
+
+		assert.Error(t, d.Cancel(context.Background(), &dl))
+
+		// nothing should change
+		assert.Equal(t, dl.ContractID, contractID)
+		assert.Equal(t, d.tfPluginClient.StateLoader.currentNodeDeployment, map[uint32]uint64{nodeID: contractID})
+		assert.Equal(t, dl.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
+
+	})
+	t.Run("Canceling failed", func(t *testing.T) {
+		sub.EXPECT().
+			GetBalance(d.tfPluginClient.Identity).
+			Return(substrate.Balance{
+				Free: types.U128{
+					Int: big.NewInt(100000),
+				},
+			}, nil)
+
+		deployer.EXPECT().
+			Cancel(gomock.Any(), map[uint32]uint64{nodeID: contractID}, map[uint32]gridtypes.Deployment{}).
+			Return(map[uint32]uint64{nodeID: contractID}, errors.New("error"))
+
+		assert.Error(t, d.Cancel(context.Background(), &dl))
+
+		// nothing should change
+		assert.Equal(t, dl.ContractID, contractID)
+		assert.Equal(t, d.tfPluginClient.StateLoader.currentNodeDeployment, map[uint32]uint64{nodeID: contractID})
+		assert.Equal(t, dl.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
+
+	})
+	t.Run("Canceling succeeded", func(t *testing.T) {
+		sub.EXPECT().
+			GetBalance(d.tfPluginClient.Identity).
+			Return(substrate.Balance{
+				Free: types.U128{
+					Int: big.NewInt(100000),
+				},
+			}, nil)
+
+		deployer.EXPECT().
+			Cancel(gomock.Any(), map[uint32]uint64{nodeID: contractID}, map[uint32]gridtypes.Deployment{}).
+			Return(map[uint32]uint64{}, nil)
+		assert.NoError(t, d.Cancel(context.Background(), &dl))
+
+		// should reflect on state and deployment
+		assert.Empty(t, dl.ContractID)
+		assert.Empty(t, d.tfPluginClient.StateLoader.currentNodeDeployment[dl.NodeID])
+		assert.Empty(t, dl.NodeDeploymentID)
+
+	})
 }

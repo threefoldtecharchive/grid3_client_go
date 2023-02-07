@@ -33,7 +33,8 @@ type Deployment struct {
 	Qsfs             []QSFS
 
 	// computed
-	ContractID uint64
+	NodeDeploymentID map[uint32]uint64
+	ContractID       uint64
 }
 
 // NewDeployment generates a new deployment

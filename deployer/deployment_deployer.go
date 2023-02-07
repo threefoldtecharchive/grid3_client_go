@@ -15,8 +15,6 @@ import (
 
 // DeploymentDeployer for deploying a deployment
 type DeploymentDeployer struct {
-	currentDeployments map[uint64]workloads.Deployment
-
 	tfPluginClient *TFPluginClient
 	deployer       DeployerInterface
 }
@@ -25,9 +23,8 @@ type DeploymentDeployer struct {
 func NewDeploymentDeployer(tfPluginClient *TFPluginClient) DeploymentDeployer {
 	deployer := NewDeployer(*tfPluginClient, true)
 	return DeploymentDeployer{
-		currentDeployments: make(map[uint64]workloads.Deployment),
-		tfPluginClient:     tfPluginClient,
-		deployer:           &deployer,
+		tfPluginClient: tfPluginClient,
+		deployer:       &deployer,
 	}
 }
 
@@ -100,11 +97,14 @@ func (d *DeploymentDeployer) Deploy(ctx context.Context, dl *workloads.Deploymen
 	oldDeployments := d.tfPluginClient.StateLoader.currentNodeDeployment
 
 	currentDeployments, err := d.deployer.Deploy(ctx, oldDeployments, newDeployments, newDeploymentsData, newDeploymentsSolutionProvider)
-	if currentDeployments[dl.NodeID] != 0 {
+
+	// update deployment and plugin state
+	if err == nil {
 		dl.ContractID = currentDeployments[dl.NodeID]
+		dl.NodeDeploymentID = currentDeployments
 		d.tfPluginClient.StateLoader.currentNodeDeployment[dl.NodeID] = dl.ContractID
-		d.currentDeployments[dl.ContractID] = *dl
 	}
+
 	return err
 }
 
@@ -125,106 +125,96 @@ func (d *DeploymentDeployer) Cancel(ctx context.Context, dl *workloads.Deploymen
 	}
 
 	currentDeployments, err := d.deployer.Cancel(ctx, oldDeployments, newDeployments)
-	id := currentDeployments[dl.NodeID]
-	// TODO: if not cancelled ???
-	if id != 0 {
-		dl.ContractID = id
-	} else {
-		dl.ContractID = 0
+	dl.ContractID = currentDeployments[dl.NodeID]
+	if dl.ContractID == 0 {
 		delete(d.tfPluginClient.StateLoader.currentNodeDeployment, dl.NodeID)
-		delete(d.currentDeployments, dl.ContractID)
+		delete(dl.NodeDeploymentID, dl.NodeID)
 	}
 	return err
 }
 
 // Sync syncs the deployments
-func (d *DeploymentDeployer) Sync(ctx context.Context) error {
+func (d *DeploymentDeployer) Sync(ctx context.Context, dl *workloads.Deployment) error {
+	err := d.syncContract(ctx, dl)
+	if err != nil {
+		return err
+	}
 	currentDeployments, err := d.deployer.GetDeployments(ctx, d.tfPluginClient.StateLoader.currentNodeDeployment)
 	if err != nil {
 		return errors.Wrap(err, "failed to get deployments to update local state")
 	}
 
-	for nodeID, dl := range currentDeployments {
-		contractID := d.tfPluginClient.StateLoader.currentNodeDeployment[nodeID]
-		contractID, err := d.syncContract(contractID)
-		if err != nil {
-			return err
+	deployment := currentDeployments[dl.NodeID]
+
+	if dl.ContractID == 0 {
+		dl.Nullify()
+		return nil
+	}
+
+	var vms []workloads.VM
+	var zdbs []workloads.ZDB
+	var qsfs []workloads.QSFS
+	var disks []workloads.Disk
+
+	network := d.tfPluginClient.StateLoader.networks.getNetwork(dl.NetworkName)
+	network.deleteDeploymentHostIDs(dl.NodeID, dl.ContractID)
+
+	usedIPs := []byte{}
+	for _, w := range deployment.Workloads {
+		if !w.Result.State.IsOkay() {
+			continue
 		}
 
-		gridDl := d.currentDeployments[contractID]
+		switch w.Type {
+		case zos.ZMachineType:
+			vm, err := workloads.NewVMFromWorkloads(&w, &deployment)
+			if err != nil {
+				log.Printf("error parsing vm: %s", err.Error())
+				continue
+			}
+			vms = append(vms, vm)
 
-		if contractID == 0 {
-			gridDl.Nullify()
-			d.currentDeployments[contractID] = gridDl
-			return nil
-		}
+			ip := net.ParseIP(vm.IP).To4()
+			usedIPs = append(usedIPs, ip[3])
 
-		var vms []workloads.VM
-		var zdbs []workloads.ZDB
-		var qsfs []workloads.QSFS
-		var disks []workloads.Disk
-
-		network := d.tfPluginClient.StateLoader.networks.getNetwork(gridDl.NetworkName)
-		network.deleteDeploymentHostIDs(gridDl.NodeID, gridDl.ContractID)
-
-		usedIPs := []byte{}
-		for _, w := range dl.Workloads {
-			if !w.Result.State.IsOkay() {
+		case zos.ZDBType:
+			zdb, err := workloads.NewZDBFromWorkload(&w)
+			if err != nil {
+				log.Printf("error parsing zdb: %s", err.Error())
 				continue
 			}
 
-			switch w.Type {
-			case zos.ZMachineType:
-				vm, err := workloads.NewVMFromWorkloads(&w, &dl)
-				if err != nil {
-					log.Printf("error parsing vm: %s", err.Error())
-					continue
-				}
-				vms = append(vms, vm)
-
-				ip := net.ParseIP(vm.IP).To4()
-				usedIPs = append(usedIPs, ip[3])
-
-			case zos.ZDBType:
-				zdb, err := workloads.NewZDBFromWorkload(&w)
-				if err != nil {
-					log.Printf("error parsing zdb: %s", err.Error())
-					continue
-				}
-
-				zdbs = append(zdbs, zdb)
-			case zos.QuantumSafeFSType:
-				q, err := workloads.NewQSFSFromWorkload(&w)
-				if err != nil {
-					log.Printf("error parsing qsfs: %s", err.Error())
-					continue
-				}
-
-				qsfs = append(qsfs, q)
-
-			case zos.ZMountType:
-				disk, err := workloads.NewDiskFromWorkload(&w)
-				if err != nil {
-					log.Printf("error parsing disk: %s", err.Error())
-					continue
-				}
-
-				disks = append(disks, disk)
+			zdbs = append(zdbs, zdb)
+		case zos.QuantumSafeFSType:
+			q, err := workloads.NewQSFSFromWorkload(&w)
+			if err != nil {
+				log.Printf("error parsing qsfs: %s", err.Error())
+				continue
 			}
+
+			qsfs = append(qsfs, q)
+
+		case zos.ZMountType:
+			disk, err := workloads.NewDiskFromWorkload(&w)
+			if err != nil {
+				log.Printf("error parsing disk: %s", err.Error())
+				continue
+			}
+
+			disks = append(disks, disk)
 		}
-
-		network = d.tfPluginClient.StateLoader.networks.getNetwork(gridDl.NetworkName)
-		network.setDeploymentHostIDs(gridDl.NodeID, gridDl.ContractID, usedIPs)
-
-		gridDl.Match(disks, qsfs, zdbs, vms)
-		log.Printf("vms: %+v\n", len(vms))
-
-		gridDl.Disks = disks
-		gridDl.Qsfs = qsfs
-		gridDl.Zdbs = zdbs
-		gridDl.Vms = vms
-		d.currentDeployments[contractID] = gridDl
 	}
+
+	network = d.tfPluginClient.StateLoader.networks.getNetwork(dl.NetworkName)
+	network.setDeploymentHostIDs(dl.NodeID, dl.ContractID, usedIPs)
+
+	dl.Match(disks, qsfs, zdbs, vms)
+	log.Printf("vms: %+v\n", len(vms))
+
+	dl.Disks = disks
+	dl.Qsfs = qsfs
+	dl.Zdbs = zdbs
+	dl.Vms = vms
 
 	return nil
 }
@@ -241,11 +231,9 @@ func (d *DeploymentDeployer) Validate(ctx context.Context, dl *workloads.Deploym
 }
 
 func (d *DeploymentDeployer) assignNodesIPs(dl *workloads.Deployment) error {
-	networkingState := d.tfPluginClient.StateLoader.networks
-	n := networkingState.getNetwork(dl.NetworkName)
-	ipRange := n.getNodeSubnet(dl.NodeID)
-
 	network := d.tfPluginClient.StateLoader.networks.getNetwork(dl.NetworkName)
+	ipRange := network.getNodeSubnet(dl.NodeID)
+
 	usedHosts := network.getUsedNetworkHostIDs(dl.NodeID)
 
 	if len(dl.Vms) == 0 {
@@ -259,7 +247,7 @@ func (d *DeploymentDeployer) assignNodesIPs(dl *workloads.Deployment) error {
 		vmIP := net.ParseIP(vm.IP)
 		if vmIP != nil {
 			vmHostID := vmIP[3]
-			if vm.IP != "" && ipRangeCIDR.Contains(vmIP) && !workloads.Contains(usedHosts, vmHostID) {
+			if ipRangeCIDR.Contains(vmIP) && !workloads.Contains(usedHosts, vmHostID) {
 				usedHosts = append(usedHosts, vmHostID)
 			}
 		}
@@ -285,21 +273,21 @@ func (d *DeploymentDeployer) assignNodesIPs(dl *workloads.Deployment) error {
 	return nil
 }
 
-func (d *DeploymentDeployer) syncContract(contractID uint64) (uint64, error) {
+func (d *DeploymentDeployer) syncContract(ctx context.Context, dl *workloads.Deployment) error {
 	sub := d.tfPluginClient.SubstrateConn
 
-	if contractID == 0 {
-		return contractID, nil
+	if dl.ContractID == 0 {
+		return nil
 	}
 
-	valid, err := sub.IsValidContract(contractID)
+	valid, err := sub.IsValidContract(dl.ContractID)
 	if err != nil {
-		return contractID, errors.Wrap(err, "error checking contract validity")
+		return errors.Wrap(err, "error checking contract validity")
 	}
 
 	if !valid {
-		contractID = 0
+		dl.ContractID = 0
 	}
 
-	return contractID, nil
+	return nil
 }
