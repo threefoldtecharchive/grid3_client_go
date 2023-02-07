@@ -2,6 +2,7 @@
 package deployer
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"math/big"
@@ -13,6 +14,7 @@ import (
 	"github.com/gomodule/redigo/redis"
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/grid3-go/subi"
+	"github.com/threefoldtech/grid3-go/workloads"
 	"github.com/threefoldtech/substrate-client"
 )
 
@@ -208,4 +210,44 @@ func newRedisPool(address string) (*redis.Pool, error) {
 		IdleTimeout: 1 * time.Minute,
 		Wait:        true,
 	}, nil
+}
+
+// validateToken validates the Token of k8s cluster
+func (k *K8sDeployer) validateToken(ctx context.Context, k8sCluster *workloads.K8sCluster) error {
+	if k8sCluster.Token == "" {
+		return errors.New("empty token is not allowed")
+	}
+
+	is_alphanumeric := regexp.MustCompile(`^[a-zA-Z0-9]*$`).MatchString(k8sCluster.Token)
+	if !is_alphanumeric {
+		return errors.New("token should be alphanumeric")
+	}
+
+	return nil
+}
+
+// validateNames validates unique names of masters && workers of k8s cluster
+func (k *K8sDeployer) ValidateNames(ctx context.Context, k8sCluster *workloads.K8sCluster) error {
+	names := make(map[string]bool)
+	names[k8sCluster.Master.Name] = true
+	for _, w := range k8sCluster.Workers {
+		if _, ok := names[w.Name]; ok {
+			return fmt.Errorf("k8s workers and master must have unique names: %s occurred more than once", w.Name)
+		}
+		names[w.Name] = true
+	}
+	return nil
+}
+
+// validateIPranges validates NodesIPRange of master && workers of k8s cluster
+func (k *K8sDeployer) ValidateIPranges(ctx context.Context, k8sCluster *workloads.K8sCluster) error {
+	if _, ok := k8sCluster.NodesIPRange[k8sCluster.Master.Node]; !ok {
+		return fmt.Errorf("the master node %d doesn't exist in the network's ip ranges", k8sCluster.Master.Node)
+	}
+	for _, w := range k8sCluster.Workers {
+		if _, ok := k8sCluster.NodesIPRange[w.Node]; !ok {
+			return fmt.Errorf("the node with id %d in worker %s doesn't exist in the network's ip ranges", w.Node, w.Name)
+		}
+	}
+	return nil
 }

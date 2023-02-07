@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"regexp"
 
 	"github.com/pkg/errors"
 	client "github.com/threefoldtech/grid3-go/node"
@@ -29,44 +28,6 @@ func NewK8sDeployer(tfPluginClient *TFPluginClient) K8sDeployer {
 	}
 
 	return k8sDeployer
-}
-
-// TODO: Separate them in validation file 
-func (k *K8sDeployer) validateToken(ctx context.Context, k8sCluster *workloads.K8sCluster) error {
-	if k8sCluster.Token == "" {
-		return errors.New("empty token is not allowed")
-	}
-
-	is_alphanumeric := regexp.MustCompile(`^[a-zA-Z0-9]*$`).MatchString(k8sCluster.Token)
-	if !is_alphanumeric {
-		return errors.New("token should be alphanumeric")
-	}
-
-	return nil
-}
-
-func (k *K8sDeployer) ValidateNames(ctx context.Context, k8sCluster *workloads.K8sCluster) error {
-	names := make(map[string]bool)
-	names[k8sCluster.Master.Name] = true
-	for _, w := range k8sCluster.Workers {
-		if _, ok := names[w.Name]; ok {
-			return fmt.Errorf("k8s workers and master must have unique names: %s occurred more than once", w.Name)
-		}
-		names[w.Name] = true
-	}
-	return nil
-}
-
-func (k *K8sDeployer) ValidateIPranges(ctx context.Context, k8sCluster *workloads.K8sCluster) error {
-	if _, ok := k8sCluster.NodesIPRange[k8sCluster.Master.Node]; !ok {
-		return fmt.Errorf("the master node %d doesn't exist in the network's ip ranges", k8sCluster.Master.Node)
-	}
-	for _, w := range k8sCluster.Workers {
-		if _, ok := k8sCluster.NodesIPRange[w.Node]; !ok {
-			return fmt.Errorf("the node with id %d in worker %s doesn't exist in the network's ip ranges", w.Node, w.Name)
-		}
-	}
-	return nil
 }
 
 // Validate validates K8s deployer
@@ -132,7 +93,6 @@ func (k *K8sDeployer) getK8sFreeIP(ipRange gridtypes.IPNet, nodeID uint32) (stri
 	return "", errors.New("all ips are used")
 }
 
-
 func (k *K8sDeployer) assignNodesIPs(k8sCluster *workloads.K8sCluster) error {
 	masterNodeRange := k8sCluster.NodesIPRange[k8sCluster.Master.Node]
 	if k8sCluster.Master.IP == "" || !masterNodeRange.Contains(net.ParseIP(k8sCluster.Master.IP)) {
@@ -191,7 +151,7 @@ func (k *K8sDeployer) GenerateVersionlessDeployments(ctx context.Context, k8sClu
 	return deployments, nil
 }
 
-func (k *K8sDeployer) NodeIps(k8sCluster *workloads.K8sCluster) (err error) {
+func (k *K8sDeployer) AssignNodeIpRange(k8sCluster *workloads.K8sCluster) (err error) {
 	network := k.tfPluginClient.StateLoader.networks.getNetwork(k8sCluster.NetworkName)
 	nodesIPRange := make(map[uint32]gridtypes.IPNet)
 	nodesIPRange[k8sCluster.Master.Node], err = gridtypes.ParseIPNet(network.getNodeSubnet(k8sCluster.Master.Node))
@@ -209,9 +169,8 @@ func (k *K8sDeployer) NodeIps(k8sCluster *workloads.K8sCluster) (err error) {
 	return nil
 }
 
-
 func (k *K8sDeployer) Deploy(ctx context.Context, k8sCluster *workloads.K8sCluster) error {
-	if err := k.NodeIps(k8sCluster); err != nil {
+	if err := k.AssignNodeIpRange(k8sCluster); err != nil {
 		return err
 	}
 	if err := k.Validate(ctx, k8sCluster); err != nil {

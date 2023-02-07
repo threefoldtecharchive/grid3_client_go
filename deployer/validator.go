@@ -161,3 +161,4 @@ func addCapacity(cap *proxyTypes.Capacity, add *gridtypes.Capacity) {
 	cap.SRU += add.SRU
 	cap.HRU += add.HRU
 }
+

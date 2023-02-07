@@ -144,7 +144,7 @@ func TestValidateMasterReacheable(t *testing.T) {
 	k8s, err := constructK8sCluster()
 	assert.NoError(t, err)
 
-	err = d.NodeIps(&k8s)
+	err = d.AssignNodeIpRange(&k8s)
 	assert.NoError(t, err)
 
 	err = d.Validate(context.Background(), &k8s)
@@ -156,7 +156,7 @@ func TestGenerateK8sDeployment(t *testing.T) {
 	k8s, err := constructK8sCluster()
 	assert.NoError(t, err)
 
-	err = d.NodeIps(&k8s)
+	err = d.AssignNodeIpRange(&k8s)
 	assert.NoError(t, err)
 
 	dls, err := d.GenerateVersionlessDeployments(context.Background(), &k8s)
@@ -195,7 +195,7 @@ func TestDeploy(t *testing.T) {
 	k8sCluster, err := constructK8sCluster()
 	assert.NoError(t, err)
 
-	err = d.NodeIps(&k8sCluster)
+	err = d.AssignNodeIpRange(&k8sCluster)
 	assert.NoError(t, err)
 
 	dls, err := d.GenerateVersionlessDeployments(context.Background(), &k8sCluster)
@@ -235,7 +235,7 @@ func TestUpdateK8s(t *testing.T) {
 	k8sCluster, err := constructK8sCluster()
 	assert.NoError(t, err)
 
-	err = d.NodeIps(&k8sCluster)
+	err = d.AssignNodeIpRange(&k8sCluster)
 	assert.NoError(t, err)
 
 	dls, err := d.GenerateVersionlessDeployments(context.Background(), &k8sCluster)
@@ -263,7 +263,7 @@ func TestUpdateK8sFailed(t *testing.T) {
 	k8sCluster, err := constructK8sCluster()
 	assert.NoError(t, err)
 
-	err = d.NodeIps(&k8sCluster)
+	err = d.AssignNodeIpRange(&k8sCluster)
 	assert.NoError(t, err)
 
 	dls, err := d.GenerateVersionlessDeployments(context.Background(), &k8sCluster)
