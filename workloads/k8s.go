@@ -232,10 +232,10 @@ func (k *K8sCluster) ValidateNames() error {
 // GenerateWorkloads generates k8s workloads from a k8s cluster
 func (k *K8sCluster) GenerateWorkloads() ([]gridtypes.Workload, error) {
 	k8sWorkloads := []gridtypes.Workload{}
-	k8sWorkloads = append(k8sWorkloads, k.Master.ZosWorkload(k, false)...)
+	k8sWorkloads = append(k8sWorkloads, k.Master.GenerateK8sWorkload(k,false)...)
 
 	for _, worker := range k.Workers {
-		k8sWorkloads = append(k8sWorkloads, worker.ZosWorkload(k, true)...)
+		k8sWorkloads = append(k8sWorkloads, worker.GenerateK8sWorkload(k,true)...)
 	}
 
 	return k8sWorkloads, nil

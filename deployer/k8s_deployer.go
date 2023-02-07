@@ -12,16 +12,11 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 )
 
-// type K8SDeployerI interface {
-// 	Deploy(ctx context.Context, k8sCluster *workloads.K8sCluster) error
-// 	Cancel(ctx context.Context, k8sCluster *workloads.K8sCluster) (err error)
-// }
-
 // K8s Deployer for deploying k8s
 type K8sDeployer struct {
 	NodeUsedIPs    map[uint32][]byte
 	tfPluginClient *TFPluginClient
-	deployer       Deployer
+	deployer       DeployerInterface
 }
 
 // Generate new K8s Deployer
@@ -30,7 +25,7 @@ func NewK8sDeployer(tfPluginClient *TFPluginClient) K8sDeployer {
 	k8sDeployer := K8sDeployer{
 		NodeUsedIPs:    map[uint32][]byte{},
 		tfPluginClient: tfPluginClient,
-		deployer:       deployer,
+		deployer:       &deployer,
 	}
 
 	return k8sDeployer
@@ -39,7 +34,7 @@ func NewK8sDeployer(tfPluginClient *TFPluginClient) K8sDeployer {
 // TODO: Separate them in validation file 
 func (k *K8sDeployer) validateToken(ctx context.Context, k8sCluster *workloads.K8sCluster) error {
 	if k8sCluster.Token == "" {
-		return errors.New("empty token is now allowed")
+		return errors.New("empty token is not allowed")
 	}
 
 	is_alphanumeric := regexp.MustCompile(`^[a-zA-Z0-9]*$`).MatchString(k8sCluster.Token)
@@ -81,7 +76,7 @@ func (k *K8sDeployer) Validate(ctx context.Context, k8sCluster *workloads.K8sClu
 		return err
 	}
 
-	if err := validateAccountBalanceForExtrinsics(k.deployer.SubstrateConn, k.tfPluginClient.Identity); err != nil {
+	if err := validateAccountBalanceForExtrinsics(sub, k.tfPluginClient.Identity); err != nil {
 		return err
 	}
 	if err := k.ValidateNames(ctx, k8sCluster); err != nil {
@@ -173,18 +168,6 @@ func (k *K8sDeployer) GenerateVersionlessDeployments(ctx context.Context, k8sClu
 	nodeWorkloads[k8sCluster.Master.Node] = append(nodeWorkloads[k8sCluster.Master.Node], masterWorkloads...)
 	for _, w := range k8sCluster.Workers {
 		workerWorkloads := w.GenerateK8sWorkload(k8sCluster, true)
-	k8sCluster := wl.K8sCluster{
-		Master:      k.Master,
-		Workers:     k.Workers,
-		Token:       k.Token,
-		SSHKey:      k.SSHKey,
-		NetworkName: k.NetworkName,
-	}
-	masterWorkloads := k.Master.ZosWorkload(&k8sCluster, true)
-	nodeWorkloads[k.Master.Node] = append(nodeWorkloads[k.Master.Node], masterWorkloads...)
-	for _, w := range k.Workers {
-		workerWorkloads := w.ZosWorkload(&k8sCluster, true)
-
 		nodeWorkloads[w.Node] = append(nodeWorkloads[w.Node], workerWorkloads...)
 	}
 
@@ -208,10 +191,9 @@ func (k *K8sDeployer) GenerateVersionlessDeployments(ctx context.Context, k8sClu
 	return deployments, nil
 }
 
-func (k *K8sDeployer) nodeIps(k8sCluster *workloads.K8sCluster) error {
+func (k *K8sDeployer) NodeIps(k8sCluster *workloads.K8sCluster) (err error) {
 	network := k.tfPluginClient.StateLoader.networks.getNetwork(k8sCluster.NetworkName)
 	nodesIPRange := make(map[uint32]gridtypes.IPNet)
-	var err error
 	nodesIPRange[k8sCluster.Master.Node], err = gridtypes.ParseIPNet(network.getNodeSubnet(k8sCluster.Master.Node))
 	if err != nil {
 		return errors.Wrap(err, "couldn't parse master node ip range")
@@ -225,11 +207,11 @@ func (k *K8sDeployer) nodeIps(k8sCluster *workloads.K8sCluster) error {
 	k8sCluster.NodesIPRange = nodesIPRange
 
 	return nil
-
 }
 
+
 func (k *K8sDeployer) Deploy(ctx context.Context, k8sCluster *workloads.K8sCluster) error {
-	if err := k.nodeIps(k8sCluster); err != nil {
+	if err := k.NodeIps(k8sCluster); err != nil {
 		return err
 	}
 	if err := k.Validate(ctx, k8sCluster); err != nil {
@@ -251,12 +233,14 @@ func (k *K8sDeployer) Deploy(ctx context.Context, k8sCluster *workloads.K8sClust
 	newDeploymentsSolutionProvider := make(map[uint32]*uint64)
 
 	newDeploymentsData[k8sCluster.Master.Node] = deploymentData
+	fmt.Printf("deploymentData: %v\n", deploymentData)
 	newDeploymentsSolutionProvider[k8sCluster.Master.Node] = nil
 
 	oldDeployments := k.tfPluginClient.StateLoader.currentNodeDeployment
+	fmt.Printf("oldDeployments: %v\n", oldDeployments)
 
 	k8sCluster.NodeDeploymentID, err = k.deployer.Deploy(ctx, oldDeployments, newDeployments, newDeploymentsData, newDeploymentsSolutionProvider)
-
+	fmt.Printf("k8sCluster.NodeDeploymentID: %v\n", k8sCluster.NodeDeploymentID)
 	if k8sCluster.ContractID == 0 && k8sCluster.NodeDeploymentID[k8sCluster.Master.Node] != 0 {
 		k8sCluster.ContractID = k8sCluster.NodeDeploymentID[k8sCluster.Master.Node]
 	}
