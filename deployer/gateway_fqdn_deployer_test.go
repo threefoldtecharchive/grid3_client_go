@@ -224,8 +224,8 @@ func TestCancelFQDN(t *testing.T) {
 
 	deployer.EXPECT().Cancel(
 		gomock.Any(),
-		map[uint32]uint64{nodeID: contractID},
-	).Return(map[uint32]uint64{}, nil)
+		contractID,
+	).Return(nil)
 
 	err := d.Cancel(context.Background(), &gw)
 	assert.NoError(t, err)
@@ -244,8 +244,8 @@ func TestCancelFQDNFailed(t *testing.T) {
 
 	deployer.EXPECT().Cancel(
 		gomock.Any(),
-		map[uint32]uint64{nodeID: contractID},
-	).Return(map[uint32]uint64{nodeID: contractID}, errors.New("error"))
+		contractID,
+	).Return(errors.New("error"))
 
 	err := d.Cancel(context.Background(), &gw)
 	assert.Error(t, err)

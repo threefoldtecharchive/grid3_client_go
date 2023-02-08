@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"strings"
 	"sync"
 	"time"
 
@@ -31,8 +30,8 @@ type DeployerInterface interface { //TODO: Change Name && separate them
 	) (map[uint32]uint64, error)
 
 	Cancel(ctx context.Context,
-		deploymentIDs map[uint32]uint64,
-	) (map[uint32]uint64, error)
+		contractID uint64,
+	) error
 
 	GetDeployments(ctx context.Context, dls map[uint32]uint64) (map[uint32]gridtypes.Deployment, error)
 }
@@ -284,27 +283,15 @@ func (d *Deployer) deploy(
 
 // Cancel cancels an old deployment not given in the new deployments
 func (d *Deployer) Cancel(ctx context.Context,
-	deploymentIDs map[uint32]uint64,
-) (map[uint32]uint64, error) {
-	oldDeployments, err := d.GetDeployments(ctx, deploymentIDs)
+	contractID uint64,
+) error {
+
+	err := d.SubstrateConn.EnsureContractCanceled(d.identity, contractID)
 	if err != nil {
-		return deploymentIDs, err
+		return errors.Wrapf(err, "failed to delete deployment: %d", contractID)
 	}
 
-	if err := d.validator.Validate(ctx, d.SubstrateConn, oldDeployments, map[uint32]gridtypes.Deployment{}); err != nil {
-		return deploymentIDs, err
-	}
-
-	// deletions
-	for node, contractID := range deploymentIDs {
-		err = d.SubstrateConn.EnsureContractCanceled(d.identity, contractID)
-		if err != nil && !strings.Contains(err.Error(), "ContractNotExists") {
-			return deploymentIDs, errors.Wrap(err, "failed to delete deployment")
-		}
-		delete(deploymentIDs, node)
-	}
-
-	return deploymentIDs, err
+	return nil
 }
 
 // GetDeployments returns deployments from a map of nodes IDs and deployments IDs

@@ -78,12 +78,10 @@ func (k *GatewayFQDNDeployer) Deploy(ctx context.Context, gw *workloads.GatewayF
 	oldDeployments := k.tfPluginClient.StateLoader.currentNodeDeployment
 	currentDeployments, err := k.deployer.Deploy(ctx, oldDeployments, newDeployments, newDeploymentsData, newDeploymentsSolutionProvider)
 
-	// update state	//TODO:
-	if err == nil {
-		gw.ContractID = currentDeployments[gw.NodeID]
-		gw.NodeDeploymentID = currentDeployments
-		k.tfPluginClient.StateLoader.currentNodeDeployment[gw.NodeID] = gw.ContractID
-	}
+	// update state
+	gw.ContractID = currentDeployments[gw.NodeID]
+	gw.NodeDeploymentID = currentDeployments
+	k.tfPluginClient.StateLoader.currentNodeDeployment[gw.NodeID] = gw.ContractID
 
 	return err
 }
@@ -96,17 +94,9 @@ func (k *GatewayFQDNDeployer) Cancel(ctx context.Context, gw *workloads.GatewayF
 
 	oldDeployments := k.tfPluginClient.StateLoader.currentNodeDeployment
 
-	// construct new deployments to have all old deployments except the given one
-	deploymentIDs := make(map[uint32]uint64)
-	for nodeID, contractID := range oldDeployments {
-		if gw.NodeID == nodeID {
-			deploymentIDs[nodeID] = contractID
-		}
-	}
-
-	currentDeployments, err := k.deployer.Cancel(ctx, deploymentIDs)
-	gw.ContractID = currentDeployments[gw.NodeID]
-	if gw.ContractID == 0 {
+	err = k.deployer.Cancel(ctx, oldDeployments[gw.NodeID])
+	if err == nil {
+		gw.ContractID = 0
 		delete(k.tfPluginClient.StateLoader.currentNodeDeployment, gw.NodeID)
 		delete(gw.NodeDeploymentID, gw.NodeID)
 	}

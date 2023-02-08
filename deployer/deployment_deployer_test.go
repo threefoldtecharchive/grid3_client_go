@@ -554,6 +554,7 @@ func TestDeploymentDeploy(t *testing.T) {
 		assert.Empty(t, d.tfPluginClient.StateLoader.currentNodeDeployment)
 	})
 	t.Run("Deploying failed", func(t *testing.T) {
+		d.tfPluginClient.StateLoader.currentNodeDeployment = map[uint32]uint64{}
 		sub.EXPECT().
 			GetBalance(d.tfPluginClient.Identity).
 			Return(substrate.Balance{
@@ -575,9 +576,10 @@ func TestDeploymentDeploy(t *testing.T) {
 		// nothing should change
 		assert.Empty(t, dl.NodeDeploymentID)
 		assert.Empty(t, dl.ContractID)
-		assert.Empty(t, d.tfPluginClient.StateLoader.currentNodeDeployment)
+		assert.Empty(t, d.tfPluginClient.StateLoader.currentNodeDeployment[nodeID])
 	})
 	t.Run("Deploying succeeded", func(t *testing.T) {
+		d.tfPluginClient.StateLoader.currentNodeDeployment = map[uint32]uint64{}
 		sub.EXPECT().
 			GetBalance(d.tfPluginClient.Identity).
 			Return(substrate.Balance{
@@ -636,8 +638,8 @@ func TestDeploymentCancel(t *testing.T) {
 			}, nil)
 
 		deployer.EXPECT().
-			Cancel(gomock.Any(), map[uint32]uint64{nodeID: contractID}).
-			Return(map[uint32]uint64{nodeID: contractID}, errors.New("error"))
+			Cancel(gomock.Any(), contractID).
+			Return(errors.New("error"))
 
 		assert.Error(t, d.Cancel(context.Background(), &dl))
 
@@ -657,8 +659,8 @@ func TestDeploymentCancel(t *testing.T) {
 			}, nil)
 
 		deployer.EXPECT().
-			Cancel(gomock.Any(), map[uint32]uint64{nodeID: contractID}).
-			Return(map[uint32]uint64{}, nil)
+			Cancel(gomock.Any(), contractID).
+			Return(nil)
 		assert.NoError(t, d.Cancel(context.Background(), &dl))
 
 		// should reflect on state and deployment

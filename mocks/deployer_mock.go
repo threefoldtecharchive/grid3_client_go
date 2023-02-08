@@ -37,18 +37,17 @@ func (m *MockDeployerInterface) EXPECT() *MockDeployerInterfaceMockRecorder {
 }
 
 // Cancel mocks base method.
-func (m *MockDeployerInterface) Cancel(ctx context.Context, deploymentIDs map[uint32]uint64) (map[uint32]uint64, error) {
+func (m *MockDeployerInterface) Cancel(ctx context.Context, contractID uint64) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Cancel", ctx, deploymentIDs)
-	ret0, _ := ret[0].(map[uint32]uint64)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret := m.ctrl.Call(m, "Cancel", ctx, contractID)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // Cancel indicates an expected call of Cancel.
-func (mr *MockDeployerInterfaceMockRecorder) Cancel(ctx, deploymentIDs interface{}) *gomock.Call {
+func (mr *MockDeployerInterfaceMockRecorder) Cancel(ctx, contractID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Cancel", reflect.TypeOf((*MockDeployerInterface)(nil).Cancel), ctx, deploymentIDs)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Cancel", reflect.TypeOf((*MockDeployerInterface)(nil).Cancel), ctx, contractID)
 }
 
 // Deploy mocks base method.

@@ -239,8 +239,8 @@ func TestNameCancel(t *testing.T) {
 
 	deployer.EXPECT().Cancel(
 		gomock.Any(),
-		map[uint32]uint64{nodeID: contractID},
-	).Return(map[uint32]uint64{}, nil)
+		contractID,
+	).Return(nil)
 
 	sub.EXPECT().
 		EnsureContractCanceled(d.tfPluginClient.Identity, nameContractID).
@@ -260,8 +260,8 @@ func TestNameCancelDeploymentsFailed(t *testing.T) {
 
 	deployer.EXPECT().Cancel(
 		gomock.Any(),
-		map[uint32]uint64{nodeID: contractID},
-	).Return(map[uint32]uint64{nodeID: contractID}, errors.New("error"))
+		contractID,
+	).Return(errors.New("error"))
 
 	err := d.Cancel(context.Background(), &gw)
 	assert.Error(t, err)
@@ -278,8 +278,8 @@ func TestNameCancelContractsFailed(t *testing.T) {
 
 	deployer.EXPECT().Cancel(
 		gomock.Any(),
-		map[uint32]uint64{nodeID: contractID},
-	).Return(map[uint32]uint64{}, nil)
+		contractID,
+	).Return(nil)
 
 	sub.EXPECT().
 		EnsureContractCanceled(d.tfPluginClient.Identity, nameContractID).
