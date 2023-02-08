@@ -93,8 +93,10 @@ func (k *K8sDeployer) Validate(ctx context.Context, k8sCluster *workloads.K8sClu
 	}
 	nodes := make([]uint32, 0)
 	nodes = append(nodes, k8sCluster.Master.Node)
-	for _, w := range k8sCluster.Workers {
-		nodes = append(nodes, w.Node)
+	for _, worker := range k8sCluster.Workers {
+		if !workloads.Contains(nodes,worker.Node){
+			nodes = append(nodes, worker.Node)
+		}
 	}
 	return client.AreNodesUp(ctx, sub, nodes, k.tfPluginClient.NcPool)
 }

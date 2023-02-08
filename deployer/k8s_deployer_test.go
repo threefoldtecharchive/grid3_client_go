@@ -73,7 +73,7 @@ func k8sMockValidation(identity substrate.Identity, cl *mocks.RMBMockClient, sub
 			"zos.system.version",
 			nil,
 			gomock.Any(),
-		).Return(nil)
+		).Return(nil).AnyTimes()
 
 	ncPool.EXPECT().
 		GetNodeClient(
@@ -131,7 +131,7 @@ func constructK8sCluster() (workloads.K8sCluster, error) {
 		SSHKey:           "",
 		NetworkName:      "network",
 		NodesIPRange:     make(map[uint32]gridtypes.IPNet),
-		NodeDeploymentID: map[uint32]uint64{nodeID: contractID},
+		// NodeDeploymentID: map[uint32]uint64{nodeID: contractID},
 		ContractID:       0,
 	}
 	return Cluster, nil
