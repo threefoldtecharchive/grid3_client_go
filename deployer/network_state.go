@@ -58,10 +58,10 @@ func (n *network) setNodeSubnet(nodeID uint32, subnet string) {
 	n.subnets[nodeID] = subnet
 }
 
-// DeleteNodeSubnet deletes a node subnet using its ID
-func (n *network) deleteNodeSubnet(nodeID uint32) {
-	delete(n.subnets, nodeID)
-}
+// // DeleteNodeSubnet deletes a node subnet using its ID
+// func (n *network) deleteNodeSubnet(nodeID uint32) {
+// 	delete(n.subnets, nodeID)
+// }
 
 // GetUsedNetworkHostIDs gets the used host IDs on the overlay network
 func (n *network) getUsedNetworkHostIDs(nodeID uint32) []byte {
@@ -73,12 +73,12 @@ func (n *network) getUsedNetworkHostIDs(nodeID uint32) []byte {
 }
 
 // GetDeploymentHostIDs gets the private network host IDs relevant to the deployment
-func (n *network) getDeploymentHostIDs(nodeID uint32, contractID uint64) []byte {
-	if n.nodeDeploymentHostIDs[nodeID] == nil {
-		return []byte{}
-	}
-	return n.nodeDeploymentHostIDs[nodeID][contractID]
-}
+// func (n *network) getDeploymentHostIDs(nodeID uint32, contractID uint64) []byte {
+// 	if n.nodeDeploymentHostIDs[nodeID] == nil {
+// 		return []byte{}
+// 	}
+// 	return n.nodeDeploymentHostIDs[nodeID][contractID]
+// }
 
 // SetDeploymentHostIDs sets the relevant deployment host IDs
 func (n *network) setDeploymentHostIDs(nodeID uint32, contractID uint64, ips []byte) {

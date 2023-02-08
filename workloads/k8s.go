@@ -37,6 +37,10 @@ type K8sCluster struct {
 	Token       string
 	SSHKey      string
 	NetworkName string
+	//computed
+	NodesIPRange     map[uint32]gridtypes.IPNet
+	NodeDeploymentID map[uint32]uint64
+	ContractID       uint64
 }
 
 // NewK8sNodeDataFromSchema generates new k8s node data
@@ -129,8 +133,9 @@ func (k *K8sNodeData) HasWorkload(workload gridtypes.Workload) bool {
 	return false
 }
 
-// ZosWorkload generates a zos k8s workload from a k8s data
-func (k *K8sNodeData) ZosWorkload(cluster *K8sCluster, worker bool) []gridtypes.Workload {
+// ZosWorkload generates a k8s workload from a k8s data
+func (k *K8sNodeData) ZosWorkload(cluster *K8sCluster, isWorker bool) []gridtypes.Workload {
+
 	diskName := fmt.Sprintf("%sdisk", k.Name)
 	K8sWorkloads := make([]gridtypes.Workload, 0)
 	diskWorkload := gridtypes.Workload{
@@ -156,7 +161,7 @@ func (k *K8sNodeData) ZosWorkload(cluster *K8sCluster, worker bool) []gridtypes.
 		"K3S_NODE_NAME":     k.Name,
 		"K3S_URL":           "",
 	}
-	if worker {
+	if isWorker {
 		// K3S_URL marks where to find the master node
 		envVars["K3S_URL"] = fmt.Sprintf("https://%s:6443", cluster.Master.IP)
 	}
