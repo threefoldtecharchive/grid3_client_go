@@ -20,7 +20,7 @@ func AssertNodesAreReady(t *testing.T, k8sCluster *workloads.K8sCluster, private
 
 	masterYggIP := k8sCluster.Master.YggIP
 	assert.NotEmpty(t, masterYggIP)
-	
+
 	// Check that the outputs not empty
 	time.Sleep(5 * time.Second)
 	output, err := RemoteRun("root", masterYggIP, "export KUBECONFIG=/etc/rancher/k3s/k3s.yaml && kubectl get node", privateKey)
@@ -139,7 +139,7 @@ func TestK8sDeployment(t *testing.T) {
 	assert.NoError(t, err)
 
 	masterMap := map[uint32]string{master.Node: master.Name}
-	workerMap := map[uint32][]string{workerNodeData1.Node: []string{workerNodeData1.Name, workerNodeData2.Name}}
+	workerMap := map[uint32][]string{workerNodeData1.Node: {workerNodeData1.Name, workerNodeData2.Name}}
 
 	result, err := tfPluginClient.StateLoader.LoadK8sFromGrid(masterMap, workerMap)
 	assert.NoError(t, err)

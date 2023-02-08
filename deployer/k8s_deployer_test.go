@@ -125,14 +125,14 @@ func constructK8sCluster() (workloads.K8sCluster, error) {
 	}
 	workers := []workloads.K8sNodeData{worker}
 	Cluster := workloads.K8sCluster{
-		Master:           &master,
-		Workers:          workers[:],
-		Token:            "token",
-		SSHKey:           "",
-		NetworkName:      "network",
-		NodesIPRange:     make(map[uint32]gridtypes.IPNet),
+		Master:       &master,
+		Workers:      workers[:],
+		Token:        "token",
+		SSHKey:       "",
+		NetworkName:  "network",
+		NodesIPRange: make(map[uint32]gridtypes.IPNet),
 		// NodeDeploymentID: map[uint32]uint64{nodeID: contractID},
-		ContractID:       0,
+		ContractID: 0,
 	}
 	return Cluster, nil
 }
@@ -289,7 +289,7 @@ func TestCancelK8s(t *testing.T) {
 
 	k8sCluster, err := constructK8sCluster()
 	assert.NoError(t, err)
-	k8sCluster.NodesIPRange = map[uint32]gridtypes.IPNet{uint32(10): gridtypes.IPNet{}}
+	k8sCluster.NodesIPRange = map[uint32]gridtypes.IPNet{uint32(10): {}}
 
 	k8sMockValidation(d.tfPluginClient.Identity, cl, sub, ncPool, proxyCl, d)
 
@@ -309,7 +309,7 @@ func TestCancelK8sFailed(t *testing.T) {
 
 	k8sCluster, err := constructK8sCluster()
 	assert.NoError(t, err)
-	k8sCluster.NodesIPRange = map[uint32]gridtypes.IPNet{uint32(10): gridtypes.IPNet{}}
+	k8sCluster.NodesIPRange = map[uint32]gridtypes.IPNet{uint32(10): {}}
 
 	k8sMockValidation(d.tfPluginClient.Identity, cl, sub, ncPool, proxyCl, d)
 

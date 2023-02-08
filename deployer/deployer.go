@@ -21,7 +21,6 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 )
 
-
 // DeployerInterface to be used for any deployer
 type DeployerInterface interface {
 	Deploy(ctx context.Context,
@@ -45,7 +44,6 @@ type DeployerInterface interface {
 		workloadVersions map[string]uint32,
 	) error
 }
-
 
 // Deployer to be used for any deployer
 type Deployer struct {
