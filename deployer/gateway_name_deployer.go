@@ -164,14 +164,14 @@ func (k *GatewayNameDeployer) Cancel(ctx context.Context, gw *workloads.GatewayN
 	oldDeployments := k.tfPluginClient.StateLoader.currentNodeDeployment
 
 	// construct new deployments to have all old deployments except the given one
-	newDeployments := make(map[uint32]gridtypes.Deployment)
-	for nodeID := range oldDeployments {
-		if gw.NodeID != nodeID {
-			newDeployments[nodeID] = gridtypes.Deployment{}
+	deploymentIDs := make(map[uint32]uint64)
+	for nodeID, contractID := range oldDeployments {
+		if gw.NodeID == nodeID {
+			deploymentIDs[nodeID] = contractID
 		}
 	}
 
-	currentDeployments, err := k.deployer.Cancel(ctx, oldDeployments, newDeployments)
+	currentDeployments, err := k.deployer.Cancel(ctx, deploymentIDs)
 
 	if err != nil {
 		return err

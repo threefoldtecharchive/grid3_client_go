@@ -357,7 +357,7 @@ func TestCancel(t *testing.T) {
 
 	deployer.validator = &EmptyValidator{}
 
-	contracts, err := deployer.Cancel(context.Background(), map[uint32]uint64{10: 100}, nil)
+	contracts, err := deployer.Cancel(context.Background(), map[uint32]uint64{10: 100})
 	assert.NoError(t, err)
 	assert.Equal(t, contracts, map[uint32]uint64{})
 }
@@ -574,11 +574,7 @@ func TestCocktail(t *testing.T) {
 		40: 400,
 	})
 
-	contracts, err = deployer.Cancel(context.Background(), contracts, map[uint32]gridtypes.Deployment{20: {}, 30: {}, 40: {}})
+	contracts, err = deployer.Cancel(context.Background(), map[uint32]uint64{10: 100})
 	assert.NoError(t, err)
-	assert.Equal(t, contracts, map[uint32]uint64{
-		20: 200,
-		30: 300,
-		40: 400,
-	})
+	assert.Equal(t, contracts, map[uint32]uint64{})
 }

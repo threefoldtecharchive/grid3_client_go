@@ -299,14 +299,14 @@ func (k *NetworkDeployer) Cancel(ctx context.Context, znet *workloads.ZNet) erro
 	oldDeployments := k.tfPluginClient.StateLoader.currentNodeNetwork
 
 	// construct new deployments to have all old deployments except the given one
-	newDeployments := make(map[uint32]gridtypes.Deployment)
-	for nodeID := range oldDeployments {
-		if !workloads.Contains(znet.Nodes, nodeID) {
-			newDeployments[nodeID] = gridtypes.Deployment{}
+	deploymentIDs := make(map[uint32]uint64)
+	for nodeID, contractID := range oldDeployments {
+		if workloads.Contains(znet.Nodes, nodeID) {
+			deploymentIDs[nodeID] = contractID
 		}
 	}
 
-	currentDeployments, err := k.deployer.Cancel(ctx, oldDeployments, newDeployments)
+	currentDeployments, err := k.deployer.Cancel(ctx, deploymentIDs)
 	if err != nil {
 		return errors.Wrapf(err, "couldn't cancel network %s", znet.Name)
 	}

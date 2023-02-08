@@ -24,7 +24,7 @@ func constructTestFQDNDeployer(t *testing.T, mock bool) (
 	*mocks.RMBMockClient,
 	*mocks.MockSubstrateExt,
 	*mocks.MockNodeClientGetter,
-	*mocks.MockDeployer,
+	*mocks.MockDeployerInterface,
 	*mocks.MockClient,
 ) {
 	ctrl := gomock.NewController(t)
@@ -36,7 +36,7 @@ func constructTestFQDNDeployer(t *testing.T, mock bool) (
 	cl := mocks.NewRMBMockClient(ctrl)
 	sub := mocks.NewMockSubstrateExt(ctrl)
 	ncPool := mocks.NewMockNodeClientGetter(ctrl)
-	deployer := mocks.NewMockDeployer(ctrl)
+	deployer := mocks.NewMockDeployerInterface(ctrl)
 	gridProxyCl := mocks.NewMockClient(ctrl)
 
 	if mock {
@@ -152,7 +152,7 @@ func TestDeployFQDN(t *testing.T) {
 
 	deployer.EXPECT().Deploy(
 		gomock.Any(),
-		nil,
+		map[uint32]uint64{},
 		dls,
 		gomock.Any(),
 		gomock.Any(),
@@ -169,6 +169,7 @@ func TestUpdateFQDN(t *testing.T) {
 
 	gw := constructTestFQDN()
 
+	d.tfPluginClient.StateLoader.currentNodeDeployment = map[uint32]uint64{nodeID: contractID}
 	dls, err := d.GenerateVersionlessDeployments(context.Background(), &gw)
 	assert.NoError(t, err)
 
@@ -191,6 +192,7 @@ func TestUpdateFQDNFailed(t *testing.T) {
 	d, cl, sub, ncPool, deployer, proxyCl := constructTestFQDNDeployer(t, true)
 
 	gw := constructTestFQDN()
+	d.tfPluginClient.StateLoader.currentNodeDeployment = map[uint32]uint64{nodeID: contractID}
 	gw.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
 
 	dls, err := d.GenerateVersionlessDeployments(context.Background(), &gw)
@@ -223,7 +225,6 @@ func TestCancelFQDN(t *testing.T) {
 	deployer.EXPECT().Cancel(
 		gomock.Any(),
 		map[uint32]uint64{nodeID: contractID},
-		map[uint32]gridtypes.Deployment{},
 	).Return(map[uint32]uint64{}, nil)
 
 	err := d.Cancel(context.Background(), &gw)
@@ -244,7 +245,6 @@ func TestCancelFQDNFailed(t *testing.T) {
 	deployer.EXPECT().Cancel(
 		gomock.Any(),
 		map[uint32]uint64{nodeID: contractID},
-		map[uint32]gridtypes.Deployment{},
 	).Return(map[uint32]uint64{nodeID: contractID}, errors.New("error"))
 
 	err := d.Cancel(context.Background(), &gw)

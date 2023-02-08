@@ -240,7 +240,7 @@ func constructTestDeployment() workloads.Deployment {
 	}
 }
 
-func constructTestDeployer(t *testing.T, mock bool) (DeploymentDeployer, *mocks.RMBMockClient, *mocks.MockSubstrateExt, *mocks.MockNodeClientGetter, *mocks.MockDeployer) {
+func constructTestDeployer(t *testing.T, mock bool) (DeploymentDeployer, *mocks.RMBMockClient, *mocks.MockSubstrateExt, *mocks.MockNodeClientGetter, *mocks.MockDeployerInterface) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -250,7 +250,7 @@ func constructTestDeployer(t *testing.T, mock bool) (DeploymentDeployer, *mocks.
 	cl := mocks.NewRMBMockClient(ctrl)
 	sub := mocks.NewMockSubstrateExt(ctrl)
 	ncPool := mocks.NewMockNodeClientGetter(ctrl)
-	deployer := mocks.NewMockDeployer(ctrl)
+	deployer := mocks.NewMockDeployerInterface(ctrl)
 
 	if mock {
 		tfPluginClient.SubstrateConn = sub
@@ -636,7 +636,7 @@ func TestDeploymentCancel(t *testing.T) {
 			}, nil)
 
 		deployer.EXPECT().
-			Cancel(gomock.Any(), map[uint32]uint64{nodeID: contractID}, map[uint32]gridtypes.Deployment{}).
+			Cancel(gomock.Any(), map[uint32]uint64{nodeID: contractID}).
 			Return(map[uint32]uint64{nodeID: contractID}, errors.New("error"))
 
 		assert.Error(t, d.Cancel(context.Background(), &dl))
@@ -657,7 +657,7 @@ func TestDeploymentCancel(t *testing.T) {
 			}, nil)
 
 		deployer.EXPECT().
-			Cancel(gomock.Any(), map[uint32]uint64{nodeID: contractID}, map[uint32]gridtypes.Deployment{}).
+			Cancel(gomock.Any(), map[uint32]uint64{nodeID: contractID}).
 			Return(map[uint32]uint64{}, nil)
 		assert.NoError(t, d.Cancel(context.Background(), &dl))
 

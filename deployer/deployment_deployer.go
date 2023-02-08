@@ -117,14 +117,14 @@ func (d *DeploymentDeployer) Cancel(ctx context.Context, dl *workloads.Deploymen
 	oldDeployments := d.tfPluginClient.StateLoader.currentNodeDeployment
 
 	// construct new deployments to have all old deployments except the given one
-	newDeployments := make(map[uint32]gridtypes.Deployment)
-	for nodeID := range oldDeployments {
-		if dl.NodeID != nodeID {
-			newDeployments[nodeID] = gridtypes.Deployment{}
+	deploymentIDs := make(map[uint32]uint64)
+	for nodeID, contractID := range oldDeployments {
+		if dl.NodeID == nodeID {
+			deploymentIDs[nodeID] = contractID
 		}
 	}
 
-	currentDeployments, err := d.deployer.Cancel(ctx, oldDeployments, newDeployments)
+	currentDeployments, err := d.deployer.Cancel(ctx, deploymentIDs)
 	dl.ContractID = currentDeployments[dl.NodeID]
 	if dl.ContractID == 0 {
 		delete(d.tfPluginClient.StateLoader.currentNodeDeployment, dl.NodeID)

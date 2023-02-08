@@ -26,7 +26,7 @@ func constructTestNameDeployer(t *testing.T, mock bool) (
 	*mocks.RMBMockClient,
 	*mocks.MockSubstrateExt,
 	*mocks.MockNodeClientGetter,
-	*mocks.MockDeployer,
+	*mocks.MockDeployerInterface,
 	*mocks.MockClient,
 ) {
 	ctrl := gomock.NewController(t)
@@ -38,7 +38,7 @@ func constructTestNameDeployer(t *testing.T, mock bool) (
 	cl := mocks.NewRMBMockClient(ctrl)
 	sub := mocks.NewMockSubstrateExt(ctrl)
 	ncPool := mocks.NewMockNodeClientGetter(ctrl)
-	deployer := mocks.NewMockDeployer(ctrl)
+	deployer := mocks.NewMockDeployerInterface(ctrl)
 	gridProxyCl := mocks.NewMockClient(ctrl)
 
 	if mock {
@@ -155,7 +155,7 @@ func TestNameDeploy(t *testing.T) {
 
 	deployer.EXPECT().Deploy(
 		gomock.Any(),
-		nil,
+		map[uint32]uint64{},
 		dls,
 		newDeploymentsData,
 		newDeploymentsSolutionProvider,
@@ -176,6 +176,8 @@ func TestNameUpdate(t *testing.T) {
 	gw := constructTestName()
 	gw.NameContractID = nameContractID
 
+	d.tfPluginClient.StateLoader.currentNodeDeployment = map[uint32]uint64{nodeID: contractID}
+
 	dls, err := d.GenerateVersionlessDeployments(context.Background(), &gw)
 	assert.NoError(t, err)
 
@@ -183,7 +185,7 @@ func TestNameUpdate(t *testing.T) {
 
 	deployer.EXPECT().Deploy(
 		gomock.Any(),
-		gw.NodeDeploymentID,
+		map[uint32]uint64{nodeID: contractID},
 		dls,
 		gomock.Any(),
 		gomock.Any(),
@@ -238,7 +240,6 @@ func TestNameCancel(t *testing.T) {
 	deployer.EXPECT().Cancel(
 		gomock.Any(),
 		map[uint32]uint64{nodeID: contractID},
-		map[uint32]gridtypes.Deployment{},
 	).Return(map[uint32]uint64{}, nil)
 
 	sub.EXPECT().
@@ -260,7 +261,6 @@ func TestNameCancelDeploymentsFailed(t *testing.T) {
 	deployer.EXPECT().Cancel(
 		gomock.Any(),
 		map[uint32]uint64{nodeID: contractID},
-		map[uint32]gridtypes.Deployment{},
 	).Return(map[uint32]uint64{nodeID: contractID}, errors.New("error"))
 
 	err := d.Cancel(context.Background(), &gw)
@@ -279,7 +279,6 @@ func TestNameCancelContractsFailed(t *testing.T) {
 	deployer.EXPECT().Cancel(
 		gomock.Any(),
 		map[uint32]uint64{nodeID: contractID},
-		map[uint32]gridtypes.Deployment{},
 	).Return(map[uint32]uint64{}, nil)
 
 	sub.EXPECT().
