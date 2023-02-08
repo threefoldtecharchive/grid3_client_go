@@ -59,7 +59,7 @@ func TestK8sNodeData(t *testing.T) {
 	})
 
 	t.Run("test_generate_k8s_workloads", func(t *testing.T) {
-		k8sWorkloads = K8sWorkload.GenerateK8sWorkload(&cluster, false)
+		k8sWorkloads = K8sWorkload.ZosWorkload(&cluster, false)
 
 		assert.Equal(t, k8sWorkloads[0].Type, zos.ZMountType)
 		assert.Equal(t, k8sWorkloads[1].Type, zos.ZMachineType)

@@ -342,10 +342,10 @@ func (k *K8sDeployer) GenerateVersionlessDeployments(ctx context.Context, k8sClu
 	deployments := make(map[uint32]gridtypes.Deployment)
 	nodeWorkloads := make(map[uint32][]gridtypes.Workload)
 
-	masterWorkloads := k8sCluster.Master.GenerateK8sWorkload(k8sCluster, false)
+	masterWorkloads := k8sCluster.Master.ZosWorkload(k8sCluster, false)
 	nodeWorkloads[k8sCluster.Master.Node] = append(nodeWorkloads[k8sCluster.Master.Node], masterWorkloads...)
 	for _, w := range k8sCluster.Workers {
-		workerWorkloads := w.GenerateK8sWorkload(k8sCluster, true)
+		workerWorkloads := w.ZosWorkload(k8sCluster, true)
 		nodeWorkloads[w.Node] = append(nodeWorkloads[w.Node], workerWorkloads...)
 	}
 

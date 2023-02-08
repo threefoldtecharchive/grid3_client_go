@@ -163,10 +163,10 @@ func TestGenerateK8sDeployment(t *testing.T) {
 	assert.NoError(t, err)
 
 	nodeWorkloads := make(map[uint32][]gridtypes.Workload)
-	masterWorkloads := k8s.Master.GenerateK8sWorkload(&k8s, false)
+	masterWorkloads := k8s.Master.ZosWorkload(&k8s, false)
 	nodeWorkloads[k8s.Master.Node] = append(nodeWorkloads[k8s.Master.Node], masterWorkloads...)
 	for _, w := range k8s.Workers {
-		workerWorkloads := w.GenerateK8sWorkload(&k8s, true)
+		workerWorkloads := w.ZosWorkload(&k8s, true)
 		nodeWorkloads[w.Node] = append(nodeWorkloads[w.Node], workerWorkloads...)
 	}
 

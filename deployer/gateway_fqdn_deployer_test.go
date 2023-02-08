@@ -3,7 +3,6 @@ package deployer
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"math/big"
 	"testing"
 
@@ -113,7 +112,6 @@ func TestGenerateFQDNDeployment(t *testing.T) {
 
 	dls, err := d.GenerateVersionlessDeployments(context.Background(), &gw)
 	assert.NoError(t, err)
-	fmt.Printf("dls: %v\n", dls)
 	assert.Equal(t, dls, map[uint32]gridtypes.Deployment{
 		nodeID: {
 			Version: 0,

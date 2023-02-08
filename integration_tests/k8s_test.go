@@ -2,7 +2,6 @@ package integration
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 	"strings"
 
@@ -21,7 +20,8 @@ func AssertNodesAreReady(t *testing.T, k8sCluster *workloads.K8sCluster, private
 
 	masterYggIP := k8sCluster.Master.YggIP
 	assert.NotEmpty(t, masterYggIP)
-
+	
+	// Check that the outputs not empty
 	time.Sleep(5 * time.Second)
 	output, err := RemoteRun("root", masterYggIP, "export KUBECONFIG=/etc/rancher/k3s/k3s.yaml && kubectl get node", privateKey)
 	output = strings.TrimSpace(output)
@@ -37,7 +37,6 @@ func TestK8sDeployment(t *testing.T) {
 	assert.NoError(t, err)
 
 	publicKey, privateKey, err := GenerateSSHKeyPair()
-	fmt.Printf("privateKey: %v\n", privateKey)
 	assert.NoError(t, err)
 
 	filter := NodeFilter{
@@ -144,9 +143,8 @@ func TestK8sDeployment(t *testing.T) {
 
 	result, err := tfPluginClient.StateLoader.LoadK8sFromGrid(masterMap, workerMap)
 	assert.NoError(t, err)
-	fmt.Printf("result: %v\n", result)
 
-	// Check that the outputs not empty
+	// Check that master is reachable
 	masterIP := result.Master.YggIP
 	assert.NotEmpty(t, masterIP)
 
@@ -154,7 +152,6 @@ func TestK8sDeployment(t *testing.T) {
 	wgConfig := network.AccessWGConfig
 	assert.NotEmpty(t, wgConfig)
 
-	// Check that master is reachable
 	// testing connection on port 22, waits at max 3mins until it becomes ready otherwise it fails
 	ok := TestConnection(masterIP, "22")
 	assert.True(t, ok)
