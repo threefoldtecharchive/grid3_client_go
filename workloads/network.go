@@ -146,6 +146,8 @@ Endpoint = %s
 	`, Address, AccessPrivatekey, NodePublicKey, NetworkIPRange, NodeEndpoint)
 }
 
+//TODO: ALl Logs should be trace
+
 // GetPublicNode return public node ID
 func GetPublicNode(ctx context.Context, gridClient proxy.Client, preferredNodes []uint32) (uint32, error) {
 	preferredNodesSet := make(map[int]struct{})
@@ -223,6 +225,7 @@ func GetNodeFreeWGPort(ctx context.Context, nodeClient *client.NodeClient, nodeI
 	return int(p), nil
 }
 
+// TODO: Remove nested
 // GetNodeEndpoint gets node end point network ip
 func GetNodeEndpoint(ctx context.Context, nodeClient *client.NodeClient) (net.IP, error) {
 	publicConfig, err := nodeClient.NetworkGetPublicConfig(ctx)
@@ -266,6 +269,7 @@ func GetNodeEndpoint(ctx context.Context, nodeClient *client.NodeClient) (net.IP
 	return nil, errors.Wrap(ErrNoAccessibleInterfaceFound, "no public ipv4 or ipv6 on zos interface found")
 }
 
+//TODO: Refactor function
 // NextFreeOctet finds a free ip for a node
 func NextFreeOctet(used []byte, start *byte) error {
 	for Contains(used, *start) && *start <= 254 {

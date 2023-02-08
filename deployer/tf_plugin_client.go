@@ -37,8 +37,8 @@ type TFPluginClient struct {
 	TwinID          uint32
 	Mnemonics       string
 	SubstrateURL    string
-	RMBRedisURL     string
-	UseRmbProxy     bool
+	RMBRedisURL     string //TODO: Remove redis && rmbProxy = true
+	UseRmbProxy     bool   
 	GridProxyClient proxy.Client
 	RMB             rmb.Client
 	SubstrateConn   subi.SubstrateExt
@@ -114,7 +114,7 @@ func NewTFPluginClient(mnemonics string,
 		return TFPluginClient{}, errors.Wrap(err, "couldn't get substrate client")
 	}
 
-	if err := validateAccount(&tfPluginClient, sub); err != nil {
+	if err := validateAccount(&tfPluginClient); err != nil {
 		return TFPluginClient{}, errors.Wrap(err, "couldn't validate substrate account")
 	}
 

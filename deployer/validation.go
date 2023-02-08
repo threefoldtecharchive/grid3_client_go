@@ -17,7 +17,8 @@ import (
 )
 
 // validateAccount checks the mnemonics is associated with an account with key type ed25519
-func validateAccount(tfPluginClient *TFPluginClient, sub subi.SubstrateExt) error {
+func validateAccount(tfPluginClient *TFPluginClient) error {
+	sub := tfPluginClient.SubstrateConn
 	_, err := sub.GetAccount(tfPluginClient.Identity)
 	if err != nil && !errors.Is(err, substrate.ErrAccountNotFound) {
 		return errors.Wrap(err, "failed to get account with the given mnemonics")
@@ -27,6 +28,7 @@ func validateAccount(tfPluginClient *TFPluginClient, sub subi.SubstrateExt) erro
 		for keyType, f := range funcs {
 			ident, err2 := f(tfPluginClient.Mnemonics)
 			if err2 != nil { // shouldn't happen, return original error
+				// TODO: set log level trace
 				log.Printf("couldn't convert the mnemonics to %s key: %s", keyType, err2.Error())
 				return err
 			}
@@ -41,20 +43,21 @@ func validateAccount(tfPluginClient *TFPluginClient, sub subi.SubstrateExt) erro
 	return nil
 }
 
-func validateRedis(tfPluginClient *TFPluginClient) error {
-	errMsg := fmt.Sprintf("redis error. make sure rmb_redis_url is correct and there's a redis server listening there. rmb_redis_url: %s", tfPluginClient.RMBRedisURL)
-	cl, err := newRedisPool(tfPluginClient.RMBRedisURL)
-	if err != nil {
-		return errors.Wrap(err, errMsg)
-	}
-	defer cl.Close()
-	c, err := cl.Dial()
-	if err != nil {
-		return errors.Wrap(err, errMsg)
-	}
-	c.Close()
-	return nil
-}
+// TODO: Remove validate Redis
+// func validateRedis(tfPluginClient *TFPluginClient) error {
+// 	errMsg := fmt.Sprintf("redis error. make sure rmb_redis_url is correct and there's a redis server listening there. rmb_redis_url: %s", tfPluginClient.RMBRedisURL)
+// 	cl, err := newRedisPool(tfPluginClient.RMBRedisURL)
+// 	if err != nil {
+// 		return errors.Wrap(err, errMsg)
+// 	}
+// 	defer cl.Close()
+// 	c, err := cl.Dial()
+// 	if err != nil {
+// 		return errors.Wrap(err, errMsg)
+// 	}
+// 	c.Close()
+// 	return nil
+// }
 
 func validateYggdrasil(tfPluginClient *TFPluginClient, sub subi.SubstrateExt) error {
 	yggIP, err := sub.GetTwinIP(tfPluginClient.TwinID)
@@ -97,13 +100,13 @@ func validateYggdrasil(tfPluginClient *TFPluginClient, sub subi.SubstrateExt) er
 	return nil
 }
 
-func validateRMB(tfPluginClient *TFPluginClient, sub subi.SubstrateExt) error {
-	if err := validateRedis(tfPluginClient); err != nil {
-		return err
-	}
+// func validateRMB(tfPluginClient *TFPluginClient, sub subi.SubstrateExt) error {
+// 	if err := validateRedis(tfPluginClient); err != nil {
+// 		return err
+// 	}
 
-	return validateYggdrasil(tfPluginClient, sub)
-}
+// 	return validateYggdrasil(tfPluginClient, sub)
+// }
 
 func validateRMBProxyServer(tfPluginClient *TFPluginClient) error {
 	return tfPluginClient.GridProxyClient.Ping()
@@ -148,13 +151,13 @@ func validateProxyURL(url string) error {
 	return nil
 }
 
-func validateClientRMB(tfPluginClient *TFPluginClient, sub subi.SubstrateExt) error {
-	if tfPluginClient.UseRmbProxy {
-		return validateRMBProxyServer(tfPluginClient)
-	}
+// func validateClientRMB(tfPluginClient *TFPluginClient, sub subi.SubstrateExt) error {
+// 	if tfPluginClient.UseRmbProxy {
+// 		return validateRMBProxyServer(tfPluginClient)
+// 	}
 
-	return validateRMB(tfPluginClient, sub)
-}
+// 	return validateRMB(tfPluginClient, sub)
+// }
 
 func validateAccountBalanceForExtrinsics(sub subi.SubstrateExt, identity substrate.Identity) error {
 	balance, err := sub.GetBalance(identity)

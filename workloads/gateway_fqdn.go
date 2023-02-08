@@ -8,7 +8,7 @@ import (
 )
 
 // GatewayFQDNProxy for gateway FQDN proxy
-type GatewayFQDNProxy struct {
+type GatewayFQDNProxy struct { //TODO: check logic spectially Name !!(deployment Name)
 	NodeID uint32
 	// Backends are list of backend ips
 	Backends []zos.Backend
@@ -31,7 +31,7 @@ type GatewayFQDNProxy struct {
 // NewGatewayFQDNProxyFromZosWorkload generates a gateway FQDN proxy from a zos workload
 func NewGatewayFQDNProxyFromZosWorkload(wl gridtypes.Workload) (GatewayFQDNProxy, error) {
 	dataI, err := wl.WorkloadData()
-	if err != nil {
+	if err != nil { //TODO: Add more data
 		return GatewayFQDNProxy{}, errors.Wrap(err, "failed to get workload data")
 	}
 

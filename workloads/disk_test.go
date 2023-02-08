@@ -11,7 +11,7 @@ import (
 // DiskWorkload to be used for tests
 var DiskWorkload = Disk{
 	Name:        "test",
-	Size:        10,
+	SizeGP:      10,
 	Description: "disk test description",
 }
 

@@ -167,7 +167,7 @@ func (d *DeploymentDeployer) Sync(ctx context.Context, dl *workloads.Deployment)
 
 		switch w.Type {
 		case zos.ZMachineType:
-			vm, err := workloads.NewVMFromWorkloads(&w, &deployment)
+			vm, err := workloads.NewVMFromWorkload(&w, &deployment)
 			if err != nil {
 				log.Printf("error parsing vm: %s", err.Error())
 				continue

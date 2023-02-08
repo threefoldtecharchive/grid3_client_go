@@ -19,11 +19,11 @@ var ErrInvalidInput = errors.New("invalid input")
 type VM struct {
 	Name          string
 	Flist         string
-	FlistChecksum string
+	FlistChecksum string //TODO: why here ???
 	PublicIP      bool
 	PublicIP6     bool
 	Planetary     bool
-	Corex         bool
+	Corex         bool //TODO: Is it works ??
 	ComputedIP    string
 	ComputedIP6   string
 	YggIP         string
@@ -51,9 +51,9 @@ func NewVMFromSchema(vm map[string]interface{}) *VM {
 	var mounts []Mount
 	mountPoints := vm["mounts"].([]interface{})
 
-	if len(mountPoints) > 0 {
-		mounts = make([]Mount, 0)
-	}
+	// if len(mountPoints) > 0 {	//TODO: Not Needed, same for Zlogs
+	// 	mounts = make([]Mount, 0)
+	// }
 	for _, mountPoint := range mountPoints {
 		point := mountPoint.(map[string]interface{})
 		mount := Mount{DiskName: point["disk_name"].(string), MountPoint: point["mount_point"].(string)}
@@ -97,15 +97,15 @@ func NewVMFromSchema(vm map[string]interface{}) *VM {
 	}
 }
 
-// NewVMFromWorkloads generates a new vm from given workloads and deployment
-func NewVMFromWorkloads(wl *gridtypes.Workload, dl *gridtypes.Deployment) (VM, error) {
+// NewVMFromWorkload generates a new vm from given workloads and deployment
+func NewVMFromWorkload(wl *gridtypes.Workload, dl *gridtypes.Deployment) (VM, error) {
 	dataI, err := wl.WorkloadData()
 	if err != nil {
 		return VM{}, errors.Wrap(err, "failed to get workload data")
 	}
 
 	data, ok := dataI.(*zos.ZMachine)
-	if !ok {
+	if !ok { //TODO: more information
 		return VM{}, errors.New("could not create vm workload")
 	}
 
@@ -267,6 +267,7 @@ func (vm *VM) ToMap() map[string]interface{} {
 	return res
 }
 
+//TODO: explain more comments max && min stuff
 // Validate validates a virtual machine data
 func (vm *VM) Validate() error {
 	if vm.CPU < 1 || vm.CPU > 32 {
@@ -291,14 +292,15 @@ func (vm *VM) Validate() error {
 	return nil
 }
 
+//TODO:
 // WithNetworkName sets network name for vm
 func (vm *VM) WithNetworkName(name string) *VM {
 	vm.NetworkName = name
 	return vm
 }
 
-// Match compares the vm with another given vm
-func (vm *VM) Match(vm2 *VM) {
+// LoadFromVM compares the vm with another given vm
+func (vm *VM) LoadFromVM(vm2 *VM) { 
 	l := len(vm2.Zlogs) + len(vm2.Mounts)
 	names := make(map[string]int)
 	for idx, zlog := range vm2.Zlogs {

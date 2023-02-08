@@ -78,7 +78,7 @@ func (k *GatewayFQDNDeployer) Deploy(ctx context.Context, gw *workloads.GatewayF
 	oldDeployments := k.tfPluginClient.StateLoader.currentNodeDeployment
 	currentDeployments, err := k.deployer.Deploy(ctx, oldDeployments, newDeployments, newDeploymentsData, newDeploymentsSolutionProvider)
 
-	// update state
+	// update state	//TODO:
 	if err == nil {
 		gw.ContractID = currentDeployments[gw.NodeID]
 		gw.NodeDeploymentID = currentDeployments
@@ -114,6 +114,7 @@ func (k *GatewayFQDNDeployer) Cancel(ctx context.Context, gw *workloads.GatewayF
 	return err
 }
 
+// TODO: check sync added or not ??
 func (k *GatewayFQDNDeployer) syncContracts(ctx context.Context, gw *workloads.GatewayFQDNProxy) (err error) {
 	if err := k.tfPluginClient.SubstrateConn.DeleteInvalidContracts(gw.NodeDeploymentID); err != nil {
 		return err

@@ -10,7 +10,7 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
-
+//TODO: Awady review it 
 // QSFS struct
 type QSFS struct {
 	Name                 string

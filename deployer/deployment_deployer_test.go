@@ -28,12 +28,12 @@ func constructTestDeployment() workloads.Deployment {
 	disks := []workloads.Disk{
 		{
 			Name:        "disk1",
-			Size:        1024,
+			SizeGP:      1024,
 			Description: "disk1_description",
 		},
 		{
 			Name:        "disk2",
-			Size:        2048,
+			SizeGP:      2048,
 			Description: "disk2_description",
 		},
 	}

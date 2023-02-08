@@ -45,12 +45,12 @@ func TestVMWithTwoDisk(t *testing.T) {
 	}
 
 	disk1 := workloads.Disk{
-		Name: "diskTest1",
-		Size: 1,
+		Name:   "diskTest1",
+		SizeGP: 1,
 	}
 	disk2 := workloads.Disk{
-		Name: "diskTest2",
-		Size: 2,
+		Name:   "diskTest2",
+		SizeGP: 2,
 	}
 
 	vm := workloads.VM{
@@ -103,11 +103,11 @@ func TestVMWithTwoDisk(t *testing.T) {
 
 	output, err := RemoteRun("root", yggIP, "df -h | grep -w /disk1", privateKey)
 	assert.NoError(t, err)
-	assert.Contains(t, string(output), fmt.Sprintf("%d.0G", disk1.Size))
+	assert.Contains(t, string(output), fmt.Sprintf("%d.0G", disk1.SizeGP))
 
 	output, err = RemoteRun("root", yggIP, "df -h | grep -w /disk2", privateKey)
 	assert.NoError(t, err)
-	assert.Contains(t, string(output), fmt.Sprintf("%d.0G", disk2.Size))
+	assert.Contains(t, string(output), fmt.Sprintf("%d.0G", disk2.SizeGP))
 
 	// create file -> d1, check file size, move file -> d2, check file size
 

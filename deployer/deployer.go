@@ -22,7 +22,7 @@ import (
 )
 
 // DeployerInterface to be used for any deployer
-type DeployerInterface interface {
+type DeployerInterface interface {	//TODO: Change Name && separate them 
 	Deploy(ctx context.Context,
 		oldDeploymentIDs map[uint32]uint64,
 		newDeployments map[uint32]gridtypes.Deployment,
@@ -52,7 +52,7 @@ type Deployer struct {
 	validator       Validator
 	ncPool          client.NodeClientGetter
 	revertOnFailure bool
-	SubstrateConn   subi.SubstrateExt
+	substrateConn   subi.SubstrateExt
 }
 
 // NewDeployer returns a new deployer
@@ -84,7 +84,7 @@ func (d *Deployer) Deploy(ctx context.Context,
 		// check resources only when old deployments are readable
 		// being readable means it's a fresh deployment or an update with good nodes
 		// this is done to avoid preventing deletion of deployments on dead nodes
-		if err := d.validator.Validate(ctx, d.SubstrateConn, oldDeployments, newDeployments); err != nil {
+		if err := d.validator.Validate(ctx, d.substrateConn, oldDeployments, newDeployments); err != nil {
 			return oldDeploymentIDs, err
 		}
 	}
@@ -133,7 +133,7 @@ func (d *Deployer) deploy(
 	// creations
 	for node, dl := range newDeployments {
 		if _, ok := oldDeployments[node]; !ok {
-			client, err := d.ncPool.GetNodeClient(d.SubstrateConn, node)
+			client, err := d.ncPool.GetNodeClient(d.substrateConn, node)
 			if err != nil {
 				return currentDeployments, errors.Wrap(err, "failed to get node client")
 			}
@@ -166,7 +166,7 @@ func (d *Deployer) deploy(
 				return currentDeployments, errors.Wrap(err, "failed to parse deployment data")
 			}
 
-			contractID, err := d.SubstrateConn.CreateNodeContract(d.identity, node, string(deploymentDataBytes), hashHex, publicIPCount, newDeploymentSolutionProvider[node])
+			contractID, err := d.substrateConn.CreateNodeContract(d.identity, node, string(deploymentDataBytes), hashHex, publicIPCount, newDeploymentSolutionProvider[node])
 			log.Printf("CreateNodeContract returned id: %d\n", contractID)
 			if err != nil {
 				return currentDeployments, errors.Wrap(err, "failed to create contract")
@@ -178,7 +178,7 @@ func (d *Deployer) deploy(
 			err = client.DeploymentDeploy(ctx2, dl)
 
 			if err != nil {
-				rerr := d.SubstrateConn.EnsureContractCanceled(d.identity, contractID)
+				rerr := d.substrateConn.EnsureContractCanceled(d.identity, contractID)
 				if rerr != nil {
 					return currentDeployments, fmt.Errorf("error sending deployment to the node: %w, error cancelling contract: %s; you must cancel it manually (id: %d)", err, rerr, contractID)
 				}
@@ -206,7 +206,7 @@ func (d *Deployer) deploy(
 				return currentDeployments, errors.Wrap(err, "couldn't get deployment hash")
 			}
 
-			client, err := d.ncPool.GetNodeClient(d.SubstrateConn, node)
+			client, err := d.ncPool.GetNodeClient(d.substrateConn, node)
 			if err != nil {
 				return currentDeployments, errors.Wrap(err, "failed to get node client")
 			}
@@ -266,7 +266,7 @@ func (d *Deployer) deploy(
 
 			// TODO: Destroy and create if publicIPCount is changed
 			// publicIPCount, err := countDeploymentPublicIPs(dl)
-			contractID, err := d.SubstrateConn.UpdateNodeContract(d.identity, dl.ContractID, "", hashHex)
+			contractID, err := d.substrateConn.UpdateNodeContract(d.identity, dl.ContractID, "", hashHex)
 			if err != nil {
 				return currentDeployments, errors.Wrap(err, "failed to update deployment")
 			}
@@ -300,7 +300,7 @@ func (d *Deployer) Cancel(ctx context.Context,
 		return oldDeploymentIDs, err
 	}
 
-	if err := d.validator.Validate(ctx, d.SubstrateConn, oldDeployments, newDeployments); err != nil {
+	if err := d.validator.Validate(ctx, d.substrateConn, oldDeployments, newDeployments); err != nil {
 		return oldDeploymentIDs, err
 	}
 
@@ -309,7 +309,7 @@ func (d *Deployer) Cancel(ctx context.Context,
 	// deletions
 	for node, contractID := range oldDeploymentIDs {
 		if _, ok := newDeployments[node]; !ok {
-			err = d.SubstrateConn.EnsureContractCanceled(d.identity, contractID)
+			err = d.substrateConn.EnsureContractCanceled(d.identity, contractID)
 			if err != nil && !strings.Contains(err.Error(), "ContractNotExists") {
 				return currentDeployments, errors.Wrap(err, "failed to delete deployment")
 			}
@@ -334,7 +334,7 @@ func (d *Deployer) GetDeployments(ctx context.Context, dls map[uint32]uint64) (m
 		go func(nodeID uint32, dlID uint64) {
 
 			defer wg.Done()
-			nc, err := d.ncPool.GetNodeClient(d.SubstrateConn, nodeID)
+			nc, err := d.ncPool.GetNodeClient(d.substrateConn, nodeID)
 			if err != nil {
 				resErrors = multierror.Append(resErrors, errors.Wrapf(err, "failed to get a client for node %d", nodeID))
 				return

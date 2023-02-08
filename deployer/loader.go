@@ -100,7 +100,7 @@ func (l *StateLoader) LoadVMFromGrid(nodeID uint32, name string) (workloads.VM, 
 		return workloads.VM{}, errors.Wrapf(err, "couldn't get workload from node %d", nodeID)
 	}
 
-	return workloads.NewVMFromWorkloads(&wl, &dl)
+	return workloads.NewVMFromWorkload(&wl, &dl)
 }
 
 // LoadK8sFromGrid loads k8s from grid

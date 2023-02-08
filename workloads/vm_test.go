@@ -59,7 +59,7 @@ func TestVMWorkload(t *testing.T) {
 		assert.NoError(t, err)
 		vmWorkload.Result.Data = res
 
-		vmFromWorkload, err := NewVMFromWorkloads(&vmWorkload, &deployment)
+		vmFromWorkload, err := NewVMFromWorkload(&vmWorkload, &deployment)
 		assert.NoError(t, err)
 
 		// no result yet so they are set manually
@@ -103,12 +103,12 @@ func TestVMWorkload(t *testing.T) {
 
 	t.Run("test_vm_matches_another_vm", func(t *testing.T) {
 		vm2 := VMWorkload.WithNetworkName("net")
-		VMWorkload.Match(vm2)
+		VMWorkload.LoadFromVM(vm2)
 		assert.Equal(t, *vm2, VMWorkload)
 
 		// reset network name
 		vm2 = VMWorkload.WithNetworkName("testingNetwork")
-		VMWorkload.Match(vm2)
+		VMWorkload.LoadFromVM(vm2)
 		assert.Equal(t, *vm2, VMWorkload)
 	})
 

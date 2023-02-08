@@ -45,8 +45,8 @@ func TestVmDisk(t *testing.T) {
 	}
 
 	disk := workloads.Disk{
-		Name: "diskTest",
-		Size: 1,
+		Name:   "diskTest",
+		SizeGP: 1,
 	}
 
 	vm := workloads.VM{
@@ -93,7 +93,7 @@ func TestVmDisk(t *testing.T) {
 	// Check that disk has been mounted successfully
 	output, err := RemoteRun("root", yggIP, "df -h | grep -w /disk", privateKey)
 	assert.NoError(t, err)
-	assert.Contains(t, string(output), fmt.Sprintf("%d.0G", disk.Size))
+	assert.Contains(t, string(output), fmt.Sprintf("%d.0G", disk.SizeGP))
 
 	// cancel all
 	err = tfPluginClient.DeploymentDeployer.Cancel(ctx, &dl)

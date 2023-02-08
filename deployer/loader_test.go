@@ -49,7 +49,7 @@ func SetupLoaderTests(t *testing.T, wls []gridtypes.Workload) *StateLoader {
 func TestLoadDiskFromGrid(t *testing.T) {
 	disk := workloads.Disk{
 		Name:        "test",
-		Size:        100,
+		SizeGP:      100,
 		Description: "test des",
 	}
 

@@ -10,15 +10,16 @@ import (
 // Disk struct
 type Disk struct {
 	Name        string
-	Size        int
+	SizeGP      int
 	Description string
 }
 
+//TODO: Map not schema
 // NewDiskFromSchema converts a disk data map to a struct
 func NewDiskFromSchema(disk map[string]interface{}) Disk {
 	return Disk{
 		Name:        disk["name"].(string),
-		Size:        disk["size"].(int),
+		SizeGP:      disk["size"].(int),
 		Description: disk["description"].(string),
 	}
 }
@@ -31,14 +32,14 @@ func NewDiskFromWorkload(wl *gridtypes.Workload) (Disk, error) {
 	}
 
 	data, ok := dataI.(*zos.ZMount)
-	if !ok {
+	if !ok { //TODO: Add workload data the one couldn't be converted to disk
 		return Disk{}, errors.New("could not create disk workload")
 	}
 
 	return Disk{
 		Name:        wl.Name.String(),
 		Description: wl.Description,
-		Size:        int(data.Size / gridtypes.Gigabyte),
+		SizeGP:      int(data.Size / gridtypes.Gigabyte),	//Gegabyte
 	}, nil
 }
 
@@ -47,10 +48,11 @@ func (d *Disk) ToMap() map[string]interface{} {
 	res := make(map[string]interface{})
 	res["name"] = d.Name
 	res["description"] = d.Description
-	res["size"] = d.Size
+	res["size"] = d.SizeGP
 	return res
 }
 
+// TODO: Remove it
 // GetName returns disk name
 func (d *Disk) GetName() string {
 	return d.Name
@@ -64,7 +66,7 @@ func (d *Disk) ZosWorkload() gridtypes.Workload {
 		Type:        zos.ZMountType,
 		Description: d.Description,
 		Data: gridtypes.MustMarshal(zos.ZMount{
-			Size: gridtypes.Unit(d.Size) * gridtypes.Gigabyte,
+			Size: gridtypes.Unit(d.SizeGP) * gridtypes.Gigabyte,
 		}),
 	}
 }

@@ -12,7 +12,7 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
-// K8sNodeData kubernetes data
+// K8sNodeData kubernetes data //TODO: remova data from renaming
 type K8sNodeData struct {
 	Name          string
 	Node          uint32
@@ -84,7 +84,7 @@ func NewK8sNodeDataFromWorkload(wl gridtypes.Workload, nodeID uint32, diskSize i
 	if err != nil {
 		return k, err
 	}
-
+	// TODO: return instead of assign to k
 	k = K8sNodeData{
 		Name:          string(wl.Name),
 		Node:          nodeID,
@@ -105,7 +105,7 @@ func NewK8sNodeDataFromWorkload(wl gridtypes.Workload, nodeID uint32, diskSize i
 }
 
 // ToMap converts k8s data to a map (dict)
-func (k *K8sNodeData) ToMap() map[string]interface{} {
+func (k *K8sNodeData) ToMap() map[string]interface{} { //TODO: same as previous
 	res := make(map[string]interface{})
 	res["name"] = k.Name
 	res["node"] = int(k.Node)
@@ -125,7 +125,7 @@ func (k *K8sNodeData) ToMap() map[string]interface{} {
 }
 
 // HasWorkload checks if a workload belongs to the k8s data
-func (k *K8sNodeData) HasWorkload(workload gridtypes.Workload) bool {
+func (k *K8sNodeData) HasWorkload(workload gridtypes.Workload) bool { //TODO: pass name here instead of workload
 	if workload.Name == gridtypes.Name(k.Name) ||
 		workload.Name == gridtypes.Name(fmt.Sprintf("%sdisk", k.Name)) {
 		return true
@@ -135,7 +135,7 @@ func (k *K8sNodeData) HasWorkload(workload gridtypes.Workload) bool {
 
 // ZosWorkload generates a k8s workload from a k8s data
 func (k *K8sNodeData) ZosWorkload(cluster *K8sCluster, isWorker bool) []gridtypes.Workload {
-
+	//TODO: separate to 2 functions, one for master w one for worker
 	diskName := fmt.Sprintf("%sdisk", k.Name)
 	K8sWorkloads := make([]gridtypes.Workload, 0)
 	diskWorkload := gridtypes.Workload{
@@ -198,7 +198,7 @@ func (k *K8sNodeData) ZosWorkload(cluster *K8sCluster, isWorker bool) []gridtype
 }
 
 // ValidateToken validate cluster token
-func (k *K8sCluster) ValidateToken() error {
+func (k *K8sCluster) ValidateToken() error { //TODO: remove one in k8s_deployer.go
 	if len(k.Token) < 6 {
 		return errors.New("token must be at least 6 characters")
 	}
@@ -215,7 +215,7 @@ func (k *K8sCluster) ValidateToken() error {
 }
 
 // ValidateNames validate names for master and workers
-func (k *K8sCluster) ValidateNames() error {
+func (k *K8sCluster) ValidateNames() error { //TODO: remove one in k8s_deployer.go
 	names := make(map[string]bool)
 	names[k.Master.Name] = true
 
@@ -228,6 +228,7 @@ func (k *K8sCluster) ValidateNames() error {
 	return nil
 }
 
+// TODO: zosWorkload??
 // GenerateWorkloads generates k8s workloads from a k8s cluster
 func (k *K8sCluster) GenerateWorkloads() ([]gridtypes.Workload, error) {
 	k8sWorkloads := []gridtypes.Workload{}

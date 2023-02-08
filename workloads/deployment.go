@@ -117,7 +117,7 @@ func (d *Deployment) Match(disks []Disk, qsfs []QSFS, zdbs []ZDB, vms []VM) {
 	for idx := range vms {
 		vm, ok := vmMap[vms[idx].Name]
 		if ok {
-			vms[idx].Match(vm)
+			vms[idx].LoadFromVM(vm)
 			log.Printf("orig: %+v\n", vm)
 			log.Printf("new: %+v\n", vms[idx])
 		}
@@ -194,7 +194,7 @@ func GetUsedIPs(dl gridtypes.Deployment) ([]byte, error) {
 			return usedIPs, fmt.Errorf("workload %s state failed", w.Name)
 		}
 		if w.Type == zos.ZMachineType {
-			vm, err := NewVMFromWorkloads(&w, &dl)
+			vm, err := NewVMFromWorkload(&w, &dl)
 			if err != nil {
 				return usedIPs, errors.Wrapf(err, "error parsing vm: %s", vm.Name)
 			}

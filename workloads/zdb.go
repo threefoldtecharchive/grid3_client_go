@@ -9,7 +9,7 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
-// ZDB workload struct
+// ZDB workload struct	//TODO: same comments 
 type ZDB struct {
 	Name        string
 	Password    string

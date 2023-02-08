@@ -13,16 +13,20 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
+// TODO: Change to Validater
 // Validator interface for any validator
 type Validator interface {
 	Validate(ctx context.Context, sub subi.SubstrateExt, oldDeployments map[uint32]gridtypes.Deployment, newDeployments map[uint32]gridtypes.Deployment) error
 }
 
+// TODO: rename to DeployerValidater
 // ValidatorImpl validator implementation
 type ValidatorImpl struct {
 	gridClient proxy.Client
 }
 
+// TODO: describe comments better to describe what its doing && change state
+// old deployments get from state
 // Validate is a best effort validation. it returns an error if it's very sure there's a problem
 //
 //	errors that may arise because of dead nodes are ignored.
