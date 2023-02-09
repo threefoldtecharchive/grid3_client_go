@@ -35,14 +35,4 @@ func TestGatewayFQDNProxyWorkload(t *testing.T) {
 		_, err := NewGatewayFQDNProxyFromZosWorkload(gatewayCp)
 		assert.Contains(t, err.Error(), "failed to get workload data")
 	})
-
-	t.Run("test_workloads_map", func(t *testing.T) {
-		nodeID := uint32(1)
-		workloadsMap := map[uint32][]gridtypes.Workload{}
-		workloadsMap[nodeID] = append(workloadsMap[nodeID], gateway)
-
-		workloadsMap2, err := GatewayFQDNWorkload.BindWorkloadsToNode(nodeID)
-		assert.NoError(t, err)
-		assert.Equal(t, workloadsMap, workloadsMap2)
-	})
 }

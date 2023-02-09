@@ -17,6 +17,7 @@ import (
 	client "github.com/threefoldtech/grid3-go/node"
 	"github.com/threefoldtech/grid3-go/subi"
 	"github.com/threefoldtech/grid3-go/workloads"
+	proxyTypes "github.com/threefoldtech/grid_proxy_server/pkg/types"
 	"github.com/threefoldtech/substrate-client"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
@@ -39,7 +40,7 @@ func setup() (TFPluginClient, error) {
 	network := os.Getenv("NETWORK")
 	log.Printf("network: %s", network)
 
-	return NewTFPluginClient(mnemonics, "sr25519", network, "", "", true, "", true)
+	return NewTFPluginClient(mnemonics, "sr25519", network, "", "", true)
 }
 
 type gatewayWorkloadGenerator interface {
@@ -90,18 +91,32 @@ func hash(dl *gridtypes.Deployment) (string, error) {
 	return hashHex, nil
 }
 
-type EmptyValidator struct{}
+// TODO: mockDeployerValidator
+func mockDeployerValidator(d *Deployer, ctrl *gomock.Controller, nodes []uint32) {
+	proxyCl := mocks.NewMockClient(ctrl)
+	d.gridProxyClient = proxyCl
 
-func (d *EmptyValidator) Validate(ctx context.Context, sub subi.SubstrateExt, oldDeployments map[uint32]gridtypes.Deployment, newDeployments map[uint32]gridtypes.Deployment) error {
-	return nil
+	for _, nodeID := range nodes {
+		proxyCl.EXPECT().
+			Node(nodeID).
+			Return(proxyTypes.NodeWithNestedCapacity{
+				FarmID: 1,
+				PublicConfig: proxyTypes.PublicConfig{
+					Ipv4:   "1.1.1.1",
+					Domain: "test",
+				},
+			}, nil)
+
+		proxyCl.EXPECT().Farms(gomock.Any(), gomock.Any()).Return([]proxyTypes.Farm{{FarmID: 1}}, 1, nil).AnyTimes()
+	}
 }
 
 func TestCreate(t *testing.T) {
 	tfPluginClient, err := setup()
 	assert.NoError(t, err)
 
-	identity := tfPluginClient.Identity
-	twinID := tfPluginClient.TwinID
+	identity := tfPluginClient.identity
+	twinID := tfPluginClient.twinID
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -146,6 +161,8 @@ func TestCreate(t *testing.T) {
 	assert.NoError(t, err)
 	dl2Hash, err := hash(&dl2)
 	assert.NoError(t, err)
+
+	mockDeployerValidator(&deployer, ctrl, []uint32{10, 20})
 
 	sub.EXPECT().
 		CreateNodeContract(
@@ -207,8 +224,6 @@ func TestCreate(t *testing.T) {
 			return nil
 		})
 
-	deployer.validator = &EmptyValidator{}
-
 	contracts, err := deployer.Deploy(context.Background(), nil, newDls, newDlsData, newDlsSolProvider)
 	assert.NoError(t, err)
 	assert.Equal(t, contracts, map[uint32]uint64{10: 100, 20: 200})
@@ -218,8 +233,8 @@ func TestUpdate(t *testing.T) {
 	tfPluginClient, err := setup()
 	assert.NoError(t, err)
 
-	identity := tfPluginClient.Identity
-	twinID := tfPluginClient.TwinID
+	identity := tfPluginClient.identity
+	twinID := tfPluginClient.twinID
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -260,6 +275,15 @@ func TestUpdate(t *testing.T) {
 	dl2Hash, err := hash(&dl2)
 	assert.NoError(t, err)
 
+	mockDeployerValidator(&deployer, ctrl, []uint32{10})
+	sub.EXPECT().GetContract(uint64(100)).Return(subi.Contract{
+		Contract: &substrate.Contract{ContractType: substrate.ContractType{
+			NodeContract: substrate.NodeContract{
+				PublicIPsCount: 0,
+			},
+		}},
+	}, nil)
+
 	sub.EXPECT().
 		UpdateNodeContract(
 			identity,
@@ -298,8 +322,6 @@ func TestUpdate(t *testing.T) {
 			return nil
 		}).AnyTimes()
 
-	deployer.validator = &EmptyValidator{}
-
 	contracts, err := deployer.Deploy(context.Background(), map[uint32]uint64{10: 100}, newDls, newDlsData, newDlsSolProvider)
 
 	assert.NoError(t, err)
@@ -313,8 +335,8 @@ func TestCancel(t *testing.T) {
 	tfPluginClient, err := setup()
 	assert.NoError(t, err)
 
-	identity := tfPluginClient.Identity
-	twinID := tfPluginClient.TwinID
+	identity := tfPluginClient.identity
+	twinID := tfPluginClient.twinID
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -343,7 +365,9 @@ func TestCancel(t *testing.T) {
 			uint64(100),
 		).Return(nil)
 
-	deployer.validator = &EmptyValidator{}
+	ncPool.EXPECT().
+		GetNodeClient(sub, uint32(10)).
+		Return(client.NewNodeClient(13, cl), nil).AnyTimes()
 
 	err = deployer.Cancel(context.Background(), 100)
 	assert.NoError(t, err)
@@ -353,8 +377,8 @@ func TestCocktail(t *testing.T) {
 	tfPluginClient, err := setup()
 	assert.NoError(t, err)
 
-	identity := tfPluginClient.Identity
-	twinID := tfPluginClient.TwinID
+	identity := tfPluginClient.identity
+	twinID := tfPluginClient.twinID
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -424,6 +448,15 @@ func TestCocktail(t *testing.T) {
 		30: nil,
 		40: nil,
 	}
+
+	mockDeployerValidator(&deployer, ctrl, []uint32{10, 20, 40, 30})
+	sub.EXPECT().GetContract(gomock.Any()).Return(subi.Contract{
+		Contract: &substrate.Contract{ContractType: substrate.ContractType{
+			NodeContract: substrate.NodeContract{
+				PublicIPsCount: 0,
+			},
+		}},
+	}, nil).AnyTimes()
 
 	sub.EXPECT().
 		CreateNodeContract(
@@ -550,8 +583,6 @@ func TestCocktail(t *testing.T) {
 			return nil
 		})
 
-	deployer.validator = &EmptyValidator{}
-
 	contracts, err := deployer.Deploy(context.Background(), oldDls, newDls, newDlsData, newDlsSolProvider)
 	assert.NoError(t, err)
 	assert.Equal(t, contracts, map[uint32]uint64{
@@ -563,4 +594,33 @@ func TestCocktail(t *testing.T) {
 
 	err = deployer.Cancel(context.Background(), 100)
 	assert.NoError(t, err)
+}
+
+func TestCapacityHelpers(t *testing.T) {
+	cap := gridtypes.Capacity{
+		CRU: 1,
+		SRU: 2,
+		HRU: 3,
+		MRU: 4,
+	}
+
+	t.Run("capacity print", func(t *testing.T) {
+		capPrint := "[mru: 4, sru: 2, hru: 3]"
+		assert.Equal(t, capPrint, capacityPrettyPrint(cap))
+	})
+
+	t.Run("capacity add", func(t *testing.T) {
+		originalCap := proxyTypes.Capacity{
+			CRU: 1,
+			SRU: 2,
+			HRU: 3,
+			MRU: 4,
+		}
+
+		addCapacity(&originalCap, &cap)
+		assert.Equal(t, originalCap.CRU, uint64(2))
+		assert.Equal(t, originalCap.SRU, gridtypes.Unit(4))
+		assert.Equal(t, originalCap.HRU, gridtypes.Unit(6))
+		assert.Equal(t, originalCap.MRU, gridtypes.Unit(8))
+	})
 }

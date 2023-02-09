@@ -14,8 +14,8 @@ func TestDeploymentUtils(t *testing.T) {
 	tfPluginClient, err := setup()
 	assert.NoError(t, err)
 
-	identity := tfPluginClient.Identity
-	twinID := tfPluginClient.TwinID
+	identity := tfPluginClient.identity
+	twinID := tfPluginClient.twinID
 
 	dl := workloads.NewGridDeployment(twinID, []gridtypes.Workload{})
 

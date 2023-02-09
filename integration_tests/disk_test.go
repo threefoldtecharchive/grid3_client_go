@@ -26,7 +26,7 @@ func TestDiskDeployment(t *testing.T) {
 
 	disk := workloads.Disk{
 		Name:        "testName",
-		SizeGP:      10,
+		SizeGB:      10,
 		Description: "disk test",
 	}
 

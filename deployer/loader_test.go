@@ -49,7 +49,7 @@ func SetupLoaderTests(t *testing.T, wls []gridtypes.Workload) *StateLoader {
 func TestLoadDiskFromGrid(t *testing.T) {
 	disk := workloads.Disk{
 		Name:        "test",
-		SizeGP:      100,
+		SizeGB:      100,
 		Description: "test des",
 	}
 
@@ -213,7 +213,7 @@ func TestLoadK8sFromGrid(t *testing.T) {
 		YggIP: "203:8b0b:5f3e:b859:c36:efdf:ab6e:50cc",
 	})
 
-	master := workloads.K8sNodeData{
+	master := workloads.K8sNode{
 		Name:          "test",
 		Node:          1,
 		DiskSize:      0,
@@ -227,7 +227,7 @@ func TestLoadK8sFromGrid(t *testing.T) {
 		IP:            "1.1.1.1",
 	}
 
-	var Workers []workloads.K8sNodeData
+	var Workers []workloads.K8sNode
 	cluster := workloads.K8sCluster{
 		Master:      &master,
 		Workers:     Workers,

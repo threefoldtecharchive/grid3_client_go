@@ -11,7 +11,7 @@ import (
 // DiskWorkload to be used for tests
 var DiskWorkload = Disk{
 	Name:        "test",
-	SizeGP:      10,
+	SizeGB:      10,
 	Description: "disk test description",
 }
 
@@ -19,12 +19,8 @@ func TestDiskWorkload(t *testing.T) {
 	var disk gridtypes.Workload
 
 	t.Run("test_disk_from_map", func(t *testing.T) {
-		diskFromSchema := NewDiskFromSchema(DiskWorkload.ToMap())
-		assert.Equal(t, diskFromSchema, DiskWorkload)
-	})
-
-	t.Run("test_disk_name", func(t *testing.T) {
-		assert.Equal(t, DiskWorkload.GetName(), DiskWorkload.Name)
+		diskFromMap := NewDiskFromMap(DiskWorkload.ToMap())
+		assert.Equal(t, diskFromMap, DiskWorkload)
 	})
 
 	t.Run("test_disk_from_workload", func(t *testing.T) {
@@ -34,16 +30,6 @@ func TestDiskWorkload(t *testing.T) {
 		assert.NoError(t, err)
 
 		assert.Equal(t, diskFromWorkload, DiskWorkload)
-	})
-
-	t.Run("test_workloads_map", func(t *testing.T) {
-		nodeID := uint32(1)
-		workloadsMap := map[uint32][]gridtypes.Workload{}
-		workloadsMap[nodeID] = append(workloadsMap[nodeID], disk)
-
-		workloadsMap2, err := DiskWorkload.BindWorkloadsToNode(nodeID)
-		assert.NoError(t, err)
-		assert.Equal(t, workloadsMap, workloadsMap2)
 	})
 }
 

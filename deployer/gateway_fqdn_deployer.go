@@ -28,19 +28,19 @@ func NewGatewayFqdnDeployer(tfPluginClient *TFPluginClient) GatewayFQDNDeployer 
 }
 
 // Validate validates gatewayFdqn deployer
-func (k *GatewayFQDNDeployer) Validate(ctx context.Context, gw *workloads.GatewayFQDNProxy) error {
-	sub := k.tfPluginClient.SubstrateConn
-	if err := validateAccountBalanceForExtrinsics(sub, k.tfPluginClient.Identity); err != nil {
+func (d *GatewayFQDNDeployer) Validate(ctx context.Context, gw *workloads.GatewayFQDNProxy) error {
+	sub := d.tfPluginClient.SubstrateConn
+	if err := validateAccountBalanceForExtrinsics(sub, d.tfPluginClient.identity); err != nil {
 		return err
 	}
-	return client.AreNodesUp(ctx, sub, []uint32{gw.NodeID}, k.tfPluginClient.NcPool)
+	return client.AreNodesUp(ctx, sub, []uint32{gw.NodeID}, d.tfPluginClient.NcPool)
 }
 
 // GenerateVersionlessDeployments generates deployments for gatewayFqdn deployer without versions
-func (k *GatewayFQDNDeployer) GenerateVersionlessDeployments(ctx context.Context, gw *workloads.GatewayFQDNProxy) (map[uint32]gridtypes.Deployment, error) {
+func (d *GatewayFQDNDeployer) GenerateVersionlessDeployments(ctx context.Context, gw *workloads.GatewayFQDNProxy) (map[uint32]gridtypes.Deployment, error) {
 	deployments := make(map[uint32]gridtypes.Deployment)
 
-	dl := workloads.NewGridDeployment(k.tfPluginClient.TwinID, []gridtypes.Workload{})
+	dl := workloads.NewGridDeployment(d.tfPluginClient.twinID, []gridtypes.Workload{})
 	dl.Workloads = append(dl.Workloads, gw.ZosWorkload())
 
 	deployments[gw.NodeID] = dl
@@ -48,12 +48,12 @@ func (k *GatewayFQDNDeployer) GenerateVersionlessDeployments(ctx context.Context
 }
 
 // Deploy deploys the GatewayFQDN deployments using the deployer
-func (k *GatewayFQDNDeployer) Deploy(ctx context.Context, gw *workloads.GatewayFQDNProxy) error {
-	if err := k.Validate(ctx, gw); err != nil {
+func (d *GatewayFQDNDeployer) Deploy(ctx context.Context, gw *workloads.GatewayFQDNProxy) error {
+	if err := d.Validate(ctx, gw); err != nil {
 		return err
 	}
 
-	newDeployments, err := k.GenerateVersionlessDeployments(ctx, gw)
+	newDeployments, err := d.GenerateVersionlessDeployments(ctx, gw)
 	if err != nil {
 		return errors.Wrap(err, "couldn't generate deployments data")
 	}
@@ -75,39 +75,39 @@ func (k *GatewayFQDNDeployer) Deploy(ctx context.Context, gw *workloads.GatewayF
 	// TODO: solution providers
 	newDeploymentsSolutionProvider[gw.NodeID] = nil
 
-	oldDeployments := k.tfPluginClient.StateLoader.currentNodeDeployment
-	currentDeployments, err := k.deployer.Deploy(ctx, oldDeployments, newDeployments, newDeploymentsData, newDeploymentsSolutionProvider)
+	oldDeployments := d.tfPluginClient.StateLoader.currentNodeDeployment
+	currentDeployments, err := d.deployer.Deploy(ctx, oldDeployments, newDeployments, newDeploymentsData, newDeploymentsSolutionProvider)
 
 	// update state
 	gw.ContractID = currentDeployments[gw.NodeID]
 	gw.NodeDeploymentID = currentDeployments
-	k.tfPluginClient.StateLoader.currentNodeDeployment[gw.NodeID] = gw.ContractID
+	d.tfPluginClient.StateLoader.currentNodeDeployment[gw.NodeID] = gw.ContractID
 
 	return err
 }
 
 // Cancel cancels a gateway deployment
-func (k *GatewayFQDNDeployer) Cancel(ctx context.Context, gw *workloads.GatewayFQDNProxy) (err error) {
-	if err := k.Validate(ctx, gw); err != nil {
+func (d *GatewayFQDNDeployer) Cancel(ctx context.Context, gw *workloads.GatewayFQDNProxy) (err error) {
+	if err := d.Validate(ctx, gw); err != nil {
 		return err
 	}
 
-	oldDeployments := k.tfPluginClient.StateLoader.currentNodeDeployment
+	oldDeployments := d.tfPluginClient.StateLoader.currentNodeDeployment
 
-	err = k.deployer.Cancel(ctx, oldDeployments[gw.NodeID])
+	err = d.deployer.Cancel(ctx, oldDeployments[gw.NodeID])
 	if err != nil {
 		return err
 	}
 	gw.ContractID = 0
-	delete(k.tfPluginClient.StateLoader.currentNodeDeployment, gw.NodeID)
+	delete(d.tfPluginClient.StateLoader.currentNodeDeployment, gw.NodeID)
 	delete(gw.NodeDeploymentID, gw.NodeID)
 
 	return nil
 }
 
 // TODO: check sync added or not ??
-func (k *GatewayFQDNDeployer) syncContracts(ctx context.Context, gw *workloads.GatewayFQDNProxy) (err error) {
-	if err := k.tfPluginClient.SubstrateConn.DeleteInvalidContracts(gw.NodeDeploymentID); err != nil {
+func (d *GatewayFQDNDeployer) syncContracts(ctx context.Context, gw *workloads.GatewayFQDNProxy) (err error) {
+	if err := d.tfPluginClient.SubstrateConn.DeleteInvalidContracts(gw.NodeDeploymentID); err != nil {
 		return err
 	}
 	if len(gw.NodeDeploymentID) == 0 {
@@ -117,12 +117,12 @@ func (k *GatewayFQDNDeployer) syncContracts(ctx context.Context, gw *workloads.G
 }
 
 // Sync syncs the gateway deployments
-func (k *GatewayFQDNDeployer) Sync(ctx context.Context, gw *workloads.GatewayFQDNProxy) error {
-	if err := k.syncContracts(ctx, gw); err != nil {
+func (d *GatewayFQDNDeployer) Sync(ctx context.Context, gw *workloads.GatewayFQDNProxy) error {
+	if err := d.syncContracts(ctx, gw); err != nil {
 		return errors.Wrap(err, "couldn't sync contracts")
 	}
 
-	dls, err := k.deployer.GetDeployments(ctx, gw.NodeDeploymentID)
+	dls, err := d.deployer.GetDeployments(ctx, gw.NodeDeploymentID)
 	if err != nil {
 		return errors.Wrap(err, "couldn't get deployment objects")
 	}

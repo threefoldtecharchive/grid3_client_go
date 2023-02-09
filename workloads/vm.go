@@ -19,7 +19,7 @@ var ErrInvalidInput = errors.New("invalid input")
 type VM struct {
 	Name          string
 	Flist         string
-	FlistChecksum string //TODO: why here ???
+	FlistChecksum string
 	PublicIP      bool
 	PublicIP6     bool
 	Planetary     bool
@@ -46,14 +46,11 @@ type Mount struct {
 	MountPoint string
 }
 
-// NewVMFromSchema generates a new vm from a map of its data
-func NewVMFromSchema(vm map[string]interface{}) *VM {
+// NewVMFromMap generates a new vm from a map of its data
+func NewVMFromMap(vm map[string]interface{}) *VM {
 	var mounts []Mount
 	mountPoints := vm["mounts"].([]interface{})
 
-	// if len(mountPoints) > 0 {	//TODO: Not Needed, same for Zlogs
-	// 	mounts = make([]Mount, 0)
-	// }
 	for _, mountPoint := range mountPoints {
 		point := mountPoint.(map[string]interface{})
 		mount := Mount{DiskName: point["disk_name"].(string), MountPoint: point["mount_point"].(string)}
@@ -65,7 +62,8 @@ func NewVMFromSchema(vm map[string]interface{}) *VM {
 	for k, v := range envs {
 		envVars[k] = v.(string)
 	}
-	zlogs := make([]Zlog, 0)
+
+	var zlogs []Zlog
 	for _, v := range vm["zlogs"].([]interface{}) {
 		zlogs = append(zlogs, Zlog{
 			Zmachine: vm["name"].(string),
@@ -105,8 +103,8 @@ func NewVMFromWorkload(wl *gridtypes.Workload, dl *gridtypes.Deployment) (VM, er
 	}
 
 	data, ok := dataI.(*zos.ZMachine)
-	if !ok { //TODO: more information
-		return VM{}, errors.New("could not create vm workload")
+	if !ok {
+		return VM{}, fmt.Errorf("could not create vm workload from data %v", dataI)
 	}
 
 	var result zos.ZMachineResult
@@ -179,13 +177,15 @@ func pubIP(dl *gridtypes.Deployment, name gridtypes.Name) zos.PublicIPResult {
 
 // ZosWorkload generates zos vm workloads
 func (vm *VM) ZosWorkload() []gridtypes.Workload {
-	workloads := make([]gridtypes.Workload, 0)
+	var workloads []gridtypes.Workload
+
 	publicIPName := ""
 	if vm.PublicIP || vm.PublicIP6 {
 		publicIPName = fmt.Sprintf("%sip", vm.Name)
 		workloads = append(workloads, ConstructPublicIPWorkload(publicIPName, vm.PublicIP, vm.PublicIP6))
 	}
-	mounts := make([]zos.MachineMount, 0)
+
+	var mounts []zos.MachineMount
 	for _, mount := range vm.Mounts {
 		mounts = append(mounts, zos.MachineMount{Name: gridtypes.Name(mount.DiskName), Mountpoint: mount.MountPoint})
 	}
@@ -232,14 +232,16 @@ func (vm *VM) ToMap() map[string]interface{} {
 	for key, value := range vm.EnvVars {
 		envVars[key] = value
 	}
-	mounts := make([]interface{}, 0)
+
+	var mounts []interface{}
 	for _, mountPoint := range vm.Mounts {
 		mount := map[string]interface{}{
 			"disk_name": mountPoint.DiskName, "mount_point": mountPoint.MountPoint,
 		}
 		mounts = append(mounts, mount)
 	}
-	zlogs := make([]interface{}, 0)
+
+	var zlogs []interface{}
 	for _, zlog := range vm.Zlogs {
 		zlogs = append(zlogs, zlog.Output)
 	}
@@ -267,8 +269,9 @@ func (vm *VM) ToMap() map[string]interface{} {
 	return res
 }
 
-//TODO: explain more comments max && min stuff
 // Validate validates a virtual machine data
+// cpu: from 1:32
+// checks if the given flistChecksum equals the checksum of the given flist
 func (vm *VM) Validate() error {
 	if vm.CPU < 1 || vm.CPU > 32 {
 		return errors.Wrap(ErrInvalidInput, "CPUs must be more than or equal to 1 and less than or equal to 32")
@@ -292,15 +295,8 @@ func (vm *VM) Validate() error {
 	return nil
 }
 
-//TODO:
-// WithNetworkName sets network name for vm
-func (vm *VM) WithNetworkName(name string) *VM {
-	vm.NetworkName = name
-	return vm
-}
-
 // LoadFromVM compares the vm with another given vm
-func (vm *VM) LoadFromVM(vm2 *VM) { 
+func (vm *VM) LoadFromVM(vm2 *VM) {
 	l := len(vm2.Zlogs) + len(vm2.Mounts)
 	names := make(map[string]int)
 	for idx, zlog := range vm2.Zlogs {
@@ -316,11 +312,4 @@ func (vm *VM) LoadFromVM(vm2 *VM) {
 		return names[vm.Mounts[i].DiskName] < names[vm.Mounts[j].DiskName]
 	})
 	vm.FlistChecksum = vm2.FlistChecksum
-}
-
-// BindWorkloadsToNode for staging workloads to node IDs
-func (vm *VM) BindWorkloadsToNode(nodeID uint32) (map[uint32][]gridtypes.Workload, error) {
-	workloadsMap := map[uint32][]gridtypes.Workload{}
-	workloadsMap[nodeID] = append(workloadsMap[nodeID], vm.ZosWorkload()...)
-	return workloadsMap, nil
 }

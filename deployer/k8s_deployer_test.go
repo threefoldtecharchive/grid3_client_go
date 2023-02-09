@@ -2,7 +2,6 @@ package deployer
 
 import (
 	"context"
-	"fmt"
 	"math/big"
 	"testing"
 
@@ -22,7 +21,7 @@ func constructTestK8s(t *testing.T, mock bool) (
 	*mocks.RMBMockClient,
 	*mocks.MockSubstrateExt,
 	*mocks.MockNodeClientGetter,
-	*mocks.MockDeployer,
+	*mocks.MockDeployerInterface,
 	*mocks.MockClient,
 ) {
 	ctrl := gomock.NewController(t)
@@ -34,11 +33,11 @@ func constructTestK8s(t *testing.T, mock bool) (
 	cl := mocks.NewRMBMockClient(ctrl)
 	sub := mocks.NewMockSubstrateExt(ctrl)
 	ncPool := mocks.NewMockNodeClientGetter(ctrl)
-	deployer := mocks.NewMockDeployer(ctrl)
+	deployer := mocks.NewMockDeployerInterface(ctrl)
 	gridProxyCl := mocks.NewMockClient(ctrl)
 
 	if mock {
-		tfPluginClient.TwinID = twinID
+		tfPluginClient.twinID = twinID
 
 		tfPluginClient.SubstrateConn = sub
 		tfPluginClient.NcPool = ncPool
@@ -52,14 +51,17 @@ func constructTestK8s(t *testing.T, mock bool) (
 		tfPluginClient.K8sDeployer.tfPluginClient = &tfPluginClient
 	}
 	net := constructTestNetwork()
-	tfPluginClient.StateLoader.networks = networkState{net.Name: network{subnets: map[uint32]string{nodeID: net.IPRange.String()}}}
+	tfPluginClient.StateLoader.networks = networkState{net.Name: network{
+		subnets:               map[uint32]string{nodeID: net.IPRange.String()},
+		nodeDeploymentHostIDs: map[uint32]deploymentHostIDs{nodeID: map[uint64][]byte{contractID: {}}},
+	}}
 
 	return tfPluginClient.K8sDeployer, cl, sub, ncPool, deployer, gridProxyCl
 }
 
 func k8sMockValidation(identity substrate.Identity, cl *mocks.RMBMockClient, sub *mocks.MockSubstrateExt, ncPool *mocks.MockNodeClientGetter, proxyCl *mocks.MockClient, d K8sDeployer) {
 	sub.EXPECT().
-		GetBalance(d.tfPluginClient.Identity).
+		GetBalance(d.tfPluginClient.identity).
 		Return(substrate.Balance{
 			Free: types.U128{
 				Int: big.NewInt(100000),
@@ -90,7 +92,7 @@ func constructK8sCluster() (workloads.K8sCluster, error) {
 		return workloads.K8sCluster{}, err
 	}
 
-	master := workloads.K8sNodeData{
+	master := workloads.K8sNode{
 		Name:          "K8sforTesting",
 		Node:          nodeID,
 		DiskSize:      5,
@@ -107,7 +109,7 @@ func constructK8sCluster() (workloads.K8sCluster, error) {
 		Memory:        1024,
 	}
 
-	worker := workloads.K8sNodeData{
+	worker := workloads.K8sNode{
 		Name:          "worker1",
 		Node:          nodeID,
 		DiskSize:      5,
@@ -123,11 +125,11 @@ func constructK8sCluster() (workloads.K8sCluster, error) {
 		CPU:           2,
 		Memory:        1024,
 	}
-	workers := []workloads.K8sNodeData{worker}
+	workers := []workloads.K8sNode{worker}
 	Cluster := workloads.K8sCluster{
 		Master:       &master,
 		Workers:      workers[:],
-		Token:        "token",
+		Token:        "tokens",
 		SSHKey:       "",
 		NetworkName:  "network",
 		NodesIPRange: make(map[uint32]gridtypes.IPNet),
@@ -137,14 +139,14 @@ func constructK8sCluster() (workloads.K8sCluster, error) {
 	return Cluster, nil
 }
 
-func TestValidateMasterReacheable(t *testing.T) {
+func TestValidateMasterReachable(t *testing.T) {
 	d, cl, sub, ncPool, _, proxyCl := constructTestK8s(t, true)
-	k8sMockValidation(d.tfPluginClient.Identity, cl, sub, ncPool, proxyCl, d)
+	k8sMockValidation(d.tfPluginClient.identity, cl, sub, ncPool, proxyCl, d)
 
 	k8s, err := constructK8sCluster()
 	assert.NoError(t, err)
 
-	err = d.AssignNodeIpRange(&k8s)
+	err = d.assignNodeIPRange(&k8s)
 	assert.NoError(t, err)
 
 	err = d.Validate(context.Background(), &k8s)
@@ -156,36 +158,23 @@ func TestGenerateK8sDeployment(t *testing.T) {
 	k8s, err := constructK8sCluster()
 	assert.NoError(t, err)
 
-	err = d.AssignNodeIpRange(&k8s)
+	err = d.assignNodeIPRange(&k8s)
 	assert.NoError(t, err)
 
 	dls, err := d.GenerateVersionlessDeployments(context.Background(), &k8s)
 	assert.NoError(t, err)
 
 	nodeWorkloads := make(map[uint32][]gridtypes.Workload)
-	masterWorkloads := k8s.Master.ZosWorkload(&k8s, false)
+	masterWorkloads := k8s.Master.MasterZosWorkload(&k8s)
 	nodeWorkloads[k8s.Master.Node] = append(nodeWorkloads[k8s.Master.Node], masterWorkloads...)
 	for _, w := range k8s.Workers {
-		workerWorkloads := w.ZosWorkload(&k8s, true)
+		workerWorkloads := w.WorkerZosWorkload(&k8s)
 		nodeWorkloads[w.Node] = append(nodeWorkloads[w.Node], workerWorkloads...)
 	}
 
 	wl := nodeWorkloads[nodeID]
 	assert.Equal(t, dls, map[uint32]gridtypes.Deployment{
-		nodeID: {
-			Version:   0,
-			TwinID:    d.tfPluginClient.TwinID,
-			Workloads: wl,
-			SignatureRequirement: gridtypes.SignatureRequirement{
-				WeightRequired: 1,
-				Requests: []gridtypes.SignatureRequest{
-					{
-						TwinID: d.tfPluginClient.TwinID,
-						Weight: 1,
-					},
-				},
-			},
-		},
+		nodeID: workloads.NewGridDeployment(d.tfPluginClient.twinID, wl),
 	})
 }
 
@@ -195,13 +184,13 @@ func TestDeploy(t *testing.T) {
 	k8sCluster, err := constructK8sCluster()
 	assert.NoError(t, err)
 
-	err = d.AssignNodeIpRange(&k8sCluster)
+	err = d.assignNodeIPRange(&k8sCluster)
 	assert.NoError(t, err)
 
 	dls, err := d.GenerateVersionlessDeployments(context.Background(), &k8sCluster)
 	assert.NoError(t, err)
 
-	k8sMockValidation(d.tfPluginClient.Identity, cl, sub, ncPool, proxyCl, d)
+	k8sMockValidation(d.tfPluginClient.identity, cl, sub, ncPool, proxyCl, d)
 
 	deploymentData := workloads.DeploymentData{
 		Name:        k8sCluster.Master.Name,
@@ -216,7 +205,7 @@ func TestDeploy(t *testing.T) {
 
 	deployer.EXPECT().Deploy(
 		gomock.Any(),
-		nil,
+		map[uint32]uint64{},
 		dls,
 		newDeploymentsData,
 		newDeploymentsSolutionProvider,
@@ -224,7 +213,7 @@ func TestDeploy(t *testing.T) {
 
 	err = d.Deploy(context.Background(), &k8sCluster)
 	assert.NoError(t, err)
-	fmt.Printf("err: %v\n", err)
+
 	assert.NotEqual(t, k8sCluster.ContractID, 0)
 	assert.Equal(t, k8sCluster.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
 }
@@ -235,13 +224,15 @@ func TestUpdateK8s(t *testing.T) {
 	k8sCluster, err := constructK8sCluster()
 	assert.NoError(t, err)
 
-	err = d.AssignNodeIpRange(&k8sCluster)
+	d.tfPluginClient.StateLoader.currentNodeDeployment[nodeID] = contractID
+
+	err = d.assignNodeIPRange(&k8sCluster)
 	assert.NoError(t, err)
 
 	dls, err := d.GenerateVersionlessDeployments(context.Background(), &k8sCluster)
 	assert.NoError(t, err)
 
-	k8sMockValidation(d.tfPluginClient.Identity, cl, sub, ncPool, proxyCl, d)
+	k8sMockValidation(d.tfPluginClient.identity, cl, sub, ncPool, proxyCl, d)
 
 	deployer.EXPECT().Deploy(
 		gomock.Any(),
@@ -263,13 +254,15 @@ func TestUpdateK8sFailed(t *testing.T) {
 	k8sCluster, err := constructK8sCluster()
 	assert.NoError(t, err)
 
-	err = d.AssignNodeIpRange(&k8sCluster)
+	d.tfPluginClient.StateLoader.currentNodeDeployment[nodeID] = contractID
+
+	err = d.assignNodeIPRange(&k8sCluster)
 	assert.NoError(t, err)
 
 	dls, err := d.GenerateVersionlessDeployments(context.Background(), &k8sCluster)
 	assert.NoError(t, err)
 
-	k8sMockValidation(d.tfPluginClient.Identity, cl, sub, ncPool, proxyCl, d)
+	k8sMockValidation(d.tfPluginClient.identity, cl, sub, ncPool, proxyCl, d)
 
 	deployer.EXPECT().Deploy(
 		gomock.Any(),
@@ -287,37 +280,38 @@ func TestUpdateK8sFailed(t *testing.T) {
 func TestCancelK8s(t *testing.T) {
 	d, cl, sub, ncPool, deployer, proxyCl := constructTestK8s(t, true)
 
+	d.tfPluginClient.StateLoader.currentNodeDeployment[nodeID] = contractID
+
 	k8sCluster, err := constructK8sCluster()
 	assert.NoError(t, err)
 	k8sCluster.NodesIPRange = map[uint32]gridtypes.IPNet{uint32(10): {}}
 
-	k8sMockValidation(d.tfPluginClient.Identity, cl, sub, ncPool, proxyCl, d)
+	k8sMockValidation(d.tfPluginClient.identity, cl, sub, ncPool, proxyCl, d)
 
 	deployer.EXPECT().Cancel(
-		gomock.Any(),
-		map[uint32]uint64{nodeID: contractID},
-		map[uint32]gridtypes.Deployment{},
-	).Return(map[uint32]uint64{}, nil)
+		gomock.Any(), contractID,
+	).Return(nil).AnyTimes()
 
 	err = d.Cancel(context.Background(), &k8sCluster)
 	assert.NoError(t, err)
-	assert.Equal(t, k8sCluster.NodeDeploymentID, map[uint32]uint64{})
+	assert.Empty(t, k8sCluster.NodeDeploymentID)
 }
 
 func TestCancelK8sFailed(t *testing.T) {
 	d, cl, sub, ncPool, deployer, proxyCl := constructTestK8s(t, true)
 
+	d.tfPluginClient.StateLoader.currentNodeDeployment[nodeID] = contractID
+
 	k8sCluster, err := constructK8sCluster()
+	k8sCluster.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
 	assert.NoError(t, err)
 	k8sCluster.NodesIPRange = map[uint32]gridtypes.IPNet{uint32(10): {}}
 
-	k8sMockValidation(d.tfPluginClient.Identity, cl, sub, ncPool, proxyCl, d)
+	k8sMockValidation(d.tfPluginClient.identity, cl, sub, ncPool, proxyCl, d)
 
 	deployer.EXPECT().Cancel(
-		gomock.Any(),
-		map[uint32]uint64{nodeID: contractID},
-		map[uint32]gridtypes.Deployment{},
-	).Return(map[uint32]uint64{nodeID: contractID}, errors.New("error"))
+		gomock.Any(), contractID,
+	).Return(errors.New("error"))
 
 	err = d.Cancel(context.Background(), &k8sCluster)
 	assert.Error(t, err)

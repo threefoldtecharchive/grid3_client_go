@@ -61,7 +61,6 @@ func NewDeployment(name string, nodeID uint32,
 }
 
 // Validate validates a deployment
-// TODO: are there any more validations on workloads needed other than vm and network name relation?
 func (d *Deployment) Validate() error {
 	if len(d.Vms) != 0 && len(strings.TrimSpace(d.NetworkName)) == 0 {
 		return errors.New("if you pass a vm, network name must be non-empty")
@@ -118,7 +117,7 @@ func (d *Deployment) Match(disks []Disk, qsfs []QSFS, zdbs []ZDB, vms []VM) {
 		vm, ok := vmMap[vms[idx].Name]
 		if ok {
 			vms[idx].LoadFromVM(vm)
-			log.Printf("orig: %+v\n", vm)
+			log.Printf("original: %+v\n", vm)
 			log.Printf("new: %+v\n", vms[idx])
 		}
 	}

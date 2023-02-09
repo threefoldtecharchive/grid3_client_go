@@ -71,7 +71,7 @@ func TestK8sDeployment(t *testing.T) {
 	flistCheckSum, err := workloads.GetFlistChecksum(flist)
 	assert.NoError(t, err)
 
-	master := workloads.K8sNodeData{
+	master := workloads.K8sNode{
 		Name:          "K8sforTesting",
 		Node:          k8sNodeID,
 		DiskSize:      5,
@@ -88,7 +88,7 @@ func TestK8sDeployment(t *testing.T) {
 		Memory:        1024,
 	}
 
-	workerNodeData1 := workloads.K8sNodeData{
+	workerNodeData1 := workloads.K8sNode{
 		Name:          "worker1",
 		Node:          k8sNodeID,
 		DiskSize:      5,
@@ -105,7 +105,7 @@ func TestK8sDeployment(t *testing.T) {
 		Memory:        1024,
 	}
 
-	workerNodeData2 := workloads.K8sNodeData{
+	workerNodeData2 := workloads.K8sNode{
 		Name:          "worker2",
 		Node:          k8sNodeID,
 		DiskSize:      5,
@@ -122,7 +122,7 @@ func TestK8sDeployment(t *testing.T) {
 		Memory:        1024,
 	}
 
-	workers := [2]workloads.K8sNodeData{workerNodeData1, workerNodeData2}
+	workers := [2]workloads.K8sNode{workerNodeData1, workerNodeData2}
 
 	k8sCluster := workloads.K8sCluster{
 		Master:           &master,

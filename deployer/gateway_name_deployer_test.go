@@ -42,7 +42,7 @@ func constructTestNameDeployer(t *testing.T, mock bool) (
 	gridProxyCl := mocks.NewMockClient(ctrl)
 
 	if mock {
-		tfPluginClient.TwinID = twinID
+		tfPluginClient.twinID = twinID
 
 		tfPluginClient.SubstrateConn = sub
 		tfPluginClient.NcPool = ncPool
@@ -72,7 +72,7 @@ func constructTestName() workloads.GatewayNameProxy {
 func TestNameValidateNodeNotReachable(t *testing.T) {
 	d, cl, sub, ncPool, _, _ := constructTestNameDeployer(t, true)
 	sub.EXPECT().
-		GetBalance(d.tfPluginClient.Identity).
+		GetBalance(d.tfPluginClient.identity).
 		Return(substrate.Balance{
 			Free: types.U128{
 				Int: big.NewInt(100000),
@@ -108,31 +108,18 @@ func TestNameGenerateDeployment(t *testing.T) {
 	dls, err := d.GenerateVersionlessDeployments(context.Background(), &g)
 	assert.NoError(t, err)
 	assert.Equal(t, dls, map[uint32]gridtypes.Deployment{
-		nodeID: {
-			Version: 0,
-			TwinID:  twinID,
-			Workloads: []gridtypes.Workload{
-				{
-					Version: 0,
-					Type:    zos.GatewayNameProxyType,
-					Name:    gridtypes.Name(g.Name),
-					Data: gridtypes.MustMarshal(zos.GatewayNameProxy{
-						TLSPassthrough: g.TLSPassthrough,
-						Backends:       g.Backends,
-						Name:           g.Name,
-					}),
-				},
+		nodeID: workloads.NewGridDeployment(twinID, []gridtypes.Workload{
+			{
+				Version: 0,
+				Type:    zos.GatewayNameProxyType,
+				Name:    gridtypes.Name(g.Name),
+				Data: gridtypes.MustMarshal(zos.GatewayNameProxy{
+					TLSPassthrough: g.TLSPassthrough,
+					Backends:       g.Backends,
+					Name:           g.Name,
+				}),
 			},
-			SignatureRequirement: gridtypes.SignatureRequirement{
-				WeightRequired: 1,
-				Requests: []gridtypes.SignatureRequest{
-					{
-						TwinID: twinID,
-						Weight: 1,
-					},
-				},
-			},
-		},
+		}),
 	})
 }
 
@@ -143,7 +130,7 @@ func TestNameDeploy(t *testing.T) {
 	dls, err := d.GenerateVersionlessDeployments(context.Background(), &gw)
 	assert.NoError(t, err)
 
-	mockValidation(d.tfPluginClient.Identity, cl, sub, ncPool, proxyCl)
+	mockValidation(d.tfPluginClient.identity, cl, sub, ncPool, proxyCl)
 
 	newDeploymentsSolutionProvider := map[uint32]*uint64{nodeID: nil}
 	deploymentData := workloads.DeploymentData{
@@ -162,7 +149,7 @@ func TestNameDeploy(t *testing.T) {
 	).Return(map[uint32]uint64{nodeID: contractID}, nil)
 
 	sub.EXPECT().
-		CreateNameContract(d.tfPluginClient.Identity, gw.Name).
+		CreateNameContract(d.tfPluginClient.identity, gw.Name).
 		Return(contractID, nil)
 
 	err = d.Deploy(context.Background(), &gw)
@@ -181,7 +168,7 @@ func TestNameUpdate(t *testing.T) {
 	dls, err := d.GenerateVersionlessDeployments(context.Background(), &gw)
 	assert.NoError(t, err)
 
-	mockValidation(d.tfPluginClient.Identity, cl, sub, ncPool, proxyCl)
+	mockValidation(d.tfPluginClient.identity, cl, sub, ncPool, proxyCl)
 
 	deployer.EXPECT().Deploy(
 		gomock.Any(),
@@ -192,7 +179,7 @@ func TestNameUpdate(t *testing.T) {
 	).Return(map[uint32]uint64{nodeID: contractID}, nil)
 
 	sub.EXPECT().
-		InvalidateNameContract(gomock.Any(), d.tfPluginClient.Identity, nameContractID, gw.Name).
+		InvalidateNameContract(gomock.Any(), d.tfPluginClient.identity, nameContractID, gw.Name).
 		Return(nameContractID, nil)
 
 	err = d.Deploy(context.Background(), &gw)
@@ -210,7 +197,7 @@ func TestNameUpdateFailed(t *testing.T) {
 	dls, err := d.GenerateVersionlessDeployments(context.Background(), &gw)
 	assert.NoError(t, err)
 
-	mockValidation(d.tfPluginClient.Identity, cl, sub, ncPool, proxyCl)
+	mockValidation(d.tfPluginClient.identity, cl, sub, ncPool, proxyCl)
 
 	deployer.EXPECT().Deploy(
 		gomock.Any(),
@@ -221,7 +208,7 @@ func TestNameUpdateFailed(t *testing.T) {
 	).Return(map[uint32]uint64{nodeID: contractID}, errors.New("error"))
 
 	sub.EXPECT().
-		InvalidateNameContract(gomock.Any(), d.tfPluginClient.Identity, nameContractID, gw.Name).
+		InvalidateNameContract(gomock.Any(), d.tfPluginClient.identity, nameContractID, gw.Name).
 		Return(nameContractID, nil)
 
 	err = d.Deploy(context.Background(), &gw)
@@ -243,7 +230,7 @@ func TestNameCancel(t *testing.T) {
 	).Return(nil)
 
 	sub.EXPECT().
-		EnsureContractCanceled(d.tfPluginClient.Identity, nameContractID).
+		EnsureContractCanceled(d.tfPluginClient.identity, nameContractID).
 		Return(nil)
 
 	err := d.Cancel(context.Background(), &gw)
@@ -282,7 +269,7 @@ func TestNameCancelContractsFailed(t *testing.T) {
 	).Return(nil)
 
 	sub.EXPECT().
-		EnsureContractCanceled(d.tfPluginClient.Identity, nameContractID).
+		EnsureContractCanceled(d.tfPluginClient.identity, nameContractID).
 		Return(errors.New("error"))
 
 	err := d.Cancel(context.Background(), &gw)
@@ -387,7 +374,7 @@ func TestNameSync(t *testing.T) {
 		Return(map[uint32]gridtypes.Deployment{nodeID: dl}, nil)
 
 	gw.FQDN = "123"
-	err = d.sync(context.Background(), &gw)
+	err = d.Sync(context.Background(), &gw)
 	assert.Equal(t, gw.FQDN, "name.com")
 	assert.NoError(t, err)
 	assert.Equal(t, gw.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
@@ -420,7 +407,7 @@ func TestNameSyncDeletedWorkload(t *testing.T) {
 		Return(map[uint32]gridtypes.Deployment{nodeID: dl}, nil)
 
 	gw.FQDN = "123"
-	err = d.sync(context.Background(), &gw)
+	err = d.Sync(context.Background(), &gw)
 	assert.NoError(t, err)
 	assert.Empty(t, gw.Backends)
 	assert.Empty(t, gw.TLSPassthrough)

@@ -42,8 +42,6 @@ func TestNetworkDeployment(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
 
-	// TODO: metadata is empty
-
 	t.Run("deploy network with wireguard access", func(t *testing.T) {
 		err = tfPluginClient.NetworkDeployer.Deploy(ctx, &network)
 		assert.NoError(t, err)

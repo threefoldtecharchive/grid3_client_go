@@ -12,7 +12,7 @@ import (
 var flist = "https://hub.grid.tf/tf-official-apps/threefoldtech-k3s-latest.flist"
 
 // K8sWorkload to be used in tests
-var K8sWorkload = K8sNodeData{
+var K8sWorkload = K8sNode{
 	Name:          "test",
 	Node:          0,
 	DiskSize:      5,
@@ -33,15 +33,15 @@ func TestK8sNodeData(t *testing.T) {
 	var cluster K8sCluster
 	var k8sWorkloads []gridtypes.Workload
 
-	t.Run("test k8s workload to/from schema", func(t *testing.T) {
-		k8sFromSchema := NewK8sNodeDataFromSchema(K8sWorkload.ToMap())
-		assert.Equal(t, k8sFromSchema, K8sWorkload)
+	t.Run("test k8s workload to/from map", func(t *testing.T) {
+		k8sFromMap := NewK8sNodeDataFromMap(K8sWorkload.ToMap())
+		assert.Equal(t, k8sFromMap, K8sWorkload)
 	})
 
 	t.Run("test_new_k8s_cluster", func(t *testing.T) {
 		cluster = K8sCluster{
 			Master:      &K8sWorkload,
-			Workers:     []K8sNodeData{},
+			Workers:     []K8sNode{},
 			Token:       "testToken",
 			SSHKey:      "",
 			NetworkName: "",
@@ -59,7 +59,7 @@ func TestK8sNodeData(t *testing.T) {
 	})
 
 	t.Run("test_generate_k8s_workloads", func(t *testing.T) {
-		k8sWorkloads = K8sWorkload.ZosWorkload(&cluster, false)
+		k8sWorkloads = K8sWorkload.MasterZosWorkload(&cluster)
 
 		assert.Equal(t, k8sWorkloads[0].Type, zos.ZMountType)
 		assert.Equal(t, k8sWorkloads[1].Type, zos.ZMachineType)
@@ -76,19 +76,10 @@ func TestK8sNodeData(t *testing.T) {
 	})
 
 	t.Run("test_generate_k8s_workloads_from_cluster", func(t *testing.T) {
-		k8sWorkloads, err := cluster.GenerateWorkloads()
+		k8sWorkloads, err := cluster.ZosWorkloads()
 		assert.NoError(t, err)
 		assert.Equal(t, k8sWorkloads[0].Type, zos.ZMountType)
 		assert.Equal(t, k8sWorkloads[1].Type, zos.ZMachineType)
 		assert.Equal(t, len(k8sWorkloads), 2)
-	})
-
-	t.Run("test_workloads_map", func(t *testing.T) {
-		workloadsMap := map[uint32][]gridtypes.Workload{}
-		workloadsMap[cluster.Master.Node] = append(workloadsMap[cluster.Master.Node], k8sWorkloads...)
-
-		workloadsMap2, err := cluster.BindWorkloadsToNode(0)
-		assert.NoError(t, err)
-		assert.Equal(t, workloadsMap, workloadsMap2)
 	})
 }

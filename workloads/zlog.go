@@ -15,6 +15,22 @@ type Zlog struct {
 	Output   string
 }
 
+// ZosWorkload generates a zlog workload
+func (zlog *Zlog) ZosWorkload() gridtypes.Workload {
+	url := []byte(zlog.Output)
+	urlHash := md5.Sum([]byte(url))
+
+	return gridtypes.Workload{
+		Version: 0,
+		Name:    gridtypes.Name(hex.EncodeToString(urlHash[:])),
+		Type:    zos.ZLogsType,
+		Data: gridtypes.MustMarshal(zos.ZLogs{
+			ZMachine: gridtypes.Name(zlog.Zmachine),
+			Output:   zlog.Output,
+		}),
+	}
+}
+
 func zlogs(dl *gridtypes.Deployment, name string) []Zlog {
 	var res []Zlog
 	for _, wl := range dl.ByType(zos.ZLogsType) {
@@ -42,27 +58,4 @@ func zlogs(dl *gridtypes.Deployment, name string) []Zlog {
 		})
 	}
 	return res
-}
-
-// GenerateWorkloads generates a zmachine workload
-func (zlog *Zlog) ZosWorkload() gridtypes.Workload {
-	url := []byte(zlog.Output)
-	urlHash := md5.Sum([]byte(url))
-
-	return gridtypes.Workload{
-		Version: 0,
-		Name:    gridtypes.Name(hex.EncodeToString(urlHash[:])),
-		Type:    zos.ZLogsType,
-		Data: gridtypes.MustMarshal(zos.ZLogs{
-			ZMachine: gridtypes.Name(zlog.Zmachine),
-			Output:   zlog.Output,
-		}),
-	}
-}
-
-// BindWorkloadsToNode for staging workloads to node IDs
-func (zlog *Zlog) BindWorkloadsToNode(nodeID uint32) (map[uint32][]gridtypes.Workload, error) {
-	workloadsMap := map[uint32][]gridtypes.Workload{}
-	workloadsMap[nodeID] = append(workloadsMap[nodeID], zlog.ZosWorkload())
-	return workloadsMap, nil
 }

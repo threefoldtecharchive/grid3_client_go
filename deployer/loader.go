@@ -121,7 +121,7 @@ func (l *StateLoader) LoadK8sFromGrid(masterNode map[uint32]string, workerNodes 
 	workloadDiskSize := make(map[string]int)
 	workloadComputedIP := make(map[string]string)
 	workloadComputedIP6 := make(map[string]string)
-	currentDeployments := map[uint32]gridtypes.Deployment{}
+	currentDeployments := make(map[uint32]gridtypes.Deployment)
 
 	for idx := range nodes {
 		dl, err := l.GetDeployment(l.currentNodeDeployment, nodes[idx])

@@ -3,13 +3,14 @@ package workloads
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
-// ZDB workload struct	//TODO: same comments 
+// ZDB workload struct
 type ZDB struct {
 	Name        string
 	Password    string
@@ -22,8 +23,8 @@ type ZDB struct {
 	Namespace   string
 }
 
-// NewZDBFromSchema converts a map including zdb data to a zdb struct
-func NewZDBFromSchema(zdb map[string]interface{}) ZDB {
+// NewZDBFromMap converts a map including zdb data to a zdb struct
+func NewZDBFromMap(zdb map[string]interface{}) ZDB {
 	ips := zdb["ips"].([]string)
 
 	return ZDB{
@@ -48,7 +49,7 @@ func NewZDBFromWorkload(wl *gridtypes.Workload) (ZDB, error) {
 
 	data, ok := dataI.(*zos.ZDB)
 	if !ok {
-		return ZDB{}, errors.New("could not create zdb workload")
+		return ZDB{}, fmt.Errorf("could not create zdb workload from data %v", dataI)
 	}
 
 	var result zos.ZDBResult
@@ -68,11 +69,6 @@ func NewZDBFromWorkload(wl *gridtypes.Workload) (ZDB, error) {
 		Port:        uint32(result.Port),
 		Namespace:   result.Namespace,
 	}, nil
-}
-
-// GetName returns zdb name
-func (z *ZDB) GetName() string {
-	return z.Name
 }
 
 // ToMap converts a zdb to a map(dict) object
@@ -104,11 +100,4 @@ func (z *ZDB) ZosWorkload() gridtypes.Workload {
 			Public:   z.Public,
 		}),
 	}
-}
-
-// BindWorkloadsToNode for staging workloads to node IDs
-func (z *ZDB) BindWorkloadsToNode(nodeID uint32) (map[uint32][]gridtypes.Workload, error) {
-	workloadsMap := map[uint32][]gridtypes.Workload{}
-	workloadsMap[nodeID] = []gridtypes.Workload{z.ZosWorkload()}
-	return workloadsMap, nil
 }

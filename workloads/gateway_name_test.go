@@ -51,14 +51,4 @@ func TestGatewayNameProxyWorkload(t *testing.T) {
 		_, err := NewGatewayNameProxyFromZosWorkload(gateway)
 		assert.Contains(t, err.Error(), "error unmarshalling json")
 	})
-
-	t.Run("test_workloads_map", func(t *testing.T) {
-		nodeID := uint32(1)
-		workloadsMap := map[uint32][]gridtypes.Workload{}
-		workloadsMap[nodeID] = append(workloadsMap[nodeID], gateway)
-
-		workloadsMap2, err := GatewayNameWorkload.BindWorkloadsToNode(nodeID)
-		assert.NoError(t, err)
-		assert.Equal(t, workloadsMap, workloadsMap2)
-	})
 }

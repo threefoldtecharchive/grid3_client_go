@@ -3,14 +3,14 @@ package workloads
 
 import (
 	"encoding/hex"
-	"log"
+	"fmt"
 	"reflect"
 
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
-//TODO: Awady review it 
+
 // QSFS struct
 type QSFS struct {
 	Name                 string
@@ -53,58 +53,50 @@ type Groups []Group
 // Backends is a list of backends
 type Backends []Backend
 
-func (g *Group) zosGroup() zos.ZdbGroup {
-	z := zos.ZdbGroup{
-		Backends: make([]zos.ZdbBackend, 0),
-	}
+func (g *Group) zosGroup() (zdbGroup zos.ZdbGroup) {
 	for _, b := range g.Backends {
-		z.Backends = append(z.Backends, b.zosBackend())
+		zdbGroup.Backends = append(zdbGroup.Backends, b.zosBackend())
 	}
-	return z
+	return zdbGroup
 }
 
-func (gs Groups) zosGroups() []zos.ZdbGroup {
-	z := make([]zos.ZdbGroup, 0)
+func (gs Groups) zosGroups() (zdbGroups []zos.ZdbGroup) {
 	for _, e := range gs {
-		z = append(z, e.zosGroup())
+		zdbGroups = append(zdbGroups, e.zosGroup())
 	}
-	return z
+	return zdbGroups
 }
 
 func (b *Backend) zosBackend() zos.ZdbBackend {
 	return zos.ZdbBackend(*b)
 }
 
-func (bs Backends) zosBackends() []zos.ZdbBackend {
-	z := make([]zos.ZdbBackend, 0)
+func (bs Backends) zosBackends() (zdbBackends []zos.ZdbBackend) {
 	for _, e := range bs {
-		z = append(z, e.zosBackend())
+		zdbBackends = append(zdbBackends, e.zosBackend())
 	}
-	return z
+	return zdbBackends
 }
 
 // BackendsFromZos gets backends from zos
-func BackendsFromZos(bs []zos.ZdbBackend) Backends {
-	z := make(Backends, 0)
+func BackendsFromZos(bs []zos.ZdbBackend) (backends Backends) {
 	for _, e := range bs {
-		z = append(z, Backend(e))
+		backends = append(backends, Backend(e))
 	}
-	return z
+	return backends
 }
 
 // GroupsFromZos gets groups from zos
-func GroupsFromZos(gs []zos.ZdbGroup) Groups {
-	z := make(Groups, 0)
+func GroupsFromZos(gs []zos.ZdbGroup) (groups Groups) {
 	for _, e := range gs {
-		z = append(z, Group{
+		groups = append(groups, Group{
 			Backends: BackendsFromZos(e.Backends),
 		})
 	}
-	return z
+	return groups
 }
 
-func getBackends(backendsIf []interface{}) Backends {
-	backends := make([]Backend, 0, len(backendsIf))
+func getBackends(backendsIf []interface{}) (backends Backends) {
 	for _, b := range backendsIf {
 		backendMap := b.(map[string]interface{})
 		backends = append(backends, Backend{
@@ -133,8 +125,7 @@ func (b *Backend) ToMap() map[string]interface{} {
 }
 
 // Listify lists the backends
-func (bs *Backends) Listify() []interface{} {
-	res := make([]interface{}, 0)
+func (bs *Backends) Listify() (res []interface{}) {
 	for _, b := range *bs {
 		res = append(res, b.ToMap())
 	}
@@ -142,8 +133,7 @@ func (bs *Backends) Listify() []interface{} {
 }
 
 // Listify lists the groups
-func (gs *Groups) Listify() []interface{} {
-	res := make([]interface{}, 0)
+func (gs *Groups) Listify() (res []interface{}) {
 	for _, g := range *gs {
 		res = append(res, g.ToMap())
 	}
@@ -161,8 +151,8 @@ func (m *Metadata) ToMap() map[string]interface{} {
 	return res
 }
 
-// NewQSFSFromSchema generates a new QSFS from a given map of its data
-func NewQSFSFromSchema(qsfs map[string]interface{}) QSFS {
+// NewQSFSFromMap generates a new QSFS from a given map of its data
+func NewQSFSFromMap(qsfs map[string]interface{}) QSFS {
 	metadataIf := qsfs["metadata"].([]interface{})
 	metadataMap := metadataIf[0].(map[string]interface{})
 
@@ -214,10 +204,9 @@ func NewQSFSFromWorkload(wl *gridtypes.Workload) (QSFS, error) {
 		}
 	}
 
-	log.Printf("wl.Result.unm: %s %s\n", res.MetricsEndpoint, res.Path)
 	data, ok := dataI.(*zos.QuantumSafeFS)
 	if !ok {
-		return QSFS{}, errors.New("could not create qsfs workload")
+		return QSFS{}, fmt.Errorf("could not create qsfs workload from data %v", dataI)
 	}
 
 	return QSFS{
@@ -331,17 +320,4 @@ func (q *QSFS) ToMap() map[string]interface{} {
 	res["metadata"] = []interface{}{q.Metadata.ToMap()}
 	res["groups"] = q.Groups.Listify()
 	return res
-}
-
-// BindWorkloadsToNode for staging workloads to node IDs
-func (q *QSFS) BindWorkloadsToNode(nodeID uint32) (map[uint32][]gridtypes.Workload, error) {
-	workloadsMap := map[uint32][]gridtypes.Workload{}
-
-	workload, err := q.ZosWorkload()
-	if err != nil {
-		return workloadsMap, err
-	}
-
-	workloadsMap[nodeID] = append(workloadsMap[nodeID], workload)
-	return workloadsMap, nil
 }

@@ -27,7 +27,7 @@ func TestZDB(t *testing.T) {
 	var zdbWorkload gridtypes.Workload
 
 	t.Run("test zdb to/from map", func(t *testing.T) {
-		zdbFromMap := NewZDBFromSchema(ZDBWorkload.ToMap())
+		zdbFromMap := NewZDBFromMap(ZDBWorkload.ToMap())
 		assert.Equal(t, ZDBWorkload, zdbFromMap)
 	})
 
@@ -41,22 +41,5 @@ func TestZDB(t *testing.T) {
 		zdbFromWorkload, err := NewZDBFromWorkload(&zdbWorkload)
 		assert.NoError(t, err)
 		assert.Equal(t, ZDBWorkload, zdbFromWorkload)
-	})
-
-	t.Run("test_zdb_functions", func(t *testing.T) {
-		assert.Equal(t, ZDBWorkload.GetName(), "test")
-	})
-
-	t.Run("test_workloads_map", func(t *testing.T) {
-		zdbWorkloadCp := zdbWorkload
-		zdbWorkloadCp.Result = gridtypes.Result{}
-
-		nodeID := uint32(1)
-		workloadsMap := map[uint32][]gridtypes.Workload{}
-		workloadsMap[nodeID] = append(workloadsMap[nodeID], zdbWorkloadCp)
-
-		workloadsMap2, err := ZDBWorkload.BindWorkloadsToNode(nodeID)
-		assert.NoError(t, err)
-		assert.Equal(t, workloadsMap, workloadsMap2)
 	})
 }

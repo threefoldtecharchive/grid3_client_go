@@ -38,9 +38,9 @@ var QsfsWorkload = QSFS{
 func TestQsfsWorkload(t *testing.T) {
 	var qsfs gridtypes.Workload
 
-	t.Run("test new qsfs to/from schema", func(t *testing.T) {
-		qsfsFromSchema := NewQSFSFromSchema(QsfsWorkload.ToMap())
-		assert.Equal(t, qsfsFromSchema, QsfsWorkload)
+	t.Run("test new qsfs to/from map", func(t *testing.T) {
+		qsfsFromMap := NewQSFSFromMap(QsfsWorkload.ToMap())
+		assert.Equal(t, qsfsFromMap, QsfsWorkload)
 	})
 
 	t.Run("test_new_qsfs_from_workload", func(t *testing.T) {
@@ -56,15 +56,5 @@ func TestQsfsWorkload(t *testing.T) {
 	t.Run("test_update_qsfs_from_workload", func(t *testing.T) {
 		err := QsfsWorkload.UpdateFromWorkload(&qsfs)
 		assert.NoError(t, err)
-	})
-
-	t.Run("test_workloads_map", func(t *testing.T) {
-		nodeID := uint32(1)
-		workloadsMap := map[uint32][]gridtypes.Workload{}
-		workloadsMap[nodeID] = append(workloadsMap[nodeID], qsfs)
-
-		workloadsMap2, err := QsfsWorkload.BindWorkloadsToNode(nodeID)
-		assert.NoError(t, err)
-		assert.Equal(t, workloadsMap, workloadsMap2)
 	})
 }

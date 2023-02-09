@@ -36,7 +36,7 @@ func setup() (deployer.TFPluginClient, error) {
 	network := os.Getenv("NETWORK")
 	log.Printf("network: %s", network)
 
-	return deployer.NewTFPluginClient(mnemonics, "sr25519", network, "", "", true, "", true)
+	return deployer.NewTFPluginClient(mnemonics, "sr25519", network, "", "", true)
 }
 
 // TestConnection used to test connection

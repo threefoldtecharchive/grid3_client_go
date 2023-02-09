@@ -24,14 +24,4 @@ func TestZLog(t *testing.T) {
 		zlogs := zlogs(&deployment, ZlogWorkload.Zmachine)
 		assert.Equal(t, zlogs, []Zlog{ZlogWorkload})
 	})
-
-	t.Run("test_workloads_map", func(t *testing.T) {
-		nodeID := uint32(1)
-		workloadsMap := map[uint32][]gridtypes.Workload{}
-		workloadsMap[nodeID] = append(workloadsMap[nodeID], ZlogWorkload.ZosWorkload())
-
-		workloadsMap2, err := ZlogWorkload.BindWorkloadsToNode(nodeID)
-		assert.NoError(t, err)
-		assert.Equal(t, workloadsMap, workloadsMap2)
-	})
 }

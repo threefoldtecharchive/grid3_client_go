@@ -27,7 +27,7 @@
 //
 //	dl := gridtypes.Deployment{
 //		Version: Version,
-//		TwinID:  Twin, //LocalTwin,
+//		twinID:  Twin, //LocalTwin,
 //		// this contract id must match the one on substrate
 //		Workloads: []gridtypes.Workload{
 //			network(), // network workload definition
@@ -39,7 +39,7 @@
 //			WeightRequired: 1,
 //			Requests: []gridtypes.SignatureRequest{
 //				{
-//					TwinID: Twin,
+//					twinID: Twin,
 //					Weight: 1,
 //				},
 //			},

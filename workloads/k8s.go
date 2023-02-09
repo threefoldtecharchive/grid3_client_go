@@ -8,12 +8,14 @@ import (
 	"regexp"
 
 	"github.com/pkg/errors"
+	"github.com/threefoldtech/grid3-go/subi"
+	"github.com/threefoldtech/substrate-client"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
-// K8sNodeData kubernetes data //TODO: remova data from renaming
-type K8sNodeData struct {
+// K8sNode kubernetes data
+type K8sNode struct {
 	Name          string
 	Node          uint32
 	DiskSize      int
@@ -32,8 +34,8 @@ type K8sNodeData struct {
 
 // K8sCluster struct for k8s cluster
 type K8sCluster struct {
-	Master      *K8sNodeData
-	Workers     []K8sNodeData
+	Master      *K8sNode
+	Workers     []K8sNode
 	Token       string
 	SSHKey      string
 	NetworkName string
@@ -43,9 +45,9 @@ type K8sCluster struct {
 	ContractID       uint64
 }
 
-// NewK8sNodeDataFromSchema generates new k8s node data
-func NewK8sNodeDataFromSchema(m map[string]interface{}) K8sNodeData {
-	return K8sNodeData{
+// NewK8sNodeDataFromMap generates new k8s node data
+func NewK8sNodeDataFromMap(m map[string]interface{}) K8sNode {
+	return K8sNode{
 		Name:          m["name"].(string),
 		Node:          uint32(m["node"].(int)),
 		DiskSize:      m["disk_size"].(int),
@@ -64,8 +66,8 @@ func NewK8sNodeDataFromSchema(m map[string]interface{}) K8sNodeData {
 }
 
 // NewK8sNodeDataFromWorkload generates a new k8s data from a workload
-func NewK8sNodeDataFromWorkload(wl gridtypes.Workload, nodeID uint32, diskSize int, computedIP string, computedIP6 string) (K8sNodeData, error) {
-	var k K8sNodeData
+func NewK8sNodeDataFromWorkload(wl gridtypes.Workload, nodeID uint32, diskSize int, computedIP string, computedIP6 string) (K8sNode, error) {
+	var k K8sNode
 	data, err := wl.WorkloadData()
 	if err != nil {
 		return k, err
@@ -84,8 +86,7 @@ func NewK8sNodeDataFromWorkload(wl gridtypes.Workload, nodeID uint32, diskSize i
 	if err != nil {
 		return k, err
 	}
-	// TODO: return instead of assign to k
-	k = K8sNodeData{
+	return K8sNode{
 		Name:          string(wl.Name),
 		Node:          nodeID,
 		DiskSize:      diskSize,
@@ -100,44 +101,41 @@ func NewK8sNodeDataFromWorkload(wl gridtypes.Workload, nodeID uint32, diskSize i
 		IP:            d.Network.Interfaces[0].IP.String(),
 		CPU:           int(d.ComputeCapacity.CPU),
 		Memory:        int(d.ComputeCapacity.Memory / gridtypes.Megabyte),
-	}
-	return k, nil
+	}, nil
 }
 
 // ToMap converts k8s data to a map (dict)
-func (k *K8sNodeData) ToMap() map[string]interface{} { //TODO: same as previous
-	res := make(map[string]interface{})
-	res["name"] = k.Name
-	res["node"] = int(k.Node)
-	res["disk_size"] = k.DiskSize
-	res["publicip"] = k.PublicIP
-	res["publicip6"] = k.PublicIP6
-	res["planetary"] = k.Planetary
-	res["flist"] = k.Flist
-	res["flist_checksum"] = k.FlistChecksum
-	res["computedip"] = k.ComputedIP
-	res["computedip6"] = k.ComputedIP6
-	res["ygg_ip"] = k.YggIP
-	res["ip"] = k.IP
-	res["cpu"] = k.CPU
-	res["memory"] = k.Memory
-	return res
-}
-
-// HasWorkload checks if a workload belongs to the k8s data
-func (k *K8sNodeData) HasWorkload(workload gridtypes.Workload) bool { //TODO: pass name here instead of workload
-	if workload.Name == gridtypes.Name(k.Name) ||
-		workload.Name == gridtypes.Name(fmt.Sprintf("%sdisk", k.Name)) {
-		return true
+func (k *K8sNode) ToMap() map[string]interface{} {
+	return map[string]interface{}{
+		"name":           k.Name,
+		"node":           int(k.Node),
+		"disk_size":      k.DiskSize,
+		"publicip":       k.PublicIP,
+		"publicip6":      k.PublicIP6,
+		"planetary":      k.Planetary,
+		"flist":          k.Flist,
+		"flist_checksum": k.FlistChecksum,
+		"computedip":     k.ComputedIP,
+		"computedip6":    k.ComputedIP6,
+		"ygg_ip":         k.YggIP,
+		"ip":             k.IP,
+		"cpu":            k.CPU,
+		"memory":         k.Memory,
 	}
-	return false
 }
 
-// ZosWorkload generates a k8s workload from a k8s data
-func (k *K8sNodeData) ZosWorkload(cluster *K8sCluster, isWorker bool) []gridtypes.Workload {
-	//TODO: separate to 2 functions, one for master w one for worker
+// MasterZosWorkload generates a k8s master workload from a k8s data
+func (k *K8sNode) MasterZosWorkload(cluster *K8sCluster) (K8sWorkloads []gridtypes.Workload) {
+	return k.zosWorkload(cluster, false)
+}
+
+// WorkerZosWorkload generates a k8s worker workload from a k8s data
+func (k *K8sNode) WorkerZosWorkload(cluster *K8sCluster) (K8sWorkloads []gridtypes.Workload) {
+	return k.zosWorkload(cluster, true)
+}
+
+func (k *K8sNode) zosWorkload(cluster *K8sCluster, isWorker bool) (K8sWorkloads []gridtypes.Workload) {
 	diskName := fmt.Sprintf("%sdisk", k.Name)
-	K8sWorkloads := make([]gridtypes.Workload, 0)
 	diskWorkload := gridtypes.Workload{
 		Name:        gridtypes.Name(diskName),
 		Version:     0,
@@ -197,8 +195,20 @@ func (k *K8sNodeData) ZosWorkload(cluster *K8sCluster, isWorker bool) []gridtype
 	return K8sWorkloads
 }
 
+// ZosWorkloads generates k8s workloads from a k8s cluster
+func (k *K8sCluster) ZosWorkloads() ([]gridtypes.Workload, error) {
+	k8sWorkloads := []gridtypes.Workload{}
+	k8sWorkloads = append(k8sWorkloads, k.Master.MasterZosWorkload(k)...)
+
+	for _, worker := range k.Workers {
+		k8sWorkloads = append(k8sWorkloads, worker.WorkerZosWorkload(k)...)
+	}
+
+	return k8sWorkloads, nil
+}
+
 // ValidateToken validate cluster token
-func (k *K8sCluster) ValidateToken() error { //TODO: remove one in k8s_deployer.go
+func (k *K8sCluster) ValidateToken() error {
 	if len(k.Token) < 6 {
 		return errors.New("token must be at least 6 characters")
 	}
@@ -214,8 +224,21 @@ func (k *K8sCluster) ValidateToken() error { //TODO: remove one in k8s_deployer.
 	return nil
 }
 
+// ValidateIPranges validates NodesIPRange of master && workers of k8s cluster
+func (k *K8sCluster) ValidateIPranges() error {
+	if _, ok := k.NodesIPRange[k.Master.Node]; !ok {
+		return fmt.Errorf("the master node %d doesn't exist in the network's ip ranges", k.Master.Node)
+	}
+	for _, w := range k.Workers {
+		if _, ok := k.NodesIPRange[w.Node]; !ok {
+			return fmt.Errorf("the node with id %d in worker %s doesn't exist in the network's ip ranges", w.Node, w.Name)
+		}
+	}
+	return nil
+}
+
 // ValidateNames validate names for master and workers
-func (k *K8sCluster) ValidateNames() error { //TODO: remove one in k8s_deployer.go
+func (k *K8sCluster) ValidateNames() error {
 	names := make(map[string]bool)
 	names[k.Master.Name] = true
 
@@ -228,47 +251,57 @@ func (k *K8sCluster) ValidateNames() error { //TODO: remove one in k8s_deployer.
 	return nil
 }
 
-// TODO: zosWorkload??
-// GenerateWorkloads generates k8s workloads from a k8s cluster
-func (k *K8sCluster) GenerateWorkloads() ([]gridtypes.Workload, error) {
-	k8sWorkloads := []gridtypes.Workload{}
-	k8sWorkloads = append(k8sWorkloads, k.Master.ZosWorkload(k, false)...)
-
-	for _, worker := range k.Workers {
-		k8sWorkloads = append(k8sWorkloads, worker.ZosWorkload(k, true)...)
+// ValidateChecksums validate check sums for k8s flist
+func (k *K8sCluster) ValidateChecksums() error {
+	nodes := append(k.Workers, *k.Master)
+	for _, vm := range nodes {
+		if vm.FlistChecksum == "" {
+			continue
+		}
+		checksum, err := GetFlistChecksum(vm.Flist)
+		if err != nil {
+			return errors.Wrapf(err, "couldn't get flist %s hash", vm.Flist)
+		}
+		if vm.FlistChecksum != checksum {
+			return fmt.Errorf("passed checksum %s of %s doesn't match %s returned from %s",
+				vm.FlistChecksum,
+				vm.Name,
+				checksum,
+				FlistChecksumURL(vm.Flist),
+			)
+		}
 	}
-
-	return k8sWorkloads, nil
+	return nil
 }
 
-// BindWorkloadsToNode for staging workloads with node ID
-func (k *K8sCluster) BindWorkloadsToNode(nodeID uint32) (map[uint32][]gridtypes.Workload, error) {
-	workloadsMap := map[uint32][]gridtypes.Workload{}
-
-	err := k.ValidateNames()
-	if err != nil {
-		return workloadsMap, err
+// InvalidateBrokenAttributes removes outdated attrs and deleted contracts
+func (k *K8sCluster) InvalidateBrokenAttributes(sub subi.SubstrateExt) error {
+	if len(k.NodeDeploymentID) == 0 {
+		return nil
 	}
 
-	workloads, err := k.GenerateWorkloads()
-	if err != nil {
-		return workloadsMap, err
-	}
-
-	for _, workload := range workloads {
-		// master workloads
-		if k.Master.HasWorkload(workload) {
-			workloadsMap[k.Master.Node] = append(workloadsMap[k.Master.Node], workload)
-		}
-
-		// workers workloads
-		for _, worker := range k.Workers {
-			if worker.HasWorkload(workload) {
-				workloadsMap[worker.Node] = append(workloadsMap[worker.Node], workload)
-			}
+	var newWorkers []K8sNode
+	validNodes := make(map[uint32]struct{})
+	for node, contractID := range k.NodeDeploymentID {
+		contract, err := sub.GetContract(contractID)
+		if (err == nil && !contract.State.IsCreated) || errors.Is(err, substrate.ErrNotFound) {
+			delete(k.NodeDeploymentID, node)
+			delete(k.NodesIPRange, node)
+		} else if err != nil {
+			return errors.Wrapf(err, "couldn't get node %d contract %d", node, contractID)
+		} else {
+			validNodes[node] = struct{}{}
 		}
 
 	}
-
-	return workloadsMap, nil
+	if _, ok := validNodes[k.Master.Node]; !ok {
+		k.Master = &K8sNode{}
+	}
+	for _, worker := range k.Workers {
+		if _, ok := validNodes[worker.Node]; ok {
+			newWorkers = append(newWorkers, worker)
+		}
+	}
+	k.Workers = newWorkers
+	return nil
 }

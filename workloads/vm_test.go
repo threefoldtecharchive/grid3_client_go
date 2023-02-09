@@ -47,8 +47,8 @@ func TestVMWorkload(t *testing.T) {
 	deployment := NewGridDeployment(1, []gridtypes.Workload{vmWorkload, pubIPWorkload})
 
 	t.Run("test vm from/to map", func(t *testing.T) {
-		vmFromSchema := NewVMFromSchema(VMWorkload.ToMap())
-		assert.Equal(t, *vmFromSchema, VMWorkload)
+		vmFromMap := NewVMFromMap(VMWorkload.ToMap())
+		assert.Equal(t, *vmFromMap, VMWorkload)
 	})
 
 	t.Run("test_vm_from_workload", func(t *testing.T) {
@@ -94,31 +94,5 @@ func TestVMWorkload(t *testing.T) {
 		VMWorkload.CPU = 0
 		assert.ErrorIs(t, VMWorkload.Validate(), ErrInvalidInput)
 		VMWorkload.CPU = 2
-	})
-
-	t.Run("test_vm_set_network_name", func(t *testing.T) {
-		vmWithNetwork := VMWorkload.WithNetworkName("net")
-		assert.Equal(t, vmWithNetwork.NetworkName, "net")
-	})
-
-	t.Run("test_vm_matches_another_vm", func(t *testing.T) {
-		vm2 := VMWorkload.WithNetworkName("net")
-		VMWorkload.LoadFromVM(vm2)
-		assert.Equal(t, *vm2, VMWorkload)
-
-		// reset network name
-		vm2 = VMWorkload.WithNetworkName("testingNetwork")
-		VMWorkload.LoadFromVM(vm2)
-		assert.Equal(t, *vm2, VMWorkload)
-	})
-
-	t.Run("test_workloads_map", func(t *testing.T) {
-		nodeID := uint32(1)
-		workloadsMap := map[uint32][]gridtypes.Workload{}
-		workloadsMap[nodeID] = append(workloadsMap[nodeID], workloadsFromVM...)
-
-		workloadsMap2, err := VMWorkload.BindWorkloadsToNode(nodeID)
-		assert.NoError(t, err)
-		assert.Equal(t, workloadsMap, workloadsMap2)
 	})
 }

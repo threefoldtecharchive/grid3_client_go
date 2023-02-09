@@ -2,13 +2,16 @@
 package workloads
 
 import (
+	"fmt"
+
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
 // GatewayFQDNProxy for gateway FQDN proxy
-type GatewayFQDNProxy struct { //TODO: check logic spectially Name !!(deployment Name)
+type GatewayFQDNProxy struct { //TODO: check logic specially Name !!(deployment Name)
+	// required
 	NodeID uint32
 	// Backends are list of backend ips
 	Backends []zos.Backend
@@ -31,13 +34,13 @@ type GatewayFQDNProxy struct { //TODO: check logic spectially Name !!(deployment
 // NewGatewayFQDNProxyFromZosWorkload generates a gateway FQDN proxy from a zos workload
 func NewGatewayFQDNProxyFromZosWorkload(wl gridtypes.Workload) (GatewayFQDNProxy, error) {
 	dataI, err := wl.WorkloadData()
-	if err != nil { //TODO: Add more data
+	if err != nil {
 		return GatewayFQDNProxy{}, errors.Wrap(err, "failed to get workload data")
 	}
 
 	data, ok := dataI.(*zos.GatewayFQDNProxy)
 	if !ok {
-		return GatewayFQDNProxy{}, errors.New("could not create gateway fqdn proxy workload")
+		return GatewayFQDNProxy{}, fmt.Errorf("could not create gateway fqdn proxy workload from data %v", dataI)
 	}
 
 	return GatewayFQDNProxy{
@@ -61,11 +64,4 @@ func (g *GatewayFQDNProxy) ZosWorkload() gridtypes.Workload {
 			FQDN:           g.FQDN,
 		}),
 	}
-}
-
-// BindWorkloadsToNode for staging workloads to node IDs
-func (g *GatewayFQDNProxy) BindWorkloadsToNode(nodeID uint32) (map[uint32][]gridtypes.Workload, error) {
-	workloadsMap := map[uint32][]gridtypes.Workload{}
-	workloadsMap[nodeID] = append(workloadsMap[nodeID], g.ZosWorkload())
-	return workloadsMap, nil
 }

@@ -61,7 +61,7 @@ func NewNetworkFromWorkload(wl gridtypes.Workload, nodeID uint32) (ZNet, error) 
 	}, nil
 }
 
-// Validate validates a network
+// Validate validates a network mask to be 16
 func (znet *ZNet) Validate() error {
 	mask := znet.IPRange.Mask
 	if ones, _ := mask.Size(); ones != 16 {
@@ -80,7 +80,7 @@ func GetZNetWorkloadData(wl gridtypes.Workload) (*zos.Network, error) {
 
 	data, ok := dataI.(*zos.Network)
 	if !ok {
-		return &zos.Network{}, errors.New("could not create network workload")
+		return &zos.Network{}, fmt.Errorf("could not create network workload from data %v", dataI)
 	}
 
 	return data, nil
@@ -225,27 +225,24 @@ func GetNodeFreeWGPort(ctx context.Context, nodeClient *client.NodeClient, nodeI
 	return int(p), nil
 }
 
-// TODO: Remove nested
 // GetNodeEndpoint gets node end point network ip
 func GetNodeEndpoint(ctx context.Context, nodeClient *client.NodeClient) (net.IP, error) {
-	publicConfig, err := nodeClient.NetworkGetPublicConfig(ctx)
-	log.Printf("publicConfig: %v\n", publicConfig)
-	log.Printf("publicConfig.IPv4: %v\n", publicConfig.IPv4)
-	log.Printf("publicConfig.IPv.IP: %v\n", publicConfig.IPv4.IP)
-	log.Printf("err: %v\n", err)
-	if err == nil && publicConfig.IPv4.IP != nil {
+	var ip net.IP
 
-		ip := publicConfig.IPv4.IP
-		log.Printf("ip: %s, global unicast: %t, privateIP: %t\n", ip.String(), ip.IsGlobalUnicast(), ip.IsPrivate())
-		if ip.IsGlobalUnicast() && !ip.IsPrivate() {
-			return ip, nil
-		}
-	} else if err == nil && publicConfig.IPv6.IP != nil {
-		ip := publicConfig.IPv6.IP
-		log.Printf("ip: %s, global unicast: %t, privateIP: %t\n", ip.String(), ip.IsGlobalUnicast(), ip.IsPrivate())
-		if ip.IsGlobalUnicast() && !ip.IsPrivate() {
-			return ip, nil
-		}
+	publicConfig, err := nodeClient.NetworkGetPublicConfig(ctx)
+	if err != nil {
+		return ip, err
+	}
+
+	if publicConfig.IPv4.IP != nil {
+		ip = publicConfig.IPv4.IP
+	} else if publicConfig.IPv6.IP != nil {
+		ip = publicConfig.IPv6.IP
+	}
+
+	log.Printf("ip: %s, global unicast: %t, privateIP: %t\n", ip.String(), ip.IsGlobalUnicast(), ip.IsPrivate())
+	if ip.IsGlobalUnicast() && !ip.IsPrivate() {
+		return ip, nil
 	}
 
 	ifs, err := nodeClient.NetworkListInterfaces(ctx)
@@ -269,9 +266,8 @@ func GetNodeEndpoint(ctx context.Context, nodeClient *client.NodeClient) (net.IP
 	return nil, errors.Wrap(ErrNoAccessibleInterfaceFound, "no public ipv4 or ipv6 on zos interface found")
 }
 
-//TODO: Refactor function
-// NextFreeOctet finds a free ip for a node
-func NextFreeOctet(used []byte, start *byte) error {
+// NextFreeIP finds a free ip for a node
+func NextFreeIP(used []byte, start *byte) error {
 	for Contains(used, *start) && *start <= 254 {
 		*start++
 	}

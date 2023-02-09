@@ -3,6 +3,7 @@ package workloads
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
@@ -47,7 +48,7 @@ func NewGatewayNameProxyFromZosWorkload(wl gridtypes.Workload) (GatewayNameProxy
 
 	data, ok := dataI.(*zos.GatewayNameProxy)
 	if !ok {
-		return GatewayNameProxy{}, errors.New("could not create gateway name proxy workload")
+		return GatewayNameProxy{}, fmt.Errorf("could not create gateway name proxy workload from data %v", dataI)
 	}
 
 	return GatewayNameProxy{
@@ -71,11 +72,4 @@ func (g *GatewayNameProxy) ZosWorkload() gridtypes.Workload {
 			Backends:       g.Backends,
 		}),
 	}
-}
-
-// BindWorkloadsToNode for staging workloads with node ID
-func (g *GatewayNameProxy) BindWorkloadsToNode(nodeID uint32) (map[uint32][]gridtypes.Workload, error) {
-	workloadsMap := map[uint32][]gridtypes.Workload{}
-	workloadsMap[nodeID] = append(workloadsMap[nodeID], g.ZosWorkload())
-	return workloadsMap, nil
 }

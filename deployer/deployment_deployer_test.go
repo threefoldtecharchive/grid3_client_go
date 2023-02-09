@@ -28,12 +28,12 @@ func constructTestDeployment() workloads.Deployment {
 	disks := []workloads.Disk{
 		{
 			Name:        "disk1",
-			SizeGP:      1024,
+			SizeGB:      1024,
 			Description: "disk1_description",
 		},
 		{
 			Name:        "disk2",
-			SizeGP:      2048,
+			SizeGB:      2048,
 			Description: "disk2_description",
 		},
 	}
@@ -330,7 +330,10 @@ func TestDeploymentGenerateDeployment(t *testing.T) {
 	networkDl := workloads.NewGridDeployment(twinID, []gridtypes.Workload{workload})
 
 	d.tfPluginClient.StateLoader.currentNodeNetwork[nodeID] = contractID
-	d.tfPluginClient.StateLoader.networks = networkState{net.Name: network{subnets: map[uint32]string{nodeID: net.IPRange.String()}}}
+	d.tfPluginClient.StateLoader.networks = networkState{net.Name: network{
+		subnets:               map[uint32]string{nodeID: net.IPRange.String()},
+		nodeDeploymentHostIDs: map[uint32]deploymentHostIDs{nodeID: map[uint64][]byte{contractID: {}}},
+	}}
 
 	ncPool.EXPECT().
 		GetNodeClient(sub, uint32(nodeID)).
@@ -414,7 +417,8 @@ func TestDeploymentSync(t *testing.T) {
 	dataI, err := wl.WorkloadData()
 	assert.NoError(t, err)
 
-	data := dataI.(*zos.ZMachine)
+	data, ok := dataI.(*zos.ZMachine)
+	assert.True(t, ok)
 	pubIP, err := gridDl.Get(data.Network.PublicIP)
 	assert.NoError(t, err)
 
@@ -432,7 +436,8 @@ func TestDeploymentSync(t *testing.T) {
 	dataI, err = wl.WorkloadData()
 	assert.NoError(t, err)
 
-	data = dataI.(*zos.ZMachine)
+	data, ok = dataI.(*zos.ZMachine)
+	assert.True(t, ok)
 	pubIP, err = gridDl.Get(data.Network.PublicIP)
 	assert.NoError(t, err)
 
@@ -539,7 +544,7 @@ func TestDeploymentDeploy(t *testing.T) {
 	newDeploymentsData := map[uint32]workloads.DeploymentData{nodeID: deploymentData}
 	t.Run("Validation failed", func(t *testing.T) {
 		sub.EXPECT().
-			GetBalance(d.tfPluginClient.Identity).
+			GetBalance(d.tfPluginClient.identity).
 			Return(substrate.Balance{
 				Free: types.U128{
 					Int: big.NewInt(10),
@@ -555,7 +560,7 @@ func TestDeploymentDeploy(t *testing.T) {
 	})
 	t.Run("Deploying failed", func(t *testing.T) {
 		sub.EXPECT().
-			GetBalance(d.tfPluginClient.Identity).
+			GetBalance(d.tfPluginClient.identity).
 			Return(substrate.Balance{
 				Free: types.U128{
 					Int: big.NewInt(100000),
@@ -580,7 +585,7 @@ func TestDeploymentDeploy(t *testing.T) {
 	t.Run("Deploying succeeded", func(t *testing.T) {
 		d.tfPluginClient.StateLoader.currentNodeDeployment = map[uint32]uint64{}
 		sub.EXPECT().
-			GetBalance(d.tfPluginClient.Identity).
+			GetBalance(d.tfPluginClient.identity).
 			Return(substrate.Balance{
 				Free: types.U128{
 					Int: big.NewInt(100000),
@@ -612,7 +617,7 @@ func TestDeploymentCancel(t *testing.T) {
 	d.tfPluginClient.StateLoader.currentNodeDeployment = map[uint32]uint64{nodeID: contractID}
 	t.Run("Validation failed", func(t *testing.T) {
 		sub.EXPECT().
-			GetBalance(d.tfPluginClient.Identity).
+			GetBalance(d.tfPluginClient.identity).
 			Return(substrate.Balance{
 				Free: types.U128{
 					Int: big.NewInt(10),
@@ -629,7 +634,7 @@ func TestDeploymentCancel(t *testing.T) {
 	})
 	t.Run("Canceling failed", func(t *testing.T) {
 		sub.EXPECT().
-			GetBalance(d.tfPluginClient.Identity).
+			GetBalance(d.tfPluginClient.identity).
 			Return(substrate.Balance{
 				Free: types.U128{
 					Int: big.NewInt(100000),
@@ -650,7 +655,7 @@ func TestDeploymentCancel(t *testing.T) {
 	})
 	t.Run("Canceling succeeded", func(t *testing.T) {
 		sub.EXPECT().
-			GetBalance(d.tfPluginClient.Identity).
+			GetBalance(d.tfPluginClient.identity).
 			Return(substrate.Balance{
 				Free: types.U128{
 					Int: big.NewInt(100000),
