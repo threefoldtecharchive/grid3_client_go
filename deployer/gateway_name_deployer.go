@@ -167,11 +167,9 @@ func (k *GatewayNameDeployer) Cancel(ctx context.Context, gw *workloads.GatewayN
 		return err
 	}
 
-	if err == nil {
-		gw.ContractID = 0
-		delete(k.tfPluginClient.StateLoader.currentNodeDeployment, gw.NodeID)
-		delete(gw.NodeDeploymentID, gw.NodeID)
-	}
+	gw.ContractID = 0
+	delete(k.tfPluginClient.StateLoader.currentNodeDeployment, gw.NodeID)
+	delete(gw.NodeDeploymentID, gw.NodeID)
 
 	if gw.NameContractID != 0 {
 		if err := k.tfPluginClient.SubstrateConn.EnsureContractCanceled(k.tfPluginClient.Identity, gw.NameContractID); err != nil {

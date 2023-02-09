@@ -554,7 +554,6 @@ func TestDeploymentDeploy(t *testing.T) {
 		assert.Empty(t, d.tfPluginClient.StateLoader.currentNodeDeployment)
 	})
 	t.Run("Deploying failed", func(t *testing.T) {
-		d.tfPluginClient.StateLoader.currentNodeDeployment = map[uint32]uint64{}
 		sub.EXPECT().
 			GetBalance(d.tfPluginClient.Identity).
 			Return(substrate.Balance{

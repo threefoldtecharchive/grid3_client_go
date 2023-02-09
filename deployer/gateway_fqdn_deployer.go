@@ -95,13 +95,14 @@ func (k *GatewayFQDNDeployer) Cancel(ctx context.Context, gw *workloads.GatewayF
 	oldDeployments := k.tfPluginClient.StateLoader.currentNodeDeployment
 
 	err = k.deployer.Cancel(ctx, oldDeployments[gw.NodeID])
-	if err == nil {
-		gw.ContractID = 0
-		delete(k.tfPluginClient.StateLoader.currentNodeDeployment, gw.NodeID)
-		delete(gw.NodeDeploymentID, gw.NodeID)
+	if err != nil {
+		return err
 	}
+	gw.ContractID = 0
+	delete(k.tfPluginClient.StateLoader.currentNodeDeployment, gw.NodeID)
+	delete(gw.NodeDeploymentID, gw.NodeID)
 
-	return err
+	return nil
 }
 
 // TODO: check sync added or not ??

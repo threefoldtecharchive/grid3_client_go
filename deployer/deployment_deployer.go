@@ -115,12 +115,13 @@ func (d *DeploymentDeployer) Cancel(ctx context.Context, dl *workloads.Deploymen
 	oldDeployments := d.tfPluginClient.StateLoader.currentNodeDeployment
 
 	err := d.deployer.Cancel(ctx, oldDeployments[dl.NodeID])
-	if err == nil {
-		dl.ContractID = 0
-		delete(d.tfPluginClient.StateLoader.currentNodeDeployment, dl.NodeID)
-		delete(dl.NodeDeploymentID, dl.NodeID)
+	if err != nil {
+		return err
 	}
-	return err
+	dl.ContractID = 0
+	delete(d.tfPluginClient.StateLoader.currentNodeDeployment, dl.NodeID)
+	delete(dl.NodeDeploymentID, dl.NodeID)
+	return nil
 }
 
 // Sync syncs the deployments
