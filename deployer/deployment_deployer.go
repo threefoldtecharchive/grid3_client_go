@@ -99,11 +99,9 @@ func (d *DeploymentDeployer) Deploy(ctx context.Context, dl *workloads.Deploymen
 	currentDeployments, err := d.deployer.Deploy(ctx, oldDeployments, newDeployments, newDeploymentsData, newDeploymentsSolutionProvider)
 
 	// update deployment and plugin state
-	if err == nil {
-		dl.ContractID = currentDeployments[dl.NodeID]
-		dl.NodeDeploymentID = currentDeployments
-		d.tfPluginClient.StateLoader.currentNodeDeployment[dl.NodeID] = dl.ContractID
-	}
+	dl.ContractID = currentDeployments[dl.NodeID]
+	dl.NodeDeploymentID = currentDeployments
+	d.tfPluginClient.StateLoader.currentNodeDeployment[dl.NodeID] = dl.ContractID
 
 	return err
 }
@@ -116,21 +114,14 @@ func (d *DeploymentDeployer) Cancel(ctx context.Context, dl *workloads.Deploymen
 
 	oldDeployments := d.tfPluginClient.StateLoader.currentNodeDeployment
 
-	// construct new deployments to have all old deployments except the given one
-	newDeployments := make(map[uint32]gridtypes.Deployment)
-	for nodeID := range oldDeployments {
-		if dl.NodeID != nodeID {
-			newDeployments[nodeID] = gridtypes.Deployment{}
-		}
+	err := d.deployer.Cancel(ctx, oldDeployments[dl.NodeID])
+	if err != nil {
+		return err
 	}
-
-	currentDeployments, err := d.deployer.Cancel(ctx, oldDeployments, newDeployments)
-	dl.ContractID = currentDeployments[dl.NodeID]
-	if dl.ContractID == 0 {
-		delete(d.tfPluginClient.StateLoader.currentNodeDeployment, dl.NodeID)
-		delete(dl.NodeDeploymentID, dl.NodeID)
-	}
-	return err
+	dl.ContractID = 0
+	delete(d.tfPluginClient.StateLoader.currentNodeDeployment, dl.NodeID)
+	delete(dl.NodeDeploymentID, dl.NodeID)
+	return nil
 }
 
 // Sync syncs the deployments

@@ -343,23 +343,10 @@ func TestCancel(t *testing.T) {
 			uint64(100),
 		).Return(nil)
 
-	ncPool.EXPECT().
-		GetNodeClient(sub, uint32(10)).
-		Return(client.NewNodeClient(13, cl), nil).AnyTimes()
-
-	cl.EXPECT().
-		Call(gomock.Any(), uint32(13), "zos.deployment.get", gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, twin uint32, fn string, data, result interface{}) error {
-			var res *gridtypes.Deployment = result.(*gridtypes.Deployment)
-			*res = dl1
-			return nil
-		})
-
 	deployer.validator = &EmptyValidator{}
 
-	contracts, err := deployer.Cancel(context.Background(), map[uint32]uint64{10: 100}, nil)
+	err = deployer.Cancel(context.Background(), 100)
 	assert.NoError(t, err)
-	assert.Equal(t, contracts, map[uint32]uint64{})
 }
 
 func TestCocktail(t *testing.T) {
@@ -574,11 +561,6 @@ func TestCocktail(t *testing.T) {
 		40: 400,
 	})
 
-	contracts, err = deployer.Cancel(context.Background(), contracts, map[uint32]gridtypes.Deployment{20: {}, 30: {}, 40: {}})
+	err = deployer.Cancel(context.Background(), 100)
 	assert.NoError(t, err)
-	assert.Equal(t, contracts, map[uint32]uint64{
-		20: 200,
-		30: 300,
-		40: 400,
-	})
 }

@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"strings"
 	"sync"
 	"time"
 
@@ -22,7 +21,7 @@ import (
 )
 
 // DeployerInterface to be used for any deployer
-type DeployerInterface interface {	//TODO: Change Name && separate them 
+type DeployerInterface interface { //TODO: Change Name && separate them
 	Deploy(ctx context.Context,
 		oldDeploymentIDs map[uint32]uint64,
 		newDeployments map[uint32]gridtypes.Deployment,
@@ -31,18 +30,10 @@ type DeployerInterface interface {	//TODO: Change Name && separate them
 	) (map[uint32]uint64, error)
 
 	Cancel(ctx context.Context,
-		oldDeploymentIDs map[uint32]uint64,
-		newDeployments map[uint32]gridtypes.Deployment,
-	) (map[uint32]uint64, error)
+		contractID uint64,
+	) error
 
 	GetDeployments(ctx context.Context, dls map[uint32]uint64) (map[uint32]gridtypes.Deployment, error)
-
-	Wait(
-		ctx context.Context,
-		nodeClient *client.NodeClient,
-		deploymentID uint64,
-		workloadVersions map[string]uint32,
-	) error
 }
 
 // Deployer to be used for any deployer
@@ -292,32 +283,15 @@ func (d *Deployer) deploy(
 
 // Cancel cancels an old deployment not given in the new deployments
 func (d *Deployer) Cancel(ctx context.Context,
-	oldDeploymentIDs map[uint32]uint64,
-	newDeployments map[uint32]gridtypes.Deployment,
-) (map[uint32]uint64, error) {
-	oldDeployments, err := d.GetDeployments(ctx, oldDeploymentIDs)
+	contractID uint64,
+) error {
+
+	err := d.SubstrateConn.EnsureContractCanceled(d.identity, contractID)
 	if err != nil {
-		return oldDeploymentIDs, err
+		return errors.Wrapf(err, "failed to delete deployment: %d", contractID)
 	}
 
-	if err := d.validator.Validate(ctx, d.substrateConn, oldDeployments, newDeployments); err != nil {
-		return oldDeploymentIDs, err
-	}
-
-	currentDeployments := oldDeploymentIDs
-
-	// deletions
-	for node, contractID := range oldDeploymentIDs {
-		if _, ok := newDeployments[node]; !ok {
-			err = d.substrateConn.EnsureContractCanceled(d.identity, contractID)
-			if err != nil && !strings.Contains(err.Error(), "ContractNotExists") {
-				return currentDeployments, errors.Wrap(err, "failed to delete deployment")
-			}
-			delete(currentDeployments, node)
-		}
-	}
-
-	return currentDeployments, err
+	return nil
 }
 
 // GetDeployments returns deployments from a map of nodes IDs and deployments IDs

@@ -298,23 +298,20 @@ func (k *NetworkDeployer) Cancel(ctx context.Context, znet *workloads.ZNet) erro
 
 	oldDeployments := k.tfPluginClient.StateLoader.currentNodeNetwork
 
-	// construct new deployments to have all old deployments except the given one
-	newDeployments := make(map[uint32]gridtypes.Deployment)
-	for nodeID := range oldDeployments {
-		if !workloads.Contains(znet.Nodes, nodeID) {
-			newDeployments[nodeID] = gridtypes.Deployment{}
+	for nodeID, contractID := range oldDeployments {
+		if workloads.Contains(znet.Nodes, nodeID) {
+			err = k.deployer.Cancel(ctx, contractID)
+			if err != nil {
+				return errors.Wrapf(err, "couldn't cancel network %s, contract %d", znet.Name, contractID)
+			}
+			delete(k.tfPluginClient.StateLoader.currentNodeNetwork, nodeID)
+			delete(znet.NodeDeploymentID, nodeID)
 		}
 	}
 
-	currentDeployments, err := k.deployer.Cancel(ctx, oldDeployments, newDeployments)
-	if err != nil {
-		return errors.Wrapf(err, "couldn't cancel network %s", znet.Name)
-	}
-
-	// update state
-	znet.NodeDeploymentID = currentDeployments
+	// delete network from state if all contracts was deleted
 	k.tfPluginClient.StateLoader.networks.deleteNetwork(znet.Name)
-	k.tfPluginClient.StateLoader.currentNodeNetwork = currentDeployments
+
 	if err := k.readNodesConfig(ctx, znet); err != nil {
 		return errors.Wrap(err, "couldn't read node's data")
 	}
