@@ -16,27 +16,19 @@ import (
 	"time"
 
 	"github.com/google/go-querystring/query"
-	"github.com/joho/godotenv"
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/grid3-go/deployer"
 	"golang.org/x/crypto/ssh"
 )
 
 func setup() (deployer.TFPluginClient, error) {
-	if _, err := os.Stat("../.env"); !errors.Is(err, os.ErrNotExist) {
-		err := godotenv.Load("../.env")
-		if err != nil {
-			return deployer.TFPluginClient{}, err
-		}
-	}
-
 	mnemonics := os.Getenv("MNEMONICS")
 	log.Printf("mnemonics: %s", mnemonics)
 
 	network := os.Getenv("NETWORK")
 	log.Printf("network: %s", network)
 
-	return deployer.NewTFPluginClient(mnemonics, "sr25519", network, "", "", true)
+	return deployer.NewTFPluginClient(mnemonics, "sr25519", network, "", "", true, true)
 }
 
 // TestConnection used to test connection

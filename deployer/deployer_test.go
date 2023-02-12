@@ -10,8 +10,6 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/joho/godotenv"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/threefoldtech/grid3-go/mocks"
 	client "github.com/threefoldtech/grid3-go/node"
@@ -27,20 +25,13 @@ var backendURLWithTLSPassthrough = "//1.1.1.1:10"
 var backendURLWithoutTLSPassthrough = "http://1.1.1.1:10"
 
 func setup() (TFPluginClient, error) {
-	if _, err := os.Stat("../.env"); !errors.Is(err, os.ErrNotExist) {
-		err := godotenv.Load("../.env")
-		if err != nil {
-			return TFPluginClient{}, err
-		}
-	}
-
 	mnemonics := os.Getenv("MNEMONICS")
 	log.Printf("mnemonics: %s", mnemonics)
 
 	network := os.Getenv("NETWORK")
 	log.Printf("network: %s", network)
 
-	return NewTFPluginClient(mnemonics, "sr25519", network, "", "", true)
+	return NewTFPluginClient(mnemonics, "sr25519", network, "", "", true, true)
 }
 
 type gatewayWorkloadGenerator interface {
@@ -91,7 +82,6 @@ func hash(dl *gridtypes.Deployment) (string, error) {
 	return hashHex, nil
 }
 
-// TODO: mockDeployerValidator
 func mockDeployerValidator(d *Deployer, ctrl *gomock.Controller, nodes []uint32) {
 	proxyCl := mocks.NewMockClient(ctrl)
 	d.gridProxyClient = proxyCl
@@ -144,11 +134,6 @@ func TestCreate(t *testing.T) {
 		20: dl2,
 	}
 
-	newDlsData := map[uint32]workloads.DeploymentData{
-		10: {},
-		20: {},
-	}
-
 	newDlsSolProvider := map[uint32]*uint64{
 		10: nil,
 		20: nil,
@@ -168,7 +153,7 @@ func TestCreate(t *testing.T) {
 		CreateNodeContract(
 			identity,
 			uint32(10),
-			`{"type":"","name":"","projectName":""}`,
+			``,
 			dl1Hash,
 			uint32(0),
 			nil,
@@ -178,7 +163,7 @@ func TestCreate(t *testing.T) {
 		CreateNodeContract(
 			identity,
 			uint32(20),
-			`{"type":"","name":"","projectName":""}`,
+			``,
 			dl2Hash,
 			uint32(0),
 			nil,
@@ -224,7 +209,7 @@ func TestCreate(t *testing.T) {
 			return nil
 		})
 
-	contracts, err := deployer.Deploy(context.Background(), nil, newDls, newDlsData, newDlsSolProvider)
+	contracts, err := deployer.Deploy(context.Background(), nil, newDls, newDlsSolProvider)
 	assert.NoError(t, err)
 	assert.Equal(t, contracts, map[uint32]uint64{10: 100, 20: 200})
 }
@@ -259,10 +244,6 @@ func TestUpdate(t *testing.T) {
 
 	newDls := map[uint32]gridtypes.Deployment{
 		10: dl2,
-	}
-
-	newDlsData := map[uint32]workloads.DeploymentData{
-		10: {},
 	}
 
 	newDlsSolProvider := map[uint32]*uint64{
@@ -322,7 +303,7 @@ func TestUpdate(t *testing.T) {
 			return nil
 		}).AnyTimes()
 
-	contracts, err := deployer.Deploy(context.Background(), map[uint32]uint64{10: 100}, newDls, newDlsData, newDlsSolProvider)
+	contracts, err := deployer.Deploy(context.Background(), map[uint32]uint64{10: 100}, newDls, newDlsSolProvider)
 
 	assert.NoError(t, err)
 	assert.Equal(t, contracts, map[uint32]uint64{10: 100})
@@ -437,12 +418,6 @@ func TestCocktail(t *testing.T) {
 		40: dl6,
 	}
 
-	newDlsData := map[uint32]workloads.DeploymentData{
-		20: {},
-		30: {},
-		40: {},
-	}
-
 	newDlsSolProvider := map[uint32]*uint64{
 		20: nil,
 		30: nil,
@@ -462,7 +437,7 @@ func TestCocktail(t *testing.T) {
 		CreateNodeContract(
 			identity,
 			uint32(30),
-			`{"type":"","name":"","projectName":""}`,
+			``,
 			dl4Hash,
 			uint32(0),
 			nil,
@@ -583,7 +558,7 @@ func TestCocktail(t *testing.T) {
 			return nil
 		})
 
-	contracts, err := deployer.Deploy(context.Background(), oldDls, newDls, newDlsData, newDlsSolProvider)
+	contracts, err := deployer.Deploy(context.Background(), oldDls, newDls, newDlsSolProvider)
 	assert.NoError(t, err)
 	assert.Equal(t, contracts, map[uint32]uint64{
 		10: 100,

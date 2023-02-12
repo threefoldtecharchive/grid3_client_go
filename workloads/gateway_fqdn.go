@@ -2,6 +2,7 @@
 package workloads
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -10,17 +11,17 @@ import (
 )
 
 // GatewayFQDNProxy for gateway FQDN proxy
-type GatewayFQDNProxy struct { //TODO: check logic specially Name !!(deployment Name)
+type GatewayFQDNProxy struct {
 	// required
 	NodeID uint32
 	// Backends are list of backend ips
 	Backends []zos.Backend
 	// FQDN deployed on the node
 	FQDN string
+	// Name is the workload name
+	Name string
 
 	// optional
-	// Name the fully qualified domain name to use (cannot be present with Name)
-	Name string
 	// Passthrough whether to pass tls traffic or not
 	TLSPassthrough   bool
 	Description      string
@@ -64,4 +65,24 @@ func (g *GatewayFQDNProxy) ZosWorkload() gridtypes.Workload {
 			FQDN:           g.FQDN,
 		}),
 	}
+}
+
+// GenerateMetadata generates gateway deployment metadata
+func (gw *GatewayFQDNProxy) GenerateMetadata() (string, error) {
+	if len(gw.SolutionType) == 0 {
+		gw.SolutionType = "Gateway"
+	}
+
+	deploymentData := DeploymentData{
+		Name:        gw.Name,
+		Type:        "Gateway Fqdn",
+		ProjectName: gw.SolutionType,
+	}
+
+	deploymentDataBytes, err := json.Marshal(deploymentData)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to parse deployment data %v", deploymentData)
+	}
+
+	return string(deploymentDataBytes), nil
 }

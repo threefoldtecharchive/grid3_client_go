@@ -1,3 +1,4 @@
+// Package deployer for grid deployer
 package deployer
 
 import (
@@ -84,7 +85,13 @@ func (d *K8sDeployer) GenerateVersionlessDeployments(ctx context.Context, k8sClu
 	}
 
 	for node, ws := range nodeWorkloads {
-		deployments[node] = workloads.NewGridDeployment(d.tfPluginClient.twinID, ws)
+		dl := workloads.NewGridDeployment(d.tfPluginClient.twinID, ws)
+		dl.Metadata, err = k8sCluster.GenerateMetadata()
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to generate deployment %s metadata", k8sCluster.Master.Name)
+		}
+
+		deployments[node] = dl
 	}
 	return deployments, nil
 }
@@ -106,29 +113,31 @@ func (d *K8sDeployer) Deploy(ctx context.Context, k8sCluster *workloads.K8sClust
 
 	newDeployments, err := d.GenerateVersionlessDeployments(ctx, k8sCluster)
 	if err != nil {
-		return errors.Wrap(err, "couldn't generate deployments data")
+		return errors.Wrap(err, "couldn't generate k8s grid deployments")
 	}
-	deploymentData := workloads.DeploymentData{
-		Name:        k8sCluster.Master.Name,
-		Type:        "K8s",
-		ProjectName: "",
-	}
-	newDeploymentsData := make(map[uint32]workloads.DeploymentData)
-	newDeploymentsSolutionProvider := make(map[uint32]*uint64)
 
-	newDeploymentsData[k8sCluster.Master.Node] = deploymentData
+	newDeploymentsSolutionProvider := make(map[uint32]*uint64)
 	newDeploymentsSolutionProvider[k8sCluster.Master.Node] = nil
 
 	oldDeployments := d.tfPluginClient.StateLoader.currentNodeDeployment
 
-	k8sCluster.NodeDeploymentID, err = d.deployer.Deploy(ctx, oldDeployments, newDeployments, newDeploymentsData, newDeploymentsSolutionProvider)
+	// TODO: use NodeDeploymentID instead of oldDeployments
+	currentDeployments, err := d.deployer.Deploy(ctx, oldDeployments, newDeployments, newDeploymentsSolutionProvider)
 
-	if k8sCluster.ContractID == 0 && k8sCluster.NodeDeploymentID[k8sCluster.Master.Node] != 0 {
-		k8sCluster.ContractID = k8sCluster.NodeDeploymentID[k8sCluster.Master.Node]
+	// update deployments state
+	if currentDeployments[k8sCluster.Master.Node] != 0 {
+		if k8sCluster.NodeDeploymentID == nil {
+			k8sCluster.NodeDeploymentID = make(map[uint32]uint64)
+		}
+
+		k8sCluster.NodeDeploymentID[k8sCluster.Master.Node] = currentDeployments[k8sCluster.Master.Node]
+		d.tfPluginClient.StateLoader.currentNodeDeployment[k8sCluster.Master.Node] = currentDeployments[k8sCluster.Master.Node]
+		for _, w := range k8sCluster.Workers {
+			k8sCluster.NodeDeploymentID[w.Node] = currentDeployments[w.Node]
+			d.tfPluginClient.StateLoader.currentNodeDeployment[w.Node] = currentDeployments[w.Node]
+		}
 	}
 
-	// TODO workers contracts
-	d.tfPluginClient.StateLoader.currentNodeDeployment[k8sCluster.Master.Node] = k8sCluster.ContractID
 	return err
 }
 
@@ -144,8 +153,9 @@ func (d *K8sDeployer) Cancel(ctx context.Context, k8sCluster *workloads.K8sClust
 			if err != nil {
 				return errors.Wrapf(err, "couldn't cancel master %s, contract %d", k8sCluster.Master.Name, contractID)
 			}
-			delete(d.tfPluginClient.StateLoader.currentNodeNetwork, nodeID)
+			delete(d.tfPluginClient.StateLoader.currentNodeDeployment, nodeID)
 			delete(k8sCluster.NodeDeploymentID, nodeID)
+			continue
 		}
 		for _, worker := range k8sCluster.Workers {
 			if worker.Node == nodeID {
@@ -153,8 +163,9 @@ func (d *K8sDeployer) Cancel(ctx context.Context, k8sCluster *workloads.K8sClust
 				if err != nil {
 					return errors.Wrapf(err, "couldn't cancel worker %s, contract %d", worker.Name, contractID)
 				}
-				delete(d.tfPluginClient.StateLoader.currentNodeNetwork, nodeID)
+				delete(d.tfPluginClient.StateLoader.currentNodeDeployment, nodeID)
 				delete(k8sCluster.NodeDeploymentID, nodeID)
+				break
 			}
 		}
 	}
@@ -265,14 +276,14 @@ func (d *K8sDeployer) UpdateFromRemote(ctx context.Context, k8sCluster *workload
 		masterIP6 := workloadComputedIP6[k8sCluster.Master.Name]
 		masterDiskSize := workloadDiskSize[k8sCluster.Master.Name]
 
-		m, err := workloads.NewK8sNodeDataFromWorkload(masterWorkload, masterNodeID, masterDiskSize, masterIP, masterIP6)
+		m, err := workloads.NewK8sNodeFromWorkload(masterWorkload, masterNodeID, masterDiskSize, masterIP, masterIP6)
 		if err != nil {
-			return errors.Wrap(err, "failed to get master data from workload")
+			return errors.Wrap(err, "failed to get master node from workload")
 		}
 		k8sCluster.Master = &m
 	}
 	// update workers
-	var workers []workloads.K8sNode
+	workers := make([]workloads.K8sNode, 0)
 	for _, w := range k8sCluster.Workers {
 		workerNodeID, ok := workloadNodeID[w.Name]
 		if !ok {
@@ -285,7 +296,7 @@ func (d *K8sDeployer) UpdateFromRemote(ctx context.Context, k8sCluster *workload
 		workerIP6 := workloadComputedIP6[w.Name]
 
 		workerDiskSize := workloadDiskSize[w.Name]
-		w, err := workloads.NewK8sNodeDataFromWorkload(workerWorkload, workerNodeID, workerDiskSize, workerIP, workerIP6)
+		w, err := workloads.NewK8sNodeFromWorkload(workerWorkload, workerNodeID, workerDiskSize, workerIP, workerIP6)
 		if err != nil {
 			return errors.Wrap(err, "failed to get worker data from workload")
 		}
@@ -300,7 +311,7 @@ func (d *K8sDeployer) UpdateFromRemote(ctx context.Context, k8sCluster *workload
 		workerIP := workloadComputedIP[name]
 		workerIP6 := workloadComputedIP6[name]
 		workerDiskSize := workloadDiskSize[name]
-		w, err := workloads.NewK8sNodeDataFromWorkload(workerWorkload, workerNodeID, workerDiskSize, workerIP, workerIP6)
+		w, err := workloads.NewK8sNodeFromWorkload(workerWorkload, workerNodeID, workerDiskSize, workerIP, workerIP6)
 		if err != nil {
 			return errors.Wrap(err, "failed to get worker data from workload")
 		}

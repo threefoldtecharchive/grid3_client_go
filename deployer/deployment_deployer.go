@@ -3,7 +3,6 @@ package deployer
 
 import (
 	"context"
-	"encoding/json"
 	"log"
 	"net"
 
@@ -53,18 +52,11 @@ func (d *DeploymentDeployer) GenerateVersionlessDeployments(ctx context.Context,
 		newDl.Workloads = append(newDl.Workloads, qsfsWorkload)
 	}
 
-	deploymentData := workloads.DeploymentData{
-		Name:        dl.Name,
-		Type:        "vm",
-		ProjectName: dl.SolutionType,
-	}
-
-	deploymentDataBytes, err := json.Marshal(deploymentData)
+	newDl.Metadata, err = dl.GenerateMetadata()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse deployment data")
+		return nil, errors.Wrapf(err, "failed to generate deployment %s metadata", dl.Name)
 	}
 
-	newDl.Metadata = string(deploymentDataBytes)
 	return map[uint32]gridtypes.Deployment{dl.NodeID: newDl}, nil
 }
 
@@ -73,18 +65,6 @@ func (d *DeploymentDeployer) Deploy(ctx context.Context, dl *workloads.Deploymen
 	if err := d.Validate(ctx, dl); err != nil {
 		return err
 	}
-
-	if len(dl.SolutionType) == 0 {
-		dl.SolutionType = "Virtual Machine"
-	}
-
-	// deployment data
-	deploymentData := workloads.DeploymentData{
-		Name:        dl.Name,
-		Type:        "vm",
-		ProjectName: dl.SolutionType,
-	}
-	newDeploymentsData := map[uint32]workloads.DeploymentData{dl.NodeID: deploymentData}
 
 	// solution providers
 	newDeploymentsSolutionProvider := map[uint32]*uint64{dl.NodeID: dl.SolutionProvider}
@@ -96,12 +76,18 @@ func (d *DeploymentDeployer) Deploy(ctx context.Context, dl *workloads.Deploymen
 
 	oldDeployments := d.tfPluginClient.StateLoader.currentNodeDeployment
 
-	currentDeployments, err := d.deployer.Deploy(ctx, oldDeployments, newDeployments, newDeploymentsData, newDeploymentsSolutionProvider)
+	currentDeployments, err := d.deployer.Deploy(ctx, oldDeployments, newDeployments, newDeploymentsSolutionProvider)
 
 	// update deployment and plugin state
-	dl.ContractID = currentDeployments[dl.NodeID]
-	dl.NodeDeploymentID = currentDeployments
-	d.tfPluginClient.StateLoader.currentNodeDeployment[dl.NodeID] = dl.ContractID
+	if currentDeployments[dl.NodeID] != 0 {
+		if dl.NodeDeploymentID == nil {
+			dl.NodeDeploymentID = make(map[uint32]uint64)
+		}
+
+		dl.ContractID = currentDeployments[dl.NodeID]
+		dl.NodeDeploymentID[dl.NodeID] = dl.ContractID
+		d.tfPluginClient.StateLoader.currentNodeDeployment[dl.NodeID] = dl.ContractID
+	}
 
 	return err
 }
@@ -118,9 +104,12 @@ func (d *DeploymentDeployer) Cancel(ctx context.Context, dl *workloads.Deploymen
 	if err != nil {
 		return err
 	}
+
+	// update state
 	dl.ContractID = 0
-	delete(d.tfPluginClient.StateLoader.currentNodeDeployment, dl.NodeID)
 	delete(dl.NodeDeploymentID, dl.NodeID)
+	delete(d.tfPluginClient.StateLoader.currentNodeDeployment, dl.NodeID)
+
 	return nil
 }
 
@@ -142,10 +131,10 @@ func (d *DeploymentDeployer) Sync(ctx context.Context, dl *workloads.Deployment)
 		return nil
 	}
 
-	var vms []workloads.VM
-	var zdbs []workloads.ZDB
-	var qsfs []workloads.QSFS
-	var disks []workloads.Disk
+	vms := make([]workloads.VM, 0)
+	zdbs := make([]workloads.ZDB, 0)
+	qsfs := make([]workloads.QSFS, 0)
+	disks := make([]workloads.Disk, 0)
 
 	network := d.tfPluginClient.StateLoader.networks.getNetwork(dl.NetworkName)
 	network.deleteDeploymentHostIDs(dl.NodeID, dl.ContractID)
@@ -200,7 +189,6 @@ func (d *DeploymentDeployer) Sync(ctx context.Context, dl *workloads.Deployment)
 	network.setDeploymentHostIDs(dl.NodeID, dl.ContractID, usedIPs)
 
 	dl.Match(disks, qsfs, zdbs, vms)
-	log.Printf("vms: %+v\n", len(vms))
 
 	dl.Disks = disks
 	dl.Qsfs = qsfs

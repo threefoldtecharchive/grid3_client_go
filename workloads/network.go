@@ -3,6 +3,7 @@ package workloads
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"math/rand"
@@ -47,9 +48,14 @@ type ZNet struct {
 
 // NewNetworkFromWorkload generates a new znet from a workload
 func NewNetworkFromWorkload(wl gridtypes.Workload, nodeID uint32) (ZNet, error) {
-	data, err := GetZNetWorkloadData(wl)
+	dataI, err := wl.WorkloadData()
 	if err != nil {
-		return ZNet{}, err
+		return ZNet{}, errors.Wrap(err, "failed to get workload data")
+	}
+
+	data, ok := dataI.(*zos.Network)
+	if !ok {
+		return ZNet{}, fmt.Errorf("could not create network workload from data %v", dataI)
 	}
 
 	return ZNet{
@@ -71,21 +77,6 @@ func (znet *ZNet) Validate() error {
 	return nil
 }
 
-// GetZNetWorkloadData retrieves network workload data
-func GetZNetWorkloadData(wl gridtypes.Workload) (*zos.Network, error) {
-	dataI, err := wl.WorkloadData()
-	if err != nil {
-		return &zos.Network{}, errors.Wrap(err, "failed to get workload data")
-	}
-
-	data, ok := dataI.(*zos.Network)
-	if !ok {
-		return &zos.Network{}, fmt.Errorf("could not create network workload from data %v", dataI)
-	}
-
-	return data, nil
-}
-
 // ZosWorkload generates a zos workload from a network
 func (znet *ZNet) ZosWorkload(subnet gridtypes.IPNet, wgPrivateKey string, wgListenPort uint16, peers []zos.Peer) gridtypes.Workload {
 	return gridtypes.Workload{
@@ -101,6 +92,26 @@ func (znet *ZNet) ZosWorkload(subnet gridtypes.IPNet, wgPrivateKey string, wgLis
 			Peers:          peers,
 		}),
 	}
+}
+
+// GenerateMetadata generates deployment metadata
+func (net *ZNet) GenerateMetadata() (string, error) {
+	if len(net.SolutionType) == 0 {
+		net.SolutionType = "Network"
+	}
+
+	deploymentData := DeploymentData{
+		Name:        net.Name,
+		Type:        "network",
+		ProjectName: net.SolutionType,
+	}
+
+	deploymentDataBytes, err := json.Marshal(deploymentData)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to parse deployment data %v", deploymentData)
+	}
+
+	return string(deploymentDataBytes), nil
 }
 
 var (
@@ -145,8 +156,6 @@ PersistentKeepalive = 25
 Endpoint = %s
 	`, Address, AccessPrivatekey, NodePublicKey, NetworkIPRange, NodeEndpoint)
 }
-
-//TODO: ALl Logs should be trace
 
 // GetPublicNode return public node ID
 func GetPublicNode(ctx context.Context, gridClient proxy.Client, preferredNodes []uint32) (uint32, error) {

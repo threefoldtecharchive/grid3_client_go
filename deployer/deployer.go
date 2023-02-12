@@ -4,7 +4,6 @@ package deployer
 import (
 	"context"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"log"
 	"sync"
@@ -15,7 +14,6 @@ import (
 	"github.com/pkg/errors"
 	client "github.com/threefoldtech/grid3-go/node"
 	"github.com/threefoldtech/grid3-go/subi"
-	"github.com/threefoldtech/grid3-go/workloads"
 	proxy "github.com/threefoldtech/grid_proxy_server/pkg/client"
 	proxyTypes "github.com/threefoldtech/grid_proxy_server/pkg/types"
 	"github.com/threefoldtech/substrate-client"
@@ -28,7 +26,6 @@ type DeployerInterface interface { //TODO: Change Name && separate them
 	Deploy(ctx context.Context,
 		oldDeploymentIDs map[uint32]uint64,
 		newDeployments map[uint32]gridtypes.Deployment,
-		newDeploymentsData map[uint32]workloads.DeploymentData,
 		newDeploymentSolutionProvider map[uint32]*uint64,
 	) (map[uint32]uint64, error)
 
@@ -66,11 +63,9 @@ func NewDeployer(
 }
 
 // Deploy deploys or updates a new deployment given the old deployments' IDs
-// TODO: newDeployments should support more than a deployment per node ID
 func (d *Deployer) Deploy(ctx context.Context,
 	oldDeploymentIDs map[uint32]uint64,
 	newDeployments map[uint32]gridtypes.Deployment,
-	newDeploymentsData map[uint32]workloads.DeploymentData,
 	newDeploymentSolutionProvider map[uint32]*uint64,
 ) (map[uint32]uint64, error) {
 	oldDeployments, oldErr := d.GetDeployments(ctx, oldDeploymentIDs)
@@ -84,14 +79,14 @@ func (d *Deployer) Deploy(ctx context.Context,
 	}
 
 	// ignore oldErr until we need oldDeployments
-	currentDeployments, err := d.deploy(ctx, oldDeploymentIDs, newDeployments, newDeploymentsData, newDeploymentSolutionProvider, d.revertOnFailure)
+	currentDeployments, err := d.deploy(ctx, oldDeploymentIDs, newDeployments, newDeploymentSolutionProvider, d.revertOnFailure)
 
 	if err != nil && d.revertOnFailure {
 		if oldErr != nil {
 			return currentDeployments, fmt.Errorf("failed to deploy deployments: %w; failed to fetch deployment objects to revert deployments: %s; try again", err, oldErr)
 		}
 
-		currentDls, rerr := d.deploy(ctx, currentDeployments, oldDeployments, newDeploymentsData, newDeploymentSolutionProvider, false)
+		currentDls, rerr := d.deploy(ctx, currentDeployments, oldDeployments, newDeploymentSolutionProvider, false)
 		if rerr != nil {
 			return currentDls, fmt.Errorf("failed to deploy deployments: %w; failed to revert deployments: %s; try again", err, rerr)
 		}
@@ -105,7 +100,6 @@ func (d *Deployer) deploy(
 	ctx context.Context,
 	oldDeployments map[uint32]uint64,
 	newDeployments map[uint32]gridtypes.Deployment,
-	newDeploymentsData map[uint32]workloads.DeploymentData,
 	newDeploymentSolutionProvider map[uint32]*uint64,
 	revertOnFailure bool,
 ) (currentDeployments map[uint32]uint64, err error) {
@@ -155,12 +149,7 @@ func (d *Deployer) deploy(
 			}
 			log.Printf("Number of public ips: %d\n", publicIPCount)
 
-			deploymentDataBytes, err := json.Marshal(newDeploymentsData[node])
-			if err != nil {
-				return currentDeployments, errors.Wrap(err, "failed to parse deployment data")
-			}
-
-			contractID, err := d.substrateConn.CreateNodeContract(d.identity, node, string(deploymentDataBytes), hashHex, publicIPCount, newDeploymentSolutionProvider[node])
+			contractID, err := d.substrateConn.CreateNodeContract(d.identity, node, dl.Metadata, hashHex, publicIPCount, newDeploymentSolutionProvider[node])
 			log.Printf("CreateNodeContract returned id: %d\n", contractID)
 			if err != nil {
 				return currentDeployments, errors.Wrap(err, "failed to create contract")
@@ -415,16 +404,20 @@ func (d *Deployer) Wait(
 	return deploymentError
 }
 
-// TODO: describe comments better to describe what its doing && change state
-// old deployments get from state
-
 // Validate is a best effort validation. it returns an error if it's very sure there's a problem
+//   - validates old deployments nodes (for update cases) and new deployments nodes
+//   - validates nodes' farm
+//   - checks free public ips
+//   - checks free nodes capacity
+//   - checks PublicConfig Ipv4 for fqdn gateway
+//   - checks PublicConfig domain for name gateway
 //
-//	errors that may arise because of dead nodes are ignored.
-//	if a real error dodges the validation, it'll be fail anyway in the deploying phase
+// errors that may arise because of dead nodes are ignored.
+// if a real error dodges the validation, it'll be fail anyway in the deploying phase
 func (d *Deployer) Validate(ctx context.Context, oldDeployments map[uint32]gridtypes.Deployment, newDeployments map[uint32]gridtypes.Deployment) error {
 	farmIPs := make(map[int]int)
 	nodeMap := make(map[uint32]proxyTypes.NodeWithNestedCapacity)
+
 	for node := range oldDeployments {
 		nodeInfo, err := d.gridProxyClient.Node(node)
 		if err != nil {
@@ -433,6 +426,7 @@ func (d *Deployer) Validate(ctx context.Context, oldDeployments map[uint32]gridt
 		nodeMap[node] = nodeInfo
 		farmIPs[nodeInfo.FarmID] = 0
 	}
+
 	for node := range newDeployments {
 		if _, ok := nodeMap[node]; ok {
 			continue
@@ -444,6 +438,7 @@ func (d *Deployer) Validate(ctx context.Context, oldDeployments map[uint32]gridt
 		nodeMap[node] = nodeInfo
 		farmIPs[nodeInfo.FarmID] = 0
 	}
+
 	for farm := range farmIPs {
 		farmUint64 := uint64(farm)
 		farmInfo, _, err := d.gridProxyClient.Farms(proxyTypes.FarmFilter{

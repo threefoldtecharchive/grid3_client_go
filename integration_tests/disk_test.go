@@ -17,7 +17,7 @@ func TestDiskDeployment(t *testing.T) {
 
 	filter := NodeFilter{
 		Status: "up",
-		SRU:    10,
+		SRU:    1,
 	}
 	nodeIDs, err := FilterNodes(filter, deployer.RMBProxyURLs[tfPluginClient.Network])
 	assert.NoError(t, err)
@@ -26,7 +26,7 @@ func TestDiskDeployment(t *testing.T) {
 
 	disk := workloads.Disk{
 		Name:        "testName",
-		SizeGB:      10,
+		SizeGB:      1,
 		Description: "disk test",
 	}
 

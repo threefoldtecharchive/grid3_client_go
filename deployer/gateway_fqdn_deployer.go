@@ -27,9 +27,12 @@ func NewGatewayFqdnDeployer(tfPluginClient *TFPluginClient) GatewayFQDNDeployer 
 	return gatewayFQDN
 }
 
-// Validate validates gatewayFdqn deployer
+// Validate validates gateway FQDN deployer
 func (d *GatewayFQDNDeployer) Validate(ctx context.Context, gw *workloads.GatewayFQDNProxy) error {
 	sub := d.tfPluginClient.SubstrateConn
+	if len(gw.Name) == 0 {
+		return errors.New("gateway workload must have a name")
+	}
 	if err := validateAccountBalanceForExtrinsics(sub, d.tfPluginClient.identity); err != nil {
 		return err
 	}
@@ -39,9 +42,15 @@ func (d *GatewayFQDNDeployer) Validate(ctx context.Context, gw *workloads.Gatewa
 // GenerateVersionlessDeployments generates deployments for gatewayFqdn deployer without versions
 func (d *GatewayFQDNDeployer) GenerateVersionlessDeployments(ctx context.Context, gw *workloads.GatewayFQDNProxy) (map[uint32]gridtypes.Deployment, error) {
 	deployments := make(map[uint32]gridtypes.Deployment)
+	var err error
 
 	dl := workloads.NewGridDeployment(d.tfPluginClient.twinID, []gridtypes.Workload{})
 	dl.Workloads = append(dl.Workloads, gw.ZosWorkload())
+
+	dl.Metadata, err = gw.GenerateMetadata()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to generate gateway FQDN deployment %s metadata", gw.Name)
+	}
 
 	deployments[gw.NodeID] = dl
 	return deployments, nil
@@ -58,30 +67,23 @@ func (d *GatewayFQDNDeployer) Deploy(ctx context.Context, gw *workloads.GatewayF
 		return errors.Wrap(err, "couldn't generate deployments data")
 	}
 
-	if len(gw.SolutionType) == 0 {
-		gw.SolutionType = "Gateway"
-	}
-
-	deploymentData := workloads.DeploymentData{
-		Name:        gw.FQDN,
-		Type:        "Gateway Fqdn",
-		ProjectName: gw.SolutionType,
-	}
-
-	newDeploymentsData := make(map[uint32]workloads.DeploymentData)
-	newDeploymentsSolutionProvider := make(map[uint32]*uint64)
-
-	newDeploymentsData[gw.NodeID] = deploymentData
 	// TODO: solution providers
+	newDeploymentsSolutionProvider := make(map[uint32]*uint64)
 	newDeploymentsSolutionProvider[gw.NodeID] = nil
 
 	oldDeployments := d.tfPluginClient.StateLoader.currentNodeDeployment
-	currentDeployments, err := d.deployer.Deploy(ctx, oldDeployments, newDeployments, newDeploymentsData, newDeploymentsSolutionProvider)
+	currentDeployments, err := d.deployer.Deploy(ctx, oldDeployments, newDeployments, newDeploymentsSolutionProvider)
 
 	// update state
-	gw.ContractID = currentDeployments[gw.NodeID]
-	gw.NodeDeploymentID = currentDeployments
-	d.tfPluginClient.StateLoader.currentNodeDeployment[gw.NodeID] = gw.ContractID
+	if currentDeployments[gw.NodeID] != 0 {
+		if gw.NodeDeploymentID == nil {
+			gw.NodeDeploymentID = make(map[uint32]uint64)
+		}
+
+		gw.ContractID = currentDeployments[gw.NodeID]
+		gw.NodeDeploymentID[gw.NodeID] = gw.ContractID
+		d.tfPluginClient.StateLoader.currentNodeDeployment[gw.NodeID] = gw.ContractID
+	}
 
 	return err
 }
@@ -98,9 +100,11 @@ func (d *GatewayFQDNDeployer) Cancel(ctx context.Context, gw *workloads.GatewayF
 	if err != nil {
 		return err
 	}
+
+	// update state
 	gw.ContractID = 0
-	delete(d.tfPluginClient.StateLoader.currentNodeDeployment, gw.NodeID)
 	delete(gw.NodeDeploymentID, gw.NodeID)
+	delete(d.tfPluginClient.StateLoader.currentNodeDeployment, gw.NodeID)
 
 	return nil
 }

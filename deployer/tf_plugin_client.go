@@ -3,6 +3,8 @@ package deployer
 
 import (
 	"fmt"
+	"io"
+	"log"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -67,8 +69,13 @@ func NewTFPluginClient(
 	substrateURL string,
 	passedRmbProxyURL string,
 	verifyReply bool,
+	showLogs bool,
 ) (TFPluginClient, error) {
 
+	// disable logging
+	if !showLogs {
+		log.SetOutput(io.Discard)
+	}
 	var err error
 	tfPluginClient := TFPluginClient{}
 

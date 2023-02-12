@@ -6,7 +6,11 @@ grid3_go is a go client created to interact with threefold grid. It should manag
 
 ## Requirements
 
-- [Go](https://golang.org/doc/install) >= 1.18
+- [Go](https://golang.org/doc/install) >= 1.19
+
+## Examples
+
+Refer to [integration examples](https://github.com/threefoldtech/grid3-go/tree/development/integration_tests) directory for examples.
 
 ## Run tests
 
@@ -14,11 +18,19 @@ To run the tests, export MNEMONICS and NETWORK
 
 ```bash
 export MNEMONICS="<mnemonics words>"
-export NETWORK="<network>" # dev or test
+export NETWORK="<network>" # dev, qa or test
 ```
 
-run the following command
+Run the following command
+
+### running unit tests
 
 ```bash
 make test
+```
+
+### running integration tests
+
+```bash
+make integration
 ```

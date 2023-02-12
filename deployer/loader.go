@@ -18,8 +18,9 @@ import (
 
 // StateLoader struct
 type StateLoader struct {
-	currentNodeDeployment map[uint32]uint64 //map[uint32]uint64
-	currentNodeNetwork    map[uint32]uint64 //map[uint32]uint64
+	// TODO: support more than one deployment per node
+	currentNodeDeployment map[uint32]uint64
+	currentNodeNetwork    map[uint32]uint64
 
 	networks networkState
 
@@ -167,7 +168,7 @@ func (l *StateLoader) LoadK8sFromGrid(masterNode map[uint32]string, workerNodes 
 			return workloads.K8sCluster{}, errors.Wrapf(err, "couldn't get workload %s", name)
 		}
 
-		master, err := workloads.NewK8sNodeDataFromWorkload(wl, nodeID, workloadDiskSize[name], workloadComputedIP[name], workloadComputedIP6[name])
+		master, err := workloads.NewK8sNodeFromWorkload(wl, nodeID, workloadDiskSize[name], workloadComputedIP[name], workloadComputedIP6[name])
 		if err != nil {
 			return workloads.K8sCluster{}, errors.Wrapf(err, "couldn't generate master data for %s", name)
 		}
@@ -183,7 +184,7 @@ func (l *StateLoader) LoadK8sFromGrid(masterNode map[uint32]string, workerNodes 
 				return workloads.K8sCluster{}, errors.Wrapf(err, "couldn't get workload %s", name)
 			}
 
-			worker, err := workloads.NewK8sNodeDataFromWorkload(wl, nodeID, workloadDiskSize[name], workloadComputedIP[name], workloadComputedIP6[name])
+			worker, err := workloads.NewK8sNodeFromWorkload(wl, nodeID, workloadDiskSize[name], workloadComputedIP[name], workloadComputedIP6[name])
 			if err != nil {
 				return workloads.K8sCluster{}, errors.Wrapf(err, "couldn't generate worker data for %s", name)
 			}

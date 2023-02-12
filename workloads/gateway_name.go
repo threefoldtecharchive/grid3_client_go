@@ -73,3 +73,23 @@ func (g *GatewayNameProxy) ZosWorkload() gridtypes.Workload {
 		}),
 	}
 }
+
+// GenerateMetadata generates gateway deployment metadata
+func (gw *GatewayNameProxy) GenerateMetadata() (string, error) {
+	if len(gw.SolutionType) == 0 {
+		gw.SolutionType = "Gateway"
+	}
+
+	deploymentData := DeploymentData{
+		Name:        gw.FQDN,
+		Type:        "Gateway Name",
+		ProjectName: gw.SolutionType,
+	}
+
+	deploymentDataBytes, err := json.Marshal(deploymentData)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to parse deployment data %v", deploymentData)
+	}
+
+	return string(deploymentDataBytes), nil
+}

@@ -2,6 +2,7 @@
 package workloads
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
 	"reflect"
@@ -37,16 +38,19 @@ type K8sCluster struct {
 	Master      *K8sNode
 	Workers     []K8sNode
 	Token       string
-	SSHKey      string
 	NetworkName string
+
+	//optional
+	SolutionType string
+	SSHKey       string
+
 	//computed
 	NodesIPRange     map[uint32]gridtypes.IPNet
 	NodeDeploymentID map[uint32]uint64
-	ContractID       uint64
 }
 
-// NewK8sNodeDataFromMap generates new k8s node data
-func NewK8sNodeDataFromMap(m map[string]interface{}) K8sNode {
+// NewK8sNodeFromMap generates new k8s node
+func NewK8sNodeFromMap(m map[string]interface{}) K8sNode {
 	return K8sNode{
 		Name:          m["name"].(string),
 		Node:          uint32(m["node"].(int)),
@@ -65,8 +69,8 @@ func NewK8sNodeDataFromMap(m map[string]interface{}) K8sNode {
 	}
 }
 
-// NewK8sNodeDataFromWorkload generates a new k8s data from a workload
-func NewK8sNodeDataFromWorkload(wl gridtypes.Workload, nodeID uint32, diskSize int, computedIP string, computedIP6 string) (K8sNode, error) {
+// NewK8sNodeFromWorkload generates a new k8s from a workload
+func NewK8sNodeFromWorkload(wl gridtypes.Workload, nodeID uint32, diskSize int, computedIP string, computedIP6 string) (K8sNode, error) {
 	var k K8sNode
 	data, err := wl.WorkloadData()
 	if err != nil {
@@ -104,7 +108,7 @@ func NewK8sNodeDataFromWorkload(wl gridtypes.Workload, nodeID uint32, diskSize i
 	}, nil
 }
 
-// ToMap converts k8s data to a map (dict)
+// ToMap converts k8s node to a map (dict)
 func (k *K8sNode) ToMap() map[string]interface{} {
 	return map[string]interface{}{
 		"name":           k.Name,
@@ -124,75 +128,14 @@ func (k *K8sNode) ToMap() map[string]interface{} {
 	}
 }
 
-// MasterZosWorkload generates a k8s master workload from a k8s data
+// MasterZosWorkload generates a k8s master workload from a k8s node
 func (k *K8sNode) MasterZosWorkload(cluster *K8sCluster) (K8sWorkloads []gridtypes.Workload) {
 	return k.zosWorkload(cluster, false)
 }
 
-// WorkerZosWorkload generates a k8s worker workload from a k8s data
+// WorkerZosWorkload generates a k8s worker workload from a k8s node
 func (k *K8sNode) WorkerZosWorkload(cluster *K8sCluster) (K8sWorkloads []gridtypes.Workload) {
 	return k.zosWorkload(cluster, true)
-}
-
-func (k *K8sNode) zosWorkload(cluster *K8sCluster, isWorker bool) (K8sWorkloads []gridtypes.Workload) {
-	diskName := fmt.Sprintf("%sdisk", k.Name)
-	diskWorkload := gridtypes.Workload{
-		Name:        gridtypes.Name(diskName),
-		Version:     0,
-		Type:        zos.ZMountType,
-		Description: "",
-		Data: gridtypes.MustMarshal(zos.ZMount{
-			Size: gridtypes.Unit(k.DiskSize) * gridtypes.Gigabyte,
-		}),
-	}
-	K8sWorkloads = append(K8sWorkloads, diskWorkload)
-	publicIPName := ""
-	if k.PublicIP || k.PublicIP6 {
-		publicIPName = fmt.Sprintf("%sip", k.Name)
-		K8sWorkloads = append(K8sWorkloads, ConstructPublicIPWorkload(publicIPName, k.PublicIP, k.PublicIP6))
-	}
-	envVars := map[string]string{
-		"SSH_KEY":           cluster.SSHKey,
-		"K3S_TOKEN":         cluster.Token,
-		"K3S_DATA_DIR":      "/mydisk",
-		"K3S_FLANNEL_IFACE": "eth0",
-		"K3S_NODE_NAME":     k.Name,
-		"K3S_URL":           "",
-	}
-	if isWorker {
-		// K3S_URL marks where to find the master node
-		envVars["K3S_URL"] = fmt.Sprintf("https://%s:6443", cluster.Master.IP)
-	}
-	workload := gridtypes.Workload{
-		Version: 0,
-		Name:    gridtypes.Name(k.Name),
-		Type:    zos.ZMachineType,
-		Data: gridtypes.MustMarshal(zos.ZMachine{
-			FList: k.Flist,
-			Network: zos.MachineNetwork{
-				Interfaces: []zos.MachineInterface{
-					{
-						Network: gridtypes.Name(cluster.NetworkName),
-						IP:      net.ParseIP(k.IP),
-					},
-				},
-				PublicIP:  gridtypes.Name(publicIPName),
-				Planetary: k.Planetary,
-			},
-			ComputeCapacity: zos.MachineCapacity{
-				CPU:    uint8(k.CPU),
-				Memory: gridtypes.Unit(uint(k.Memory)) * gridtypes.Megabyte,
-			},
-			Entrypoint: "/sbin/zinit init",
-			Mounts: []zos.MachineMount{
-				{Name: gridtypes.Name(diskName), Mountpoint: "/mydisk"},
-			},
-			Env: envVars,
-		}),
-	}
-	K8sWorkloads = append(K8sWorkloads, workload)
-
-	return K8sWorkloads
 }
 
 // ZosWorkloads generates k8s workloads from a k8s cluster
@@ -205,6 +148,26 @@ func (k *K8sCluster) ZosWorkloads() ([]gridtypes.Workload, error) {
 	}
 
 	return k8sWorkloads, nil
+}
+
+// GenerateMetadata generates deployment metadata
+func (k *K8sCluster) GenerateMetadata() (string, error) {
+	if len(k.SolutionType) == 0 {
+		k.SolutionType = "Kubernetes"
+	}
+
+	deploymentData := DeploymentData{
+		Name:        k.Master.Name,
+		Type:        "kubernetes",
+		ProjectName: k.SolutionType,
+	}
+
+	deploymentDataBytes, err := json.Marshal(deploymentData)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to parse deployment data %v", deploymentData)
+	}
+
+	return string(deploymentDataBytes), nil
 }
 
 // ValidateToken validate cluster token
@@ -280,7 +243,7 @@ func (k *K8sCluster) InvalidateBrokenAttributes(sub subi.SubstrateExt) error {
 		return nil
 	}
 
-	var newWorkers []K8sNode
+	newWorkers := make([]K8sNode, 0)
 	validNodes := make(map[uint32]struct{})
 	for node, contractID := range k.NodeDeploymentID {
 		contract, err := sub.GetContract(contractID)
@@ -304,4 +267,65 @@ func (k *K8sCluster) InvalidateBrokenAttributes(sub subi.SubstrateExt) error {
 	}
 	k.Workers = newWorkers
 	return nil
+}
+
+func (k *K8sNode) zosWorkload(cluster *K8sCluster, isWorker bool) (K8sWorkloads []gridtypes.Workload) {
+	diskName := fmt.Sprintf("%sdisk", k.Name)
+	diskWorkload := gridtypes.Workload{
+		Name:        gridtypes.Name(diskName),
+		Version:     0,
+		Type:        zos.ZMountType,
+		Description: "",
+		Data: gridtypes.MustMarshal(zos.ZMount{
+			Size: gridtypes.Unit(k.DiskSize) * gridtypes.Gigabyte,
+		}),
+	}
+	K8sWorkloads = append(K8sWorkloads, diskWorkload)
+	publicIPName := ""
+	if k.PublicIP || k.PublicIP6 {
+		publicIPName = fmt.Sprintf("%sip", k.Name)
+		K8sWorkloads = append(K8sWorkloads, ConstructPublicIPWorkload(publicIPName, k.PublicIP, k.PublicIP6))
+	}
+	envVars := map[string]string{
+		"SSH_KEY":           cluster.SSHKey,
+		"K3S_TOKEN":         cluster.Token,
+		"K3S_DATA_DIR":      "/mydisk",
+		"K3S_FLANNEL_IFACE": "eth0",
+		"K3S_NODE_NAME":     k.Name,
+		"K3S_URL":           "",
+	}
+	if isWorker {
+		// K3S_URL marks where to find the master node
+		envVars["K3S_URL"] = fmt.Sprintf("https://%s:6443", cluster.Master.IP)
+	}
+	workload := gridtypes.Workload{
+		Version: 0,
+		Name:    gridtypes.Name(k.Name),
+		Type:    zos.ZMachineType,
+		Data: gridtypes.MustMarshal(zos.ZMachine{
+			FList: k.Flist,
+			Network: zos.MachineNetwork{
+				Interfaces: []zos.MachineInterface{
+					{
+						Network: gridtypes.Name(cluster.NetworkName),
+						IP:      net.ParseIP(k.IP),
+					},
+				},
+				PublicIP:  gridtypes.Name(publicIPName),
+				Planetary: k.Planetary,
+			},
+			ComputeCapacity: zos.MachineCapacity{
+				CPU:    uint8(k.CPU),
+				Memory: gridtypes.Unit(uint(k.Memory)) * gridtypes.Megabyte,
+			},
+			Entrypoint: "/sbin/zinit init",
+			Mounts: []zos.MachineMount{
+				{Name: gridtypes.Name(diskName), Mountpoint: "/mydisk"},
+			},
+			Env: envVars,
+		}),
+	}
+	K8sWorkloads = append(K8sWorkloads, workload)
+
+	return K8sWorkloads
 }

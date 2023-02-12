@@ -2,6 +2,7 @@
 package workloads
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -72,6 +73,26 @@ func (d *Deployment) Validate() error {
 		}
 	}
 	return nil
+}
+
+// GenerateMetadata generates deployment metadata
+func (d *Deployment) GenerateMetadata() (string, error) {
+	if len(d.SolutionType) == 0 {
+		d.SolutionType = "Virtual Machine"
+	}
+
+	deploymentData := DeploymentData{
+		Name:        d.Name,
+		Type:        "vm",
+		ProjectName: d.SolutionType,
+	}
+
+	deploymentDataBytes, err := json.Marshal(deploymentData)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to parse deployment data %v", deploymentData)
+	}
+
+	return string(deploymentDataBytes), nil
 }
 
 // Nullify resets deployment

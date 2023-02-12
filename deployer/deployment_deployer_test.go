@@ -230,8 +230,8 @@ func constructTestDeployment() workloads.Deployment {
 	}
 
 	return workloads.Deployment{
-		ContractID:  contractID,
-		NodeID:      10,
+		Name:        "test",
+		NodeID:      nodeID,
 		Disks:       disks,
 		Zdbs:        zdbs,
 		Vms:         vms,
@@ -297,6 +297,7 @@ func TestDeploymentSyncDeletedContract(t *testing.T) {
 	dl := constructTestDeployment()
 	d, _, sub, _, deployer := constructTestDeployer(t, true)
 
+	dl.ContractID = contractID
 	sub.EXPECT().IsValidContract(dl.ContractID).Return(false, nil).AnyTimes()
 
 	err := d.syncContract(context.Background(), &dl)
@@ -356,6 +357,8 @@ func TestDeploymentGenerateDeployment(t *testing.T) {
 
 func TestDeploymentSync(t *testing.T) {
 	dl := constructTestDeployment()
+	dl.ContractID = contractID
+
 	d, cl, sub, ncPool, deployer := constructTestDeployer(t, true)
 
 	net := constructTestNetwork()
@@ -519,11 +522,9 @@ func TestDeploymentSync(t *testing.T) {
 func TestDeploymentDeploy(t *testing.T) {
 	dl := constructTestDeployment()
 	d, _, sub, _, deployer := constructTestDeployer(t, true)
-	dl.SolutionType = "Virtual Machine"
 
 	net := constructTestNetwork()
 
-	dl.ContractID = 0
 	d.tfPluginClient.StateLoader.currentNodeNetwork[nodeID] = contractID
 	d.tfPluginClient.StateLoader.networks = networkState{
 		net.Name: network{
@@ -535,13 +536,9 @@ func TestDeploymentDeploy(t *testing.T) {
 	}
 	dls, err := d.GenerateVersionlessDeployments(context.Background(), &dl)
 	assert.NoError(t, err)
-	newDeploymentsSolutionProvider := map[uint32]*uint64{nodeID: nil}
-	deploymentData := workloads.DeploymentData{
-		Name:        dl.Name,
-		Type:        "vm",
-		ProjectName: "Virtual Machine",
-	}
-	newDeploymentsData := map[uint32]workloads.DeploymentData{nodeID: deploymentData}
+
+	assert.Equal(t, dls[nodeID].Metadata, "{\"type\":\"vm\",\"name\":\"test\",\"projectName\":\"Virtual Machine\"}")
+
 	t.Run("Validation failed", func(t *testing.T) {
 		sub.EXPECT().
 			GetBalance(d.tfPluginClient.identity).
@@ -558,6 +555,7 @@ func TestDeploymentDeploy(t *testing.T) {
 		assert.Empty(t, dl.ContractID)
 		assert.Empty(t, d.tfPluginClient.StateLoader.currentNodeDeployment)
 	})
+
 	t.Run("Deploying failed", func(t *testing.T) {
 		sub.EXPECT().
 			GetBalance(d.tfPluginClient.identity).
@@ -571,8 +569,7 @@ func TestDeploymentDeploy(t *testing.T) {
 			gomock.Any(),
 			map[uint32]uint64{},
 			dls,
-			newDeploymentsData,
-			newDeploymentsSolutionProvider,
+			gomock.Any(),
 		).Return(map[uint32]uint64{}, errors.New("error"))
 
 		assert.Error(t, d.Deploy(context.Background(), &dl))
@@ -596,8 +593,7 @@ func TestDeploymentDeploy(t *testing.T) {
 			gomock.Any(),
 			map[uint32]uint64{},
 			dls,
-			newDeploymentsData,
-			newDeploymentsSolutionProvider,
+			gomock.Any(),
 		).Return(map[uint32]uint64{nodeID: contractID}, nil)
 		assert.NoError(t, d.Deploy(context.Background(), &dl))
 
@@ -611,6 +607,8 @@ func TestDeploymentDeploy(t *testing.T) {
 
 func TestDeploymentCancel(t *testing.T) {
 	dl := constructTestDeployment()
+	dl.ContractID = contractID
+
 	d, _, sub, _, deployer := constructTestDeployer(t, true)
 	dl.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
 

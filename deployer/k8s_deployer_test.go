@@ -1,3 +1,4 @@
+// Package deployer for grid deployer
 package deployer
 
 import (
@@ -93,7 +94,7 @@ func constructK8sCluster() (workloads.K8sCluster, error) {
 	}
 
 	master := workloads.K8sNode{
-		Name:          "K8sforTesting",
+		Name:          "K8sForTesting",
 		Node:          nodeID,
 		DiskSize:      5,
 		PublicIP:      true,
@@ -133,8 +134,6 @@ func constructK8sCluster() (workloads.K8sCluster, error) {
 		SSHKey:       "",
 		NetworkName:  "network",
 		NodesIPRange: make(map[uint32]gridtypes.IPNet),
-		// NodeDeploymentID: map[uint32]uint64{nodeID: contractID},
-		ContractID: 0,
 	}
 	return Cluster, nil
 }
@@ -173,8 +172,11 @@ func TestGenerateK8sDeployment(t *testing.T) {
 	}
 
 	wl := nodeWorkloads[nodeID]
+	testDl := workloads.NewGridDeployment(d.tfPluginClient.twinID, wl)
+	testDl.Metadata = "{\"type\":\"kubernetes\",\"name\":\"K8sForTesting\",\"projectName\":\"Kubernetes\"}"
+
 	assert.Equal(t, dls, map[uint32]gridtypes.Deployment{
-		nodeID: workloads.NewGridDeployment(d.tfPluginClient.twinID, wl),
+		nodeID: testDl,
 	})
 }
 
@@ -192,29 +194,19 @@ func TestDeploy(t *testing.T) {
 
 	k8sMockValidation(d.tfPluginClient.identity, cl, sub, ncPool, proxyCl, d)
 
-	deploymentData := workloads.DeploymentData{
-		Name:        k8sCluster.Master.Name,
-		Type:        "K8s",
-		ProjectName: "",
-	}
-	newDeploymentsData := make(map[uint32]workloads.DeploymentData)
 	newDeploymentsSolutionProvider := make(map[uint32]*uint64)
-
-	newDeploymentsData[k8sCluster.Master.Node] = deploymentData
 	newDeploymentsSolutionProvider[k8sCluster.Master.Node] = nil
 
 	deployer.EXPECT().Deploy(
 		gomock.Any(),
 		map[uint32]uint64{},
 		dls,
-		newDeploymentsData,
 		newDeploymentsSolutionProvider,
 	).Return(map[uint32]uint64{nodeID: contractID}, nil)
 
 	err = d.Deploy(context.Background(), &k8sCluster)
 	assert.NoError(t, err)
 
-	assert.NotEqual(t, k8sCluster.ContractID, 0)
 	assert.Equal(t, k8sCluster.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
 }
 
@@ -238,7 +230,6 @@ func TestUpdateK8s(t *testing.T) {
 		gomock.Any(),
 		map[uint32]uint64{nodeID: contractID},
 		dls,
-		gomock.Any(),
 		gomock.Any(),
 	).Return(map[uint32]uint64{nodeID: contractID}, nil)
 
@@ -268,7 +259,6 @@ func TestUpdateK8sFailed(t *testing.T) {
 		gomock.Any(),
 		map[uint32]uint64{nodeID: contractID},
 		dls,
-		gomock.Any(),
 		gomock.Any(),
 	).Return(map[uint32]uint64{nodeID: contractID}, errors.New("error"))
 

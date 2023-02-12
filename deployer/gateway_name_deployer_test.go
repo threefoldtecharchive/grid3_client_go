@@ -107,19 +107,23 @@ func TestNameGenerateDeployment(t *testing.T) {
 
 	dls, err := d.GenerateVersionlessDeployments(context.Background(), &g)
 	assert.NoError(t, err)
+
+	testDl := workloads.NewGridDeployment(twinID, []gridtypes.Workload{
+		{
+			Version: 0,
+			Type:    zos.GatewayNameProxyType,
+			Name:    gridtypes.Name(g.Name),
+			Data: gridtypes.MustMarshal(zos.GatewayNameProxy{
+				TLSPassthrough: g.TLSPassthrough,
+				Backends:       g.Backends,
+				Name:           g.Name,
+			}),
+		},
+	})
+	testDl.Metadata = "{\"type\":\"Gateway Name\",\"name\":\"name.com\",\"projectName\":\"Gateway\"}"
+
 	assert.Equal(t, dls, map[uint32]gridtypes.Deployment{
-		nodeID: workloads.NewGridDeployment(twinID, []gridtypes.Workload{
-			{
-				Version: 0,
-				Type:    zos.GatewayNameProxyType,
-				Name:    gridtypes.Name(g.Name),
-				Data: gridtypes.MustMarshal(zos.GatewayNameProxy{
-					TLSPassthrough: g.TLSPassthrough,
-					Backends:       g.Backends,
-					Name:           g.Name,
-				}),
-			},
-		}),
+		nodeID: testDl,
 	})
 }
 
@@ -133,18 +137,11 @@ func TestNameDeploy(t *testing.T) {
 	mockValidation(d.tfPluginClient.identity, cl, sub, ncPool, proxyCl)
 
 	newDeploymentsSolutionProvider := map[uint32]*uint64{nodeID: nil}
-	deploymentData := workloads.DeploymentData{
-		Name:        gw.Name,
-		Type:        "Gateway Name",
-		ProjectName: "Gateway",
-	}
-	newDeploymentsData := map[uint32]workloads.DeploymentData{nodeID: deploymentData}
 
 	deployer.EXPECT().Deploy(
 		gomock.Any(),
 		map[uint32]uint64{},
 		dls,
-		newDeploymentsData,
 		newDeploymentsSolutionProvider,
 	).Return(map[uint32]uint64{nodeID: contractID}, nil)
 
@@ -175,7 +172,6 @@ func TestNameUpdate(t *testing.T) {
 		map[uint32]uint64{nodeID: contractID},
 		dls,
 		gomock.Any(),
-		gomock.Any(),
 	).Return(map[uint32]uint64{nodeID: contractID}, nil)
 
 	sub.EXPECT().
@@ -203,7 +199,6 @@ func TestNameUpdateFailed(t *testing.T) {
 		gomock.Any(),
 		map[uint32]uint64{nodeID: contractID},
 		dls,
-		gomock.Any(),
 		gomock.Any(),
 	).Return(map[uint32]uint64{nodeID: contractID}, errors.New("error"))
 

@@ -53,7 +53,6 @@ func TestGatewayNameDeployment(t *testing.T) {
 		CPU:        2,
 		Planetary:  true,
 		Memory:     1024,
-		RootfsSize: 20 * 1024,
 		Entrypoint: "/sbin/zinit init",
 		EnvVars: map[string]string{
 			"SSH_KEY": publicKey,
@@ -78,7 +77,7 @@ func TestGatewayNameDeployment(t *testing.T) {
 	backend := fmt.Sprintf("http://[%s]:9000", v.YggIP)
 	gw := workloads.GatewayNameProxy{
 		NodeID:         gwNodeID,
-		Name:           "nametest",
+		Name:           "test",
 		TLSPassthrough: false,
 		Backends:       []zos.Backend{zos.Backend(backend)},
 	}
@@ -112,6 +111,7 @@ func TestGatewayNameDeployment(t *testing.T) {
 
 	err = tfPluginClient.NetworkDeployer.Cancel(ctx, &network)
 	assert.NoError(t, err)
+
 	err = tfPluginClient.DeploymentDeployer.Cancel(ctx, &dl)
 	assert.NoError(t, err)
 

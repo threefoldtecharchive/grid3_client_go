@@ -28,8 +28,8 @@ func AssertNodesAreReady(t *testing.T, k8sCluster *workloads.K8sCluster, private
 	assert.Empty(t, err)
 
 	nodesNumber := reflect.ValueOf(k8sCluster.Workers).Len() + 1
-	numberOfReadynodes := strings.Count(output, "Ready")
-	assert.True(t, numberOfReadynodes == nodesNumber, "number of ready nodes is not equal to number of nodes only %s nodes are ready", numberOfReadynodes)
+	numberOfReadyNodes := strings.Count(output, "Ready")
+	assert.True(t, numberOfReadyNodes == nodesNumber, "number of ready nodes is not equal to number of nodes only %s nodes are ready", numberOfReadyNodes)
 }
 
 func TestK8sDeployment(t *testing.T) {
@@ -41,19 +41,20 @@ func TestK8sDeployment(t *testing.T) {
 
 	filter := NodeFilter{
 		CRU:    2,
-		SRU:    2,
+		SRU:    4,
 		MRU:    4,
 		Status: "up",
 	}
 	nodeIDs, err := FilterNodes(filter, deployer.RMBProxyURLs[tfPluginClient.Network])
 	assert.NoError(t, err)
 
-	k8sNodeID := nodeIDs[0]
+	masterNodeID := nodeIDs[0]
+	workerNodeID := nodeIDs[1]
 
 	network := workloads.ZNet{
 		Name:        "testingNetwork",
 		Description: "network for testing",
-		Nodes:       []uint32{k8sNodeID},
+		Nodes:       []uint32{masterNodeID, workerNodeID},
 		IPRange: gridtypes.NewIPNet(net.IPNet{
 			IP:   net.IPv4(10, 20, 0, 0),
 			Mask: net.CIDRMask(16, 32),
@@ -72,9 +73,9 @@ func TestK8sDeployment(t *testing.T) {
 	assert.NoError(t, err)
 
 	master := workloads.K8sNode{
-		Name:          "K8sforTesting",
-		Node:          k8sNodeID,
-		DiskSize:      5,
+		Name:          "K8sForTesting",
+		Node:          masterNodeID,
+		DiskSize:      1,
 		PublicIP:      false,
 		PublicIP6:     false,
 		Planetary:     true,
@@ -90,8 +91,8 @@ func TestK8sDeployment(t *testing.T) {
 
 	workerNodeData1 := workloads.K8sNode{
 		Name:          "worker1",
-		Node:          k8sNodeID,
-		DiskSize:      5,
+		Node:          workerNodeID,
+		DiskSize:      1,
 		PublicIP:      false,
 		PublicIP6:     false,
 		Planetary:     false,
@@ -107,8 +108,8 @@ func TestK8sDeployment(t *testing.T) {
 
 	workerNodeData2 := workloads.K8sNode{
 		Name:          "worker2",
-		Node:          k8sNodeID,
-		DiskSize:      5,
+		Node:          workerNodeID,
+		DiskSize:      1,
 		PublicIP:      false,
 		PublicIP6:     false,
 		Planetary:     false,
@@ -127,12 +128,11 @@ func TestK8sDeployment(t *testing.T) {
 	k8sCluster := workloads.K8sCluster{
 		Master:           &master,
 		Workers:          workers[:],
-		Token:            "token",
+		Token:            "tokens",
 		SSHKey:           publicKey,
 		NetworkName:      "testingNetwork",
 		NodesIPRange:     make(map[uint32]gridtypes.IPNet),
 		NodeDeploymentID: map[uint32]uint64{},
-		ContractID:       0,
 	}
 
 	err = tfPluginClient.K8sDeployer.Deploy(ctx, &k8sCluster)
@@ -143,6 +143,9 @@ func TestK8sDeployment(t *testing.T) {
 
 	result, err := tfPluginClient.StateLoader.LoadK8sFromGrid(masterMap, workerMap)
 	assert.NoError(t, err)
+
+	// check workers count
+	assert.Equal(t, len(result.Workers), 2)
 
 	// Check that master is reachable
 	masterIP := result.Master.YggIP
@@ -165,5 +168,4 @@ func TestK8sDeployment(t *testing.T) {
 
 	err = tfPluginClient.NetworkDeployer.Cancel(ctx, &network)
 	assert.NoError(t, err)
-
 }

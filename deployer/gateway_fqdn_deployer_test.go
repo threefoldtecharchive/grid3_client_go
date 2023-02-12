@@ -102,42 +102,33 @@ func TestValidateFQDNNodeReachable(t *testing.T) {
 	d, cl, sub, ncPool, _, proxyCl := constructTestFQDNDeployer(t, true)
 
 	mockValidation(d.tfPluginClient.identity, cl, sub, ncPool, proxyCl)
-	err := d.Validate(context.Background(), &workloads.GatewayFQDNProxy{NodeID: nodeID})
+	err := d.Validate(context.Background(), &workloads.GatewayFQDNProxy{Name: "test", NodeID: nodeID})
 	assert.NoError(t, err)
 }
 
 func TestGenerateFQDNDeployment(t *testing.T) {
-	d, _, _, _, _, _ := constructTestFQDNDeployer(t, false)
+	d, _, _, _, _, _ := constructTestFQDNDeployer(t, true)
 	gw := constructTestFQDN()
 
 	dls, err := d.GenerateVersionlessDeployments(context.Background(), &gw)
 	assert.NoError(t, err)
-	assert.Equal(t, dls, map[uint32]gridtypes.Deployment{
-		nodeID: {
+
+	testDl := workloads.NewGridDeployment(twinID, []gridtypes.Workload{
+		{
 			Version: 0,
-			TwinID:  d.tfPluginClient.twinID,
-			Workloads: []gridtypes.Workload{
-				{
-					Version: 0,
-					Type:    zos.GatewayFQDNProxyType,
-					Name:    gridtypes.Name(gw.Name),
-					Data: gridtypes.MustMarshal(zos.GatewayFQDNProxy{
-						TLSPassthrough: gw.TLSPassthrough,
-						Backends:       gw.Backends,
-						FQDN:           gw.FQDN,
-					}),
-				},
-			},
-			SignatureRequirement: gridtypes.SignatureRequirement{
-				WeightRequired: 1,
-				Requests: []gridtypes.SignatureRequest{
-					{
-						TwinID: d.tfPluginClient.twinID,
-						Weight: 1,
-					},
-				},
-			},
+			Type:    zos.GatewayFQDNProxyType,
+			Name:    gridtypes.Name(gw.Name),
+			Data: gridtypes.MustMarshal(zos.GatewayFQDNProxy{
+				TLSPassthrough: gw.TLSPassthrough,
+				Backends:       gw.Backends,
+				FQDN:           gw.FQDN,
+			}),
 		},
+	})
+	testDl.Metadata = "{\"type\":\"Gateway Fqdn\",\"name\":\"name\",\"projectName\":\"Gateway\"}"
+
+	assert.Equal(t, dls, map[uint32]gridtypes.Deployment{
+		nodeID: testDl,
 	})
 }
 
@@ -154,7 +145,6 @@ func TestDeployFQDN(t *testing.T) {
 		gomock.Any(),
 		map[uint32]uint64{},
 		dls,
-		gomock.Any(),
 		gomock.Any(),
 	).Return(map[uint32]uint64{nodeID: contractID}, nil)
 
@@ -180,7 +170,6 @@ func TestUpdateFQDN(t *testing.T) {
 		map[uint32]uint64{nodeID: contractID},
 		dls,
 		gomock.Any(),
-		gomock.Any(),
 	).Return(map[uint32]uint64{nodeID: contractID}, nil)
 
 	err = d.Deploy(context.Background(), &gw)
@@ -204,7 +193,6 @@ func TestUpdateFQDNFailed(t *testing.T) {
 		gomock.Any(),
 		map[uint32]uint64{nodeID: contractID},
 		dls,
-		gomock.Any(),
 		gomock.Any(),
 	).Return(map[uint32]uint64{nodeID: contractID}, errors.New("error"))
 

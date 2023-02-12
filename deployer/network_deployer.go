@@ -16,8 +16,6 @@ import (
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
-// TODO: metadata is empty
-
 // NetworkDeployer struct
 type NetworkDeployer struct {
 	WGPort map[uint32]int
@@ -66,8 +64,8 @@ func (d *NetworkDeployer) GenerateVersionlessDeployments(ctx context.Context, zn
 	sub := d.tfPluginClient.SubstrateConn
 
 	endpoints := make(map[uint32]string)
-	var hiddenNodes []uint32
-	var accessibleNodes []uint32
+	hiddenNodes := make([]uint32, 0)
+	accessibleNodes := make([]uint32, 0)
 	var ipv4Node uint32
 
 	for _, nodeID := range znet.Nodes {
@@ -212,6 +210,14 @@ func (d *NetworkDeployer) GenerateVersionlessDeployments(ctx context.Context, zn
 
 		workload := znet.ZosWorkload(znet.NodesIPRange[nodeID], d.Keys[nodeID].String(), uint16(d.WGPort[nodeID]), peers)
 		deployment := workloads.NewGridDeployment(d.tfPluginClient.twinID, []gridtypes.Workload{workload})
+
+		// add metadata
+		var err error
+		deployment.Metadata, err = znet.GenerateMetadata()
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to generate deployment %s metadata", znet.Name)
+		}
+
 		deployments[nodeID] = deployment
 	}
 
@@ -231,6 +237,14 @@ func (d *NetworkDeployer) GenerateVersionlessDeployments(ctx context.Context, zn
 		}
 		workload := znet.ZosWorkload(znet.NodesIPRange[nodeID], d.Keys[nodeID].String(), uint16(d.WGPort[nodeID]), peers)
 		deployment := workloads.NewGridDeployment(d.tfPluginClient.twinID, []gridtypes.Workload{workload})
+
+		// add metadata
+		var err error
+		deployment.Metadata, err = znet.GenerateMetadata()
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to generate deployment %s metadata", znet.Name)
+		}
+
 		deployments[nodeID] = deployment
 	}
 	return deployments, nil
@@ -254,35 +268,30 @@ func (d *NetworkDeployer) Deploy(ctx context.Context, znet *workloads.ZNet) erro
 		return errors.Wrap(err, "couldn't print deployments data")
 	}
 
-	if len(znet.SolutionType) == 0 {
-		znet.SolutionType = "Network"
-	}
-
-	deploymentData := workloads.DeploymentData{
-		Name:        znet.Name,
-		Type:        "network",
-		ProjectName: znet.SolutionType,
-	}
-
-	newDeploymentsData := make(map[uint32]workloads.DeploymentData)
 	newDeploymentsSolutionProvider := make(map[uint32]*uint64)
-
 	for _, nodeID := range znet.Nodes {
-		// deployment data
-		newDeploymentsData[nodeID] = deploymentData
 		// solution providers
 		newDeploymentsSolutionProvider[nodeID] = nil
 	}
 
-	currentDeployments, err := d.deployer.Deploy(ctx, d.tfPluginClient.StateLoader.currentNodeNetwork, newDeployments, newDeploymentsData, newDeploymentsSolutionProvider)
+	currentDeployments, err := d.deployer.Deploy(ctx, d.tfPluginClient.StateLoader.currentNodeNetwork, newDeployments, newDeploymentsSolutionProvider)
 	if err != nil {
 		return errors.Wrapf(err, "couldn't deploy network %s", znet.Name)
 	}
 
 	// update state
-	znet.NodeDeploymentID = currentDeployments
-	d.tfPluginClient.StateLoader.networks.updateNetwork(znet.Name, znet.NodesIPRange)
-	d.tfPluginClient.StateLoader.currentNodeNetwork = currentDeployments
+	if znet.NodeDeploymentID == nil {
+		znet.NodeDeploymentID = make(map[uint32]uint64)
+	}
+
+	for _, nodeID := range znet.Nodes {
+		if currentDeployments[nodeID] != 0 {
+			znet.NodeDeploymentID[nodeID] = currentDeployments[nodeID]
+			d.tfPluginClient.StateLoader.networks.updateNetwork(znet.Name, znet.NodesIPRange)
+			d.tfPluginClient.StateLoader.currentNodeNetwork[nodeID] = currentDeployments[nodeID]
+		}
+	}
+
 	if err := d.readNodesConfig(ctx, znet); err != nil {
 		return errors.Wrap(err, "couldn't read node's data")
 	}
@@ -305,8 +314,8 @@ func (d *NetworkDeployer) Cancel(ctx context.Context, znet *workloads.ZNet) erro
 			if err != nil {
 				return errors.Wrapf(err, "couldn't cancel network %s, contract %d", znet.Name, contractID)
 			}
-			delete(d.tfPluginClient.StateLoader.currentNodeNetwork, nodeID)
 			delete(znet.NodeDeploymentID, nodeID)
+			delete(d.tfPluginClient.StateLoader.currentNodeNetwork, nodeID)
 		}
 	}
 
@@ -362,7 +371,7 @@ func (d *NetworkDeployer) invalidateBrokenAttributes(znet *workloads.ZNet) error
 func (d *NetworkDeployer) assignNodesIPs(nodes []uint32, znet *workloads.ZNet) error {
 	ips := make(map[uint32]gridtypes.IPNet)
 	l := len(znet.IPRange.IP)
-	var usedIPs []byte // the third octet
+	usedIPs := make([]byte, 0) // the third octet
 	for node, ip := range znet.NodesIPRange {
 		if workloads.Contains(nodes, node) {
 			usedIPs = append(usedIPs, ip.IP[l-2])

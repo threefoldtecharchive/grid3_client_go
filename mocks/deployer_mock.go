@@ -9,7 +9,6 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	workloads "github.com/threefoldtech/grid3-go/workloads"
 	gridtypes "github.com/threefoldtech/zos/pkg/gridtypes"
 )
 
@@ -51,18 +50,18 @@ func (mr *MockDeployerInterfaceMockRecorder) Cancel(ctx, contractID interface{})
 }
 
 // Deploy mocks base method.
-func (m *MockDeployerInterface) Deploy(ctx context.Context, oldDeploymentIDs map[uint32]uint64, newDeployments map[uint32]gridtypes.Deployment, newDeploymentsData map[uint32]workloads.DeploymentData, newDeploymentSolutionProvider map[uint32]*uint64) (map[uint32]uint64, error) {
+func (m *MockDeployerInterface) Deploy(ctx context.Context, oldDeploymentIDs map[uint32]uint64, newDeployments map[uint32]gridtypes.Deployment, newDeploymentSolutionProvider map[uint32]*uint64) (map[uint32]uint64, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Deploy", ctx, oldDeploymentIDs, newDeployments, newDeploymentsData, newDeploymentSolutionProvider)
+	ret := m.ctrl.Call(m, "Deploy", ctx, oldDeploymentIDs, newDeployments, newDeploymentSolutionProvider)
 	ret0, _ := ret[0].(map[uint32]uint64)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Deploy indicates an expected call of Deploy.
-func (mr *MockDeployerInterfaceMockRecorder) Deploy(ctx, oldDeploymentIDs, newDeployments, newDeploymentsData, newDeploymentSolutionProvider interface{}) *gomock.Call {
+func (mr *MockDeployerInterfaceMockRecorder) Deploy(ctx, oldDeploymentIDs, newDeployments, newDeploymentSolutionProvider interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Deploy", reflect.TypeOf((*MockDeployerInterface)(nil).Deploy), ctx, oldDeploymentIDs, newDeployments, newDeploymentsData, newDeploymentSolutionProvider)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Deploy", reflect.TypeOf((*MockDeployerInterface)(nil).Deploy), ctx, oldDeploymentIDs, newDeployments, newDeploymentSolutionProvider)
 }
 
 // GetDeployments mocks base method.
