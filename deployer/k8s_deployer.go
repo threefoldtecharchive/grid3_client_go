@@ -19,7 +19,7 @@ import (
 type K8sDeployer struct {
 	NodeUsedIPs    map[uint32][]byte
 	tfPluginClient *TFPluginClient
-	deployer       DeployerInterface
+	deployer       MockDeployer
 }
 
 // NewK8sDeployer generates new K8s Deployer

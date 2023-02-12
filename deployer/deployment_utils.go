@@ -52,8 +52,8 @@ func HashDeployment(dl gridtypes.Deployment) (string, error) {
 	return hash, nil
 }
 
-// ConstructWorkloadHashes returns a mapping between workload name to the workload hash
-func ConstructWorkloadHashes(dl gridtypes.Deployment) (map[string]string, error) {
+// GetWorkloadHashes returns a mapping between workload name to the workload hash
+func GetWorkloadHashes(dl gridtypes.Deployment) (map[string]string, error) {
 	hashes := make(map[string]string)
 
 	for _, w := range dl.Workloads {

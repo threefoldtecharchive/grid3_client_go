@@ -22,7 +22,7 @@ func constructTestK8s(t *testing.T, mock bool) (
 	*mocks.RMBMockClient,
 	*mocks.MockSubstrateExt,
 	*mocks.MockNodeClientGetter,
-	*mocks.MockDeployerInterface,
+	*mocks.MockDeployer,
 	*mocks.MockClient,
 ) {
 	ctrl := gomock.NewController(t)
@@ -34,7 +34,7 @@ func constructTestK8s(t *testing.T, mock bool) (
 	cl := mocks.NewRMBMockClient(ctrl)
 	sub := mocks.NewMockSubstrateExt(ctrl)
 	ncPool := mocks.NewMockNodeClientGetter(ctrl)
-	deployer := mocks.NewMockDeployerInterface(ctrl)
+	deployer := mocks.NewMockDeployer(ctrl)
 	gridProxyCl := mocks.NewMockClient(ctrl)
 
 	if mock {

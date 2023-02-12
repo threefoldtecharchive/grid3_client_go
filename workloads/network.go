@@ -95,15 +95,15 @@ func (znet *ZNet) ZosWorkload(subnet gridtypes.IPNet, wgPrivateKey string, wgLis
 }
 
 // GenerateMetadata generates deployment metadata
-func (net *ZNet) GenerateMetadata() (string, error) {
-	if len(net.SolutionType) == 0 {
-		net.SolutionType = "Network"
+func (znet *ZNet) GenerateMetadata() (string, error) {
+	if len(znet.SolutionType) == 0 {
+		znet.SolutionType = "Network"
 	}
 
 	deploymentData := DeploymentData{
-		Name:        net.Name,
+		Name:        znet.Name,
 		Type:        "network",
-		ProjectName: net.SolutionType,
+		ProjectName: znet.SolutionType,
 	}
 
 	deploymentDataBytes, err := json.Marshal(deploymentData)

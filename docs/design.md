@@ -97,7 +97,7 @@ grid3_go is a go client created to interact with threefold grid. It should manag
   - Supports deploy, update and cancel operations.
 
     ```go
-    type DeployerInterface interface{
+    type Deployer interface{
         Deploy(ctx, current [uint32]uint64, new [uint32]gridDeployment, new [uint32]SolutionProvider) (current map[uint32]uint64, error)
         Cancel(ctx, contractID uint64) error
         GetDeployments(ctx, current [uint32]uint64) (current [uint32]gridDeployment, error)

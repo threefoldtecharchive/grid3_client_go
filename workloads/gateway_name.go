@@ -75,15 +75,15 @@ func (g *GatewayNameProxy) ZosWorkload() gridtypes.Workload {
 }
 
 // GenerateMetadata generates gateway deployment metadata
-func (gw *GatewayNameProxy) GenerateMetadata() (string, error) {
-	if len(gw.SolutionType) == 0 {
-		gw.SolutionType = "Gateway"
+func (g *GatewayNameProxy) GenerateMetadata() (string, error) {
+	if len(g.SolutionType) == 0 {
+		g.SolutionType = "Gateway"
 	}
 
 	deploymentData := DeploymentData{
-		Name:        gw.FQDN,
+		Name:        g.FQDN,
 		Type:        "Gateway Name",
-		ProjectName: gw.SolutionType,
+		ProjectName: g.SolutionType,
 	}
 
 	deploymentDataBytes, err := json.Marshal(deploymentData)

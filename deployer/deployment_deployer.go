@@ -15,7 +15,7 @@ import (
 // DeploymentDeployer for deploying a deployment
 type DeploymentDeployer struct {
 	tfPluginClient *TFPluginClient
-	deployer       DeployerInterface
+	deployer       MockDeployer
 }
 
 // NewDeploymentDeployer generates a new deployer for a deployment

@@ -13,7 +13,7 @@ import (
 // GatewayFQDNDeployer for deploying a GatewayFqdn
 type GatewayFQDNDeployer struct {
 	tfPluginClient *TFPluginClient
-	deployer       DeployerInterface
+	deployer       MockDeployer
 }
 
 // NewGatewayFqdnDeployer generates new gateway fqdn deployer

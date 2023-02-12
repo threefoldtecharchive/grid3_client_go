@@ -240,7 +240,7 @@ func constructTestDeployment() workloads.Deployment {
 	}
 }
 
-func constructTestDeployer(t *testing.T, mock bool) (DeploymentDeployer, *mocks.RMBMockClient, *mocks.MockSubstrateExt, *mocks.MockNodeClientGetter, *mocks.MockDeployerInterface) {
+func constructTestDeployer(t *testing.T, mock bool) (DeploymentDeployer, *mocks.RMBMockClient, *mocks.MockSubstrateExt, *mocks.MockNodeClientGetter, *mocks.MockDeployer) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -250,7 +250,7 @@ func constructTestDeployer(t *testing.T, mock bool) (DeploymentDeployer, *mocks.
 	cl := mocks.NewRMBMockClient(ctrl)
 	sub := mocks.NewMockSubstrateExt(ctrl)
 	ncPool := mocks.NewMockNodeClientGetter(ctrl)
-	deployer := mocks.NewMockDeployerInterface(ctrl)
+	deployer := mocks.NewMockDeployer(ctrl)
 
 	if mock {
 		tfPluginClient.SubstrateConn = sub

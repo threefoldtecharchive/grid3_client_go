@@ -6,7 +6,7 @@ grid3_go is a go client created to interact with threefold grid. It should manag
 
 ## Requirements
 
-- [Go](https://golang.org/doc/install) >= 1.19
+[Go](https://golang.org/doc/install) >= 1.19
 
 ## Examples
 

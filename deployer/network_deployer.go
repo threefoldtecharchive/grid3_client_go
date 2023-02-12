@@ -22,7 +22,7 @@ type NetworkDeployer struct {
 	Keys   map[uint32]wgtypes.Key
 
 	tfPluginClient *TFPluginClient
-	deployer       DeployerInterface
+	deployer       MockDeployer
 }
 
 // NewNetworkDeployer generates a new network deployer

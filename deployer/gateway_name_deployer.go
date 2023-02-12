@@ -13,7 +13,7 @@ import (
 // GatewayNameDeployer for deploying a GatewayName
 type GatewayNameDeployer struct {
 	tfPluginClient *TFPluginClient
-	deployer       DeployerInterface
+	deployer       MockDeployer
 }
 
 // NewGatewayNameDeployer generates new gateway name deployer

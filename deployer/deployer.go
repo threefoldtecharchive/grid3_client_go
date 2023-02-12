@@ -21,8 +21,8 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
-// DeployerInterface to be used for any deployer
-type DeployerInterface interface { //TODO: Change Name && separate them
+// MockDeployer to be used for any deployer in mock testing
+type MockDeployer interface { //TODO: Change Name && separate them
 	Deploy(ctx context.Context,
 		oldDeploymentIDs map[uint32]uint64,
 		newDeployments map[uint32]gridtypes.Deployment,
@@ -156,9 +156,9 @@ func (d *Deployer) deploy(
 			}
 
 			dl.ContractID = contractID
-			ctx2, cancel := context.WithTimeout(ctx, 4*time.Minute)
+			ctx, cancel := context.WithTimeout(ctx, 4*time.Minute)
 			defer cancel()
-			err = client.DeploymentDeploy(ctx2, dl)
+			err = client.DeploymentDeploy(ctx, dl)
 
 			if err != nil {
 				rerr := d.substrateConn.EnsureContractCanceled(d.identity, contractID)
@@ -207,12 +207,12 @@ func (d *Deployer) deploy(
 				continue
 			}
 
-			oldHashes, err := ConstructWorkloadHashes(oldDl)
+			oldHashes, err := GetWorkloadHashes(oldDl)
 			if err != nil {
 				return currentDeployments, errors.Wrap(err, "couldn't get old workloads hashes")
 			}
 
-			newHashes, err := ConstructWorkloadHashes(dl)
+			newHashes, err := GetWorkloadHashes(dl)
 			if err != nil {
 				return currentDeployments, errors.Wrap(err, "couldn't get new workloads hashes")
 			}
