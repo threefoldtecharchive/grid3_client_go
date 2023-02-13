@@ -152,10 +152,12 @@ func TestNameDeploy(t *testing.T) {
 	err = d.Deploy(context.Background(), &gw)
 	assert.NoError(t, err)
 	assert.Equal(t, gw.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
+	assert.Equal(t, d.tfPluginClient.StateLoader.currentNodeDeployment, map[uint32][]uint64{nodeID: {contractID}})
 }
 
 func TestNameUpdate(t *testing.T) {
 	d, cl, sub, ncPool, deployer, proxyCl := constructTestNameDeployer(t, true)
+	d.tfPluginClient.StateLoader.currentNodeDeployment = map[uint32][]uint64{nodeID: {contractID}}
 
 	gw := constructTestName()
 	gw.NameContractID = nameContractID
@@ -180,10 +182,12 @@ func TestNameUpdate(t *testing.T) {
 	err = d.Deploy(context.Background(), &gw)
 	assert.NoError(t, err)
 	assert.Equal(t, gw.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
+	assert.Equal(t, d.tfPluginClient.StateLoader.currentNodeDeployment, map[uint32][]uint64{nodeID: {contractID}})
 }
 
 func TestNameUpdateFailed(t *testing.T) {
 	d, cl, sub, ncPool, deployer, proxyCl := constructTestNameDeployer(t, true)
+	d.tfPluginClient.StateLoader.currentNodeDeployment = map[uint32][]uint64{nodeID: {contractID}}
 
 	gw := constructTestName()
 	gw.NameContractID = nameContractID
@@ -209,10 +213,13 @@ func TestNameUpdateFailed(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, gw.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
 	assert.Equal(t, gw.NameContractID, nameContractID)
+	assert.Equal(t, d.tfPluginClient.StateLoader.currentNodeDeployment, map[uint32][]uint64{nodeID: {contractID}})
 }
 
 func TestNameCancel(t *testing.T) {
 	d, cl, sub, ncPool, deployer, proxyCl := constructTestNameDeployer(t, true)
+	d.tfPluginClient.StateLoader.currentNodeDeployment = map[uint32][]uint64{nodeID: {contractID}}
+
 	gw := constructTestName()
 	gw.NameContractID = nameContractID
 	gw.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
@@ -230,12 +237,15 @@ func TestNameCancel(t *testing.T) {
 
 	err := d.Cancel(context.Background(), &gw)
 	assert.NoError(t, err)
-	assert.Equal(t, gw.NodeDeploymentID, map[uint32]uint64{})
+	assert.Empty(t, gw.NodeDeploymentID)
+	assert.Empty(t, d.tfPluginClient.StateLoader.currentNodeDeployment)
 	assert.Equal(t, gw.NameContractID, uint64(0))
 }
 
 func TestNameCancelDeploymentsFailed(t *testing.T) {
 	d, cl, sub, ncPool, deployer, proxyCl := constructTestNameDeployer(t, true)
+	d.tfPluginClient.StateLoader.currentNodeDeployment = map[uint32][]uint64{nodeID: {contractID}}
+
 	gw := constructTestName()
 	gw.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
 
@@ -249,10 +259,12 @@ func TestNameCancelDeploymentsFailed(t *testing.T) {
 	err := d.Cancel(context.Background(), &gw)
 	assert.Error(t, err)
 	assert.Equal(t, gw.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
+	assert.Equal(t, d.tfPluginClient.StateLoader.currentNodeDeployment, map[uint32][]uint64{nodeID: {contractID}})
 }
 
 func TestNameCancelContractsFailed(t *testing.T) {
 	d, cl, sub, ncPool, deployer, proxyCl := constructTestNameDeployer(t, true)
+	d.tfPluginClient.StateLoader.currentNodeDeployment = map[uint32][]uint64{nodeID: {contractID}}
 
 	gw := constructTestName()
 	gw.NameContractID = nameContractID
@@ -271,7 +283,7 @@ func TestNameCancelContractsFailed(t *testing.T) {
 
 	err := d.Cancel(context.Background(), &gw)
 	assert.Error(t, err)
-	assert.Equal(t, gw.NodeDeploymentID, map[uint32]uint64{})
+	assert.Empty(t, gw.NodeDeploymentID)
 	assert.Empty(t, d.tfPluginClient.StateLoader.currentNodeDeployment)
 	assert.Equal(t, gw.NameContractID, nameContractID)
 }

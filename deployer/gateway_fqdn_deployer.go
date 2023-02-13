@@ -76,7 +76,9 @@ func (d *GatewayFQDNDeployer) Deploy(ctx context.Context, gw *workloads.GatewayF
 	// update state
 	if gw.NodeDeploymentID[gw.NodeID] != 0 {
 		gw.ContractID = gw.NodeDeploymentID[gw.NodeID]
-		d.tfPluginClient.StateLoader.currentNodeDeployment[gw.NodeID] = append(d.tfPluginClient.StateLoader.currentNodeDeployment[gw.NodeID], gw.ContractID)
+		if !workloads.Contains(d.tfPluginClient.StateLoader.currentNodeDeployment[gw.NodeID], gw.ContractID) {
+			d.tfPluginClient.StateLoader.currentNodeDeployment[gw.NodeID] = append(d.tfPluginClient.StateLoader.currentNodeDeployment[gw.NodeID], gw.ContractID)
+		}
 	}
 
 	return err

@@ -213,6 +213,7 @@ func TestDeploy(t *testing.T) {
 
 func TestUpdateK8s(t *testing.T) {
 	d, cl, sub, ncPool, deployer, proxyCl := constructTestK8s(t, true)
+	d.tfPluginClient.StateLoader.currentNodeDeployment = map[uint32][]uint64{nodeID: {contractID}}
 
 	k8sCluster, err := constructK8sCluster()
 	assert.NoError(t, err)
@@ -247,10 +248,12 @@ func TestUpdateK8s(t *testing.T) {
 	err = d.Deploy(context.Background(), &k8sCluster)
 	assert.NoError(t, err)
 	assert.Equal(t, k8sCluster.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
+	assert.Equal(t, d.tfPluginClient.StateLoader.currentNodeDeployment, map[uint32][]uint64{nodeID: {contractID}})
 }
 
 func TestUpdateK8sFailed(t *testing.T) {
 	d, cl, sub, ncPool, deployer, proxyCl := constructTestK8s(t, true)
+	d.tfPluginClient.StateLoader.currentNodeDeployment = map[uint32][]uint64{nodeID: {contractID}}
 
 	k8sCluster, err := constructK8sCluster()
 	assert.NoError(t, err)
@@ -285,10 +288,12 @@ func TestUpdateK8sFailed(t *testing.T) {
 	err = d.Deploy(context.Background(), &k8sCluster)
 	assert.Error(t, err)
 	assert.Equal(t, k8sCluster.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
+	assert.Equal(t, d.tfPluginClient.StateLoader.currentNodeDeployment, map[uint32][]uint64{nodeID: {contractID}})
 }
 
 func TestCancelK8s(t *testing.T) {
 	d, cl, sub, ncPool, deployer, proxyCl := constructTestK8s(t, true)
+	d.tfPluginClient.StateLoader.currentNodeDeployment = map[uint32][]uint64{nodeID: {contractID}}
 
 	k8sCluster, err := constructK8sCluster()
 	assert.NoError(t, err)
@@ -304,10 +309,12 @@ func TestCancelK8s(t *testing.T) {
 	err = d.Cancel(context.Background(), &k8sCluster)
 	assert.NoError(t, err)
 	assert.Empty(t, k8sCluster.NodeDeploymentID)
+	assert.Empty(t, d.tfPluginClient.StateLoader.currentNodeDeployment)
 }
 
 func TestCancelK8sFailed(t *testing.T) {
 	d, cl, sub, ncPool, deployer, proxyCl := constructTestK8s(t, true)
+	d.tfPluginClient.StateLoader.currentNodeDeployment = map[uint32][]uint64{nodeID: {contractID}}
 
 	k8sCluster, err := constructK8sCluster()
 	assert.NoError(t, err)
@@ -323,4 +330,6 @@ func TestCancelK8sFailed(t *testing.T) {
 	err = d.Cancel(context.Background(), &k8sCluster)
 	assert.Error(t, err)
 	assert.Equal(t, k8sCluster.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
+	assert.Equal(t, d.tfPluginClient.StateLoader.currentNodeDeployment, map[uint32][]uint64{nodeID: {contractID}})
+
 }

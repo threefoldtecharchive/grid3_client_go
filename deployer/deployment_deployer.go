@@ -80,7 +80,9 @@ func (d *DeploymentDeployer) Deploy(ctx context.Context, dl *workloads.Deploymen
 	// error is not returned immediately before updating state because of untracked failed deployments
 	if dl.NodeDeploymentID[dl.NodeID] != 0 {
 		dl.ContractID = dl.NodeDeploymentID[dl.NodeID]
-		d.tfPluginClient.StateLoader.currentNodeDeployment[dl.NodeID] = append(d.tfPluginClient.StateLoader.currentNodeDeployment[dl.NodeID], dl.ContractID)
+		if !workloads.Contains(d.tfPluginClient.StateLoader.currentNodeDeployment[dl.NodeID], dl.ContractID) {
+			d.tfPluginClient.StateLoader.currentNodeDeployment[dl.NodeID] = append(d.tfPluginClient.StateLoader.currentNodeDeployment[dl.NodeID], dl.ContractID)
+		}
 	}
 
 	return err

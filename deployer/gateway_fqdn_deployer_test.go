@@ -152,6 +152,7 @@ func TestDeployFQDN(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEqual(t, gw.ContractID, 0)
 	assert.Equal(t, gw.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
+	assert.Equal(t, d.tfPluginClient.StateLoader.currentNodeDeployment, map[uint32][]uint64{nodeID: {contractID}})
 }
 
 func TestUpdateFQDN(t *testing.T) {
@@ -176,6 +177,7 @@ func TestUpdateFQDN(t *testing.T) {
 	err = d.Deploy(context.Background(), &gw)
 	assert.NoError(t, err)
 	assert.Equal(t, gw.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
+	assert.Equal(t, d.tfPluginClient.StateLoader.currentNodeDeployment, map[uint32][]uint64{nodeID: {contractID}})
 }
 
 func TestUpdateFQDNFailed(t *testing.T) {
@@ -200,6 +202,7 @@ func TestUpdateFQDNFailed(t *testing.T) {
 	err = d.Deploy(context.Background(), &gw)
 	assert.Error(t, err)
 	assert.Equal(t, gw.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
+	assert.Equal(t, d.tfPluginClient.StateLoader.currentNodeDeployment, map[uint32][]uint64{nodeID: {contractID}})
 }
 
 func TestCancelFQDN(t *testing.T) {

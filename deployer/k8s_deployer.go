@@ -123,9 +123,13 @@ func (d *K8sDeployer) Deploy(ctx context.Context, k8sCluster *workloads.K8sClust
 
 	// update deployments state
 	if k8sCluster.NodeDeploymentID[k8sCluster.Master.Node] != 0 {
-		d.tfPluginClient.StateLoader.currentNodeDeployment[k8sCluster.Master.Node] = append(d.tfPluginClient.StateLoader.currentNodeDeployment[k8sCluster.Master.Node], k8sCluster.NodeDeploymentID[k8sCluster.Master.Node])
+		if !workloads.Contains(d.tfPluginClient.StateLoader.currentNodeDeployment[k8sCluster.Master.Node], k8sCluster.NodeDeploymentID[k8sCluster.Master.Node]) {
+			d.tfPluginClient.StateLoader.currentNodeDeployment[k8sCluster.Master.Node] = append(d.tfPluginClient.StateLoader.currentNodeDeployment[k8sCluster.Master.Node], k8sCluster.NodeDeploymentID[k8sCluster.Master.Node])
+		}
 		for _, w := range k8sCluster.Workers {
-			d.tfPluginClient.StateLoader.currentNodeDeployment[w.Node] = append(d.tfPluginClient.StateLoader.currentNodeDeployment[w.Node], k8sCluster.NodeDeploymentID[w.Node])
+			if !workloads.Contains(d.tfPluginClient.StateLoader.currentNodeDeployment[w.Node], k8sCluster.NodeDeploymentID[w.Node]) {
+				d.tfPluginClient.StateLoader.currentNodeDeployment[w.Node] = append(d.tfPluginClient.StateLoader.currentNodeDeployment[w.Node], k8sCluster.NodeDeploymentID[w.Node])
+			}
 		}
 	}
 

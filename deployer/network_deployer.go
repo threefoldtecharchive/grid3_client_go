@@ -281,7 +281,9 @@ func (d *NetworkDeployer) Deploy(ctx context.Context, znet *workloads.ZNet) erro
 	for _, nodeID := range znet.Nodes {
 		if znet.NodeDeploymentID[nodeID] != 0 {
 			d.tfPluginClient.StateLoader.networks.updateNetwork(znet.Name, znet.NodesIPRange)
-			d.tfPluginClient.StateLoader.currentNodeNetwork[nodeID] = append(d.tfPluginClient.StateLoader.currentNodeNetwork[nodeID], znet.NodeDeploymentID[nodeID])
+			if !workloads.Contains(d.tfPluginClient.StateLoader.currentNodeDeployment[nodeID], znet.NodeDeploymentID[nodeID]) {
+				d.tfPluginClient.StateLoader.currentNodeNetwork[nodeID] = append(d.tfPluginClient.StateLoader.currentNodeNetwork[nodeID], znet.NodeDeploymentID[nodeID])
+			}
 		}
 	}
 
