@@ -79,6 +79,7 @@ func (d *DeploymentDeployer) Deploy(ctx context.Context, dl *workloads.Deploymen
 	currentDeployments, err := d.deployer.Deploy(ctx, oldDeployments, newDeployments, newDeploymentsSolutionProvider)
 
 	// update deployment and plugin state
+	// error is not returned immediately before updating state because of untracked failed deployments
 	if currentDeployments[dl.NodeID] != 0 {
 		if dl.NodeDeploymentID == nil {
 			dl.NodeDeploymentID = make(map[uint32]uint64)

@@ -16,11 +16,11 @@ func TestZDBDeployment(t *testing.T) {
 	tfPluginClient, err := setup()
 	assert.NoError(t, err)
 
-	filter := NodeFilter{
+	filter := deployer.NodeFilter{
 		Status: "up",
 		SRU:    10,
 	}
-	nodeIDs, err := FilterNodes(filter, deployer.RMBProxyURLs[tfPluginClient.Network])
+	nodeIDs, err := deployer.FilterNodes(filter, deployer.RMBProxyURLs[tfPluginClient.Network])
 	assert.NoError(t, err)
 
 	nodeID := nodeIDs[0]

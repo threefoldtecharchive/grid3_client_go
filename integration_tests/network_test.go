@@ -17,13 +17,13 @@ func TestNetworkDeployment(t *testing.T) {
 	tfPluginClient, err := setup()
 	assert.NoError(t, err)
 
-	filter := NodeFilter{
+	filter := deployer.NodeFilter{
 		CRU:    2,
 		SRU:    2,
 		MRU:    1,
 		Status: "up",
 	}
-	nodeIDs, err := FilterNodes(filter, deployer.RMBProxyURLs[tfPluginClient.Network])
+	nodeIDs, err := deployer.FilterNodes(filter, deployer.RMBProxyURLs[tfPluginClient.Network])
 	assert.NoError(t, err)
 
 	network := workloads.ZNet{

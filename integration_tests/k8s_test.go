@@ -39,13 +39,13 @@ func TestK8sDeployment(t *testing.T) {
 	publicKey, privateKey, err := GenerateSSHKeyPair()
 	assert.NoError(t, err)
 
-	filter := NodeFilter{
+	filter := deployer.NodeFilter{
 		CRU:    2,
 		SRU:    4,
 		MRU:    4,
 		Status: "up",
 	}
-	nodeIDs, err := FilterNodes(filter, deployer.RMBProxyURLs[tfPluginClient.Network])
+	nodeIDs, err := deployer.FilterNodes(filter, deployer.RMBProxyURLs[tfPluginClient.Network])
 	assert.NoError(t, err)
 
 	masterNodeID := nodeIDs[0]

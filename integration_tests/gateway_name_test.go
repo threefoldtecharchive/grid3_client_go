@@ -26,11 +26,11 @@ func TestGatewayNameDeployment(t *testing.T) {
 	publicKey, privateKey, err := GenerateSSHKeyPair()
 	assert.NoError(t, err)
 
-	filter := NodeFilter{
+	filter := deployer.NodeFilter{
 		Status:  "up",
 		Gateway: true,
 	}
-	nodeIDs, err := FilterNodes(filter, deployer.RMBProxyURLs[tfPluginClient.Network])
+	nodeIDs, err := deployer.FilterNodes(filter, deployer.RMBProxyURLs[tfPluginClient.Network])
 	assert.NoError(t, err)
 
 	nodeID := nodeIDs[0]

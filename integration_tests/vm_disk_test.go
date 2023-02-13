@@ -22,13 +22,13 @@ func TestVmDisk(t *testing.T) {
 	publicKey, privateKey, err := GenerateSSHKeyPair()
 	assert.NoError(t, err)
 
-	filter := NodeFilter{
+	filter := deployer.NodeFilter{
 		CRU:    2,
 		SRU:    2,
 		MRU:    1,
 		Status: "up",
 	}
-	nodeIDs, err := FilterNodes(filter, deployer.RMBProxyURLs[tfPluginClient.Network])
+	nodeIDs, err := deployer.FilterNodes(filter, deployer.RMBProxyURLs[tfPluginClient.Network])
 	assert.NoError(t, err)
 
 	nodeID := nodeIDs[0]
