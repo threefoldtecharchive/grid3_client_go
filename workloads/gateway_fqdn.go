@@ -2,6 +2,9 @@
 package workloads
 
 import (
+	"encoding/json"
+	"fmt"
+
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
@@ -9,17 +12,24 @@ import (
 
 // GatewayFQDNProxy for gateway FQDN proxy
 type GatewayFQDNProxy struct {
-	// Name the fully qualified domain name to use (cannot be present with Name)
-	Name string
-
-	// Passthrough whether to pass tls traffic or not
-	TLSPassthrough bool
-
+	// required
+	NodeID uint32
 	// Backends are list of backend ips
 	Backends []zos.Backend
-
 	// FQDN deployed on the node
 	FQDN string
+	// Name is the workload name
+	Name string
+
+	// optional
+	// Passthrough whether to pass tls traffic or not
+	TLSPassthrough   bool
+	Description      string
+	NodeDeploymentID map[uint32]uint64
+	SolutionType     string
+
+	// computed
+	ContractID uint64
 }
 
 // NewGatewayFQDNProxyFromZosWorkload generates a gateway FQDN proxy from a zos workload
@@ -31,7 +41,7 @@ func NewGatewayFQDNProxyFromZosWorkload(wl gridtypes.Workload) (GatewayFQDNProxy
 
 	data, ok := dataI.(*zos.GatewayFQDNProxy)
 	if !ok {
-		return GatewayFQDNProxy{}, errors.New("could not create gateway fqdn proxy workload")
+		return GatewayFQDNProxy{}, fmt.Errorf("could not create gateway fqdn proxy workload from data %v", dataI)
 	}
 
 	return GatewayFQDNProxy{
@@ -57,32 +67,22 @@ func (g *GatewayFQDNProxy) ZosWorkload() gridtypes.Workload {
 	}
 }
 
-// GenerateWorkloads generates a workload from a fqdn
-func (g *GatewayFQDNProxy) GenerateWorkloads() ([]gridtypes.Workload, error) {
-	return []gridtypes.Workload{
-		{
-			Version: 0,
-			Type:    zos.GatewayFQDNProxyType,
-			Name:    gridtypes.Name(g.Name),
-			// REVISE: whether description should be set here
-			Data: gridtypes.MustMarshal(zos.GatewayFQDNProxy{
-				TLSPassthrough: g.TLSPassthrough,
-				Backends:       g.Backends,
-				FQDN:           g.FQDN,
-			}),
-		},
-	}, nil
-}
-
-// BindWorkloadsToNode for staging workloads to node IDs
-func (g *GatewayFQDNProxy) BindWorkloadsToNode(nodeID uint32) (map[uint32][]gridtypes.Workload, error) {
-	workloadsMap := map[uint32][]gridtypes.Workload{}
-
-	workloads, err := g.GenerateWorkloads()
-	if err != nil {
-		return workloadsMap, err
+// GenerateMetadata generates gateway deployment metadata
+func (g *GatewayFQDNProxy) GenerateMetadata() (string, error) {
+	if len(g.SolutionType) == 0 {
+		g.SolutionType = "Gateway"
 	}
 
-	workloadsMap[nodeID] = workloads
-	return workloadsMap, nil
+	deploymentData := DeploymentData{
+		Name:        g.Name,
+		Type:        "Gateway Fqdn",
+		ProjectName: g.SolutionType,
+	}
+
+	deploymentDataBytes, err := json.Marshal(deploymentData)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to parse deployment data %v", deploymentData)
+	}
+
+	return string(deploymentDataBytes), nil
 }

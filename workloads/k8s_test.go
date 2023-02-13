@@ -2,88 +2,47 @@
 package workloads
 
 import (
-	"net"
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
-func TestK8sNodeData(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+var flist = "https://hub.grid.tf/tf-official-apps/threefoldtech-k3s-latest.flist"
 
-	var k8s K8sNodeData
+// K8sWorkload to be used in tests
+var K8sWorkload = K8sNode{
+	Name:          "test",
+	Node:          0,
+	DiskSize:      5,
+	PublicIP:      false,
+	PublicIP6:     false,
+	Planetary:     false,
+	Flist:         flist,
+	FlistChecksum: "8ca00560e5c9633b9424ac1014957bf3",
+	ComputedIP:    "",
+	ComputedIP6:   "",
+	YggIP:         "",
+	IP:            "",
+	CPU:           2,
+	Memory:        1024,
+}
+
+func TestK8sNodeData(t *testing.T) {
 	var cluster K8sCluster
 	var k8sWorkloads []gridtypes.Workload
 
-	flist := "https://hub.grid.tf/tf-official-apps/base:latest.flist"
-	flistCheckSum, err := GetFlistChecksum(flist)
-	assert.NoError(t, err)
-
-	k8sMap := map[string]interface{}{
-		"name":           "test",
-		"node":           1,
-		"disk_size":      100,
-		"publicip":       false,
-		"publicip6":      false,
-		"planetary":      false,
-		"flist":          flist,
-		"flist_checksum": flistCheckSum,
-		"computedip":     "",
-		"computedip6":    "",
-		"ygg_ip":         "",
-		"ip":             "<nil>",
-		"cpu":            2,
-		"memory":         8,
-	}
-
-	k8sWorkload := gridtypes.Workload{
-		Version: 0,
-		Name:    gridtypes.Name("test"),
-		Type:    zos.ZMachineType,
-		Data: gridtypes.MustMarshal(zos.ZMachine{
-			FList: flist,
-			Network: zos.MachineNetwork{
-				Interfaces: []zos.MachineInterface{
-					{IP: net.IP("")},
-				},
-			},
-			Size: 100,
-			ComputeCapacity: zos.MachineCapacity{
-				CPU:    2,
-				Memory: 8 * gridtypes.Megabyte,
-			},
-			Mounts:     []zos.MachineMount{},
-			Entrypoint: "",
-			Env:        map[string]string{},
-			Corex:      false,
-		}),
-	}
-
-	t.Run("test_new_k8s_node_data", func(t *testing.T) {
-		k8s = NewK8sNodeDataFromSchema(k8sMap)
-
-	})
-
-	t.Run("test_k8s_from_workload", func(t *testing.T) {
-		k8sFromWorkload, err := NewK8sNodeDataFromWorkload(k8sWorkload, 1, 100, "", "")
-		assert.NoError(t, err)
-
-		assert.Equal(t, k8s, k8sFromWorkload)
-	})
-
-	t.Run("test_k8s_node_data_dictify", func(t *testing.T) {
-		assert.Equal(t, k8s.ToMap(), k8sMap)
+	t.Run("test k8s workload to/from map", func(t *testing.T) {
+		k8sFromMap := NewK8sNodeFromMap(K8sWorkload.ToMap())
+		assert.Equal(t, k8sFromMap, K8sWorkload)
 	})
 
 	t.Run("test_new_k8s_cluster", func(t *testing.T) {
 		cluster = K8sCluster{
-			Master:      &k8s,
-			Workers:     []K8sNodeData{},
-			Token:       "testtoken",
+			Master:      &K8sWorkload,
+			Workers:     []K8sNode{},
+			Token:       "testToken",
 			SSHKey:      "",
 			NetworkName: "",
 		}
@@ -100,27 +59,27 @@ func TestK8sNodeData(t *testing.T) {
 	})
 
 	t.Run("test_generate_k8s_workloads", func(t *testing.T) {
-		k8sWorkloads = k8s.GenerateK8sWorkload(&cluster, false)
+		k8sWorkloads = K8sWorkload.MasterZosWorkload(&cluster)
 
 		assert.Equal(t, k8sWorkloads[0].Type, zos.ZMountType)
 		assert.Equal(t, k8sWorkloads[1].Type, zos.ZMachineType)
 		assert.Equal(t, len(k8sWorkloads), 2)
+	})
+
+	t.Run("test_k8s_from_workload", func(t *testing.T) {
+		k8s := k8sWorkloads[1]
+		k8sFromWorkload, err := NewK8sNodeFromWorkload(k8s, 0, 5, "", "")
+		assert.NoError(t, err)
+
+		k8sFromWorkload.IP = ""
+		assert.Equal(t, k8sFromWorkload, K8sWorkload)
 	})
 
 	t.Run("test_generate_k8s_workloads_from_cluster", func(t *testing.T) {
-		k8sWorkloads, err = cluster.GenerateWorkloads()
+		k8sWorkloads, err := cluster.ZosWorkloads()
 		assert.NoError(t, err)
 		assert.Equal(t, k8sWorkloads[0].Type, zos.ZMountType)
 		assert.Equal(t, k8sWorkloads[1].Type, zos.ZMachineType)
 		assert.Equal(t, len(k8sWorkloads), 2)
-	})
-
-	t.Run("test_workloads_map", func(t *testing.T) {
-		workloadsMap := map[uint32][]gridtypes.Workload{}
-		workloadsMap[cluster.Master.Node] = append(workloadsMap[cluster.Master.Node], k8sWorkloads...)
-
-		workloadsMap2, err := cluster.BindWorkloadsToNode(0)
-		assert.NoError(t, err)
-		assert.Equal(t, workloadsMap, workloadsMap2)
 	})
 }

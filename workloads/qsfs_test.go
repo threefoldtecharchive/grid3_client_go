@@ -2,220 +2,59 @@
 package workloads
 
 import (
-	"encoding/hex"
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
-	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
-func TestZdbBackendsAndGroups(t *testing.T) {
-	backend := Backend{
-		Address: "1.1.1.1", Namespace: "test ns", Password: "password",
-	}
-
-	backends := []Backend{backend}
-
-	backendMap := map[string]interface{}{
-		"address": "1.1.1.1", "namespace": "test ns", "password": "password",
-	}
-
-	group := Group{
-		Backends: backends,
-	}
-
-	groupMap := map[string]interface{}{
-		"backends": []interface{}{
-			backendMap,
+// QsfsWorkload for testing
+var QsfsWorkload = QSFS{
+	Name:                 "test",
+	Description:          "test des",
+	Cache:                2048,
+	MinimalShards:        10,
+	ExpectedShards:       20,
+	RedundantGroups:      2,
+	RedundantNodes:       5,
+	MaxZDBDataDirSize:    10,
+	EncryptionAlgorithm:  "AES",
+	EncryptionKey:        "4d778ba3216e4da4231540c92a55f06157cabba802f9b68fb0f78375d2e825af",
+	CompressionAlgorithm: "snappy",
+	Metadata: Metadata{
+		Type:                "zdb",
+		Prefix:              "test",
+		EncryptionAlgorithm: "AES",
+		EncryptionKey:       "4d778ba3216e4da4231540c92a55f06157cabba802f9b68fb0f78375d2e825af",
+		Backends: Backends{
+			{Address: "1.1.1.1", Namespace: "test ns", Password: "password"},
 		},
-	}
-
-	t.Run("test_zos_group", func(t *testing.T) {
-		zdbGroup := group.zosGroup()
-		assert.Equal(t, len(zdbGroup.Backends), 1)
-		assert.Equal(t, zdbGroup.Backends[0], zos.ZdbBackend(backend))
-
-		assert.Equal(t, groupMap, group.ToMap())
-	})
-
-	t.Run("test_zos_groups", func(t *testing.T) {
-		groups := Groups{group}
-		zdbGroups := groups.zosGroups()
-
-		assert.Equal(t, len(zdbGroups), 1)
-		assert.Equal(t, zdbGroups[0].Backends[0], zos.ZdbBackend(backend))
-
-		assert.Equal(t, groups, GroupsFromZos(zdbGroups))
-
-		assert.Equal(t, []interface{}{groupMap}, groups.Listify())
-	})
-
-	t.Run("test_zos_backend", func(t *testing.T) {
-		zosBackend := backend.zosBackend()
-		assert.Equal(t, zosBackend, zos.ZdbBackend(backend))
-
-		assert.Equal(t, backendMap, backend.ToMap())
-	})
-
-	t.Run("test_zos_backends", func(t *testing.T) {
-		backends := Backends{backend}
-		zosBackends := backends.zosBackends()
-
-		assert.Equal(t, len(zosBackends), 1)
-		assert.Equal(t, zosBackends[0], zos.ZdbBackend(backend))
-
-		assert.Equal(t, backends, BackendsFromZos(zosBackends))
-
-		assert.Equal(t, []interface{}{backendMap}, backends.Listify())
-
-		assert.Equal(t, backends, getBackends([]interface{}{backendMap}))
-	})
+	},
+	Groups: Groups{{Backends: Backends{
+		{Address: "2.2.2.2", Namespace: "test ns2", Password: "password2"},
+	}}},
 }
 
-func TestMetaData(t *testing.T) {
-	backend := Backend{
-		Address: "1.1.1.1", Namespace: "test ns", Password: "password",
-	}
+func TestQsfsWorkload(t *testing.T) {
+	var qsfs gridtypes.Workload
 
-	backendMap := map[string]interface{}{
-		"address": "1.1.1.1", "namespace": "test ns", "password": "password",
-	}
-
-	backends := []Backend{backend}
-
-	metadata := Metadata{
-		Type:                "",
-		Prefix:              "",
-		EncryptionAlgorithm: "",
-		EncryptionKey:       "",
-		Backends:            backends,
-	}
-
-	metadataMap := map[string]interface{}{
-		"type":                 "",
-		"prefix":               "",
-		"encryption_algorithm": "",
-		"encryption_key":       "",
-		"backends":             []interface{}{backendMap},
-	}
-
-	assert.Equal(t, metadataMap, metadata.ToMap())
-}
-
-func TestQSFSWorkload(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	var qsfsMap map[string]interface{}
-
-	qsfs := QSFS{
-		Name:                 "test",
-		Description:          "test des",
-		Cache:                2048,
-		MinimalShards:        10,
-		ExpectedShards:       20,
-		RedundantGroups:      2,
-		RedundantNodes:       5,
-		MaxZDBDataDirSize:    10,
-		EncryptionAlgorithm:  "AES",
-		EncryptionKey:        "4d778ba3216e4da4231540c92a55f06157cabba802f9b68fb0f78375d2e825af",
-		CompressionAlgorithm: "snappy",
-		Metadata: Metadata{
-			Type:                "zdb",
-			Prefix:              "test",
-			EncryptionAlgorithm: "AES",
-			EncryptionKey:       "4d778ba3216e4da4231540c92a55f06157cabba802f9b68fb0f78375d2e825af",
-			Backends: Backends{
-				{Address: "1.1.1.1", Namespace: "test ns", Password: "password"},
-			},
-		},
-		Groups: Groups{{Backends: Backends{
-			{Address: "2.2.2.2", Namespace: "test ns2", Password: "password2"},
-		}}},
-	}
-	k, _ := hex.DecodeString("4d778ba3216e4da4231540c92a55f06157cabba802f9b68fb0f78375d2e825af")
-
-	qsfsWorkload := gridtypes.Workload{
-		Version:     0,
-		Name:        gridtypes.Name("test"),
-		Type:        zos.QuantumSafeFSType,
-		Description: "test des",
-		Data: gridtypes.MustMarshal(zos.QuantumSafeFS{
-			Cache: 2048 * gridtypes.Megabyte,
-			Config: zos.QuantumSafeFSConfig{
-				MinimalShards:     10,
-				ExpectedShards:    20,
-				RedundantGroups:   2,
-				RedundantNodes:    5,
-				MaxZDBDataDirSize: 10,
-				Encryption: zos.Encryption{
-					Algorithm: zos.EncryptionAlgorithm("AES"),
-					Key:       zos.EncryptionKey(k),
-				},
-				Meta: zos.QuantumSafeMeta{
-					Type: "zdb",
-					Config: zos.QuantumSafeConfig{
-						Prefix: "test",
-						Encryption: zos.Encryption{
-							Algorithm: zos.EncryptionAlgorithm("AES"),
-							Key:       zos.EncryptionKey(k),
-						},
-						Backends: []zos.ZdbBackend{
-							{Address: "1.1.1.1", Namespace: "test ns", Password: "password"},
-						},
-					},
-				},
-				Groups: []zos.ZdbGroup{{Backends: []zos.ZdbBackend{
-					{Address: "2.2.2.2", Namespace: "test ns2", Password: "password2"},
-				}}},
-				Compression: zos.QuantumCompression{
-					Algorithm: "snappy",
-				},
-			},
-		}),
-	}
-
-	t.Run("test_schema_from_qsfs", func(t *testing.T) {
-		qsfsMap = qsfs.ToMap()
-	})
-
-	t.Run("test_new_qsfs_from_schema", func(t *testing.T) {
-		qsfsFromSchema := NewQSFSFromSchema(qsfsMap)
-		assert.Equal(t, qsfsFromSchema, qsfs)
+	t.Run("test new qsfs to/from map", func(t *testing.T) {
+		qsfsFromMap := NewQSFSFromMap(QsfsWorkload.ToMap())
+		assert.Equal(t, qsfsFromMap, QsfsWorkload)
 	})
 
 	t.Run("test_new_qsfs_from_workload", func(t *testing.T) {
-		qsfsFromWorkload, err := NewQSFSFromWorkload(qsfsWorkload)
+		var err error
+		qsfs, err = QsfsWorkload.ZosWorkload()
 		assert.NoError(t, err)
-		assert.Equal(t, qsfsFromWorkload, qsfs)
-	})
 
-	t.Run("test_qsfs_zos_workload", func(t *testing.T) {
-		workloadFromQSFS, err := qsfs.ZosWorkload()
+		qsfsFromWorkload, err := NewQSFSFromWorkload(&qsfs)
 		assert.NoError(t, err)
-		assert.Equal(t, workloadFromQSFS, qsfsWorkload)
+		assert.Equal(t, qsfsFromWorkload, QsfsWorkload)
 	})
 
 	t.Run("test_update_qsfs_from_workload", func(t *testing.T) {
-		err := qsfs.UpdateFromWorkload(&qsfsWorkload)
+		err := QsfsWorkload.UpdateFromWorkload(&qsfs)
 		assert.NoError(t, err)
-	})
-
-	t.Run("test_workload_from_gateway_qsfs", func(t *testing.T) {
-		workloadFromQSFS, err := qsfs.GenerateWorkloads()
-		assert.NoError(t, err)
-		assert.Equal(t, workloadFromQSFS[0], qsfsWorkload)
-	})
-
-	t.Run("test_workloads_map", func(t *testing.T) {
-		nodeID := uint32(1)
-		workloadsMap := map[uint32][]gridtypes.Workload{}
-		workloadsMap[nodeID] = append(workloadsMap[nodeID], qsfsWorkload)
-
-		workloadsMap2, err := qsfs.BindWorkloadsToNode(nodeID)
-		assert.NoError(t, err)
-		assert.Equal(t, workloadsMap, workloadsMap2)
 	})
 }

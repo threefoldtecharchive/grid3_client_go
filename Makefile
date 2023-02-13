@@ -13,7 +13,7 @@ integration:
 
 coverage: clean 
 	mkdir coverage
-	go test -v -vet=off ./... -coverprofile=coverage/coverage.out
+	go test -v -vet=off `go list ./... | grep -v integration_tests` -coverprofile=coverage/coverage.out
 	go tool cover -html=coverage/coverage.out -o coverage/coverage.html
 
 clean:

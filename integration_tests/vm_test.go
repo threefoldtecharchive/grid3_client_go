@@ -1,127 +1,101 @@
-//go:build integration
-// +build integration
-
 // Package integration for integration tests
 package integration
 
 import (
 	"context"
 	"net"
-	"os"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/threefoldtech/grid3-go/manager"
+	"github.com/threefoldtech/grid3-go/deployer"
 	"github.com/threefoldtech/grid3-go/workloads"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 )
 
 func TestVMDeployment(t *testing.T) {
-	dlManager, apiClient := setup()
-	publicKey := os.Getenv("PUBLICKEY")
+	tfPluginClient, err := setup()
+	assert.NoError(t, err)
+
+	publicKey, _, err := GenerateSSHKeyPair()
+	assert.NoError(t, err)
+
+	filter := deployer.NodeFilter{
+		CRU:       2,
+		SRU:       2,
+		MRU:       1,
+		Status:    "up",
+		PublicIPs: true,
+	}
+	nodeIDs, err := deployer.FilterNodes(filter, deployer.RMBProxyURLs[tfPluginClient.Network])
+	assert.NoError(t, err)
+
+	nodeID := nodeIDs[0]
+
 	network := workloads.ZNet{
-		Name:        "testingNetwork123",
+		Name:        "testingNetwork",
 		Description: "network for testing",
-		Nodes:       []uint32{14},
+		Nodes:       []uint32{nodeID},
 		IPRange: gridtypes.NewIPNet(net.IPNet{
-			IP:   net.IPv4(10, 1, 0, 0),
+			IP:   net.IPv4(10, 20, 0, 0),
 			Mask: net.CIDRMask(16, 32),
 		}),
 		AddWGAccess: false,
 	}
+
 	vm := workloads.VM{
 		Name:       "vm",
-		Flist:      "https://hub.grid.tf/tf-official-apps/threefoldtech-ubuntu-20.04.flist",
+		Flist:      "https://hub.grid.tf/tf-official-apps/base:latest.flist",
 		CPU:        2,
+		PublicIP:   true,
 		Planetary:  true,
 		Memory:     1024,
 		RootfsSize: 20 * 1024,
-		Entrypoint: "/init.sh",
+		Entrypoint: "/sbin/zinit init",
 		EnvVars: map[string]string{
-			"SSH_KEY":  publicKey,
-			"TEST_VAR": "this value for test",
+			"SSH_KEY": publicKey,
 		},
-		IP:          "10.1.0.2",
-		NetworkName: "testingNetwork123",
+		IP:          "10.20.2.5",
+		NetworkName: network.Name,
 	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	networkManager, err := manager.NewNetworkDeployer(apiClient.Manager, network)
-	assert.NoError(t, err)
-
-	t.Run("check VM configuration is correct", func(t *testing.T) {
-		vmCp := vm
-
-		_, err := networkManager.Stage(ctx, apiClient, network)
-		assert.NoError(t, err)
-		err = dlManager.Commit(ctx)
+	t.Run("check single vm with public ip", func(t *testing.T) {
+		err = tfPluginClient.NetworkDeployer.Deploy(ctx, &network)
 		assert.NoError(t, err)
 
-		err = dlManager.CancelAll()
+		dl := workloads.NewDeployment("vm", nodeID, "", nil, network.Name, nil, nil, []workloads.VM{vm}, nil)
+		err = tfPluginClient.DeploymentDeployer.Deploy(ctx, &dl)
 		assert.NoError(t, err)
 
-		err = dlManager.Stage(&vmCp, 14)
+		v, err := tfPluginClient.StateLoader.LoadVMFromGrid(nodeID, vm.Name)
 		assert.NoError(t, err)
-		err = dlManager.Commit(ctx)
-		assert.NoError(t, err)
+		assert.Equal(t, v.IP, "10.20.2.5")
+		assert.Equal(t, 20*1024, v.RootfsSize)
 
-		result, err := manager.LoadVMFromGrid(dlManager, 14, "vm")
-		assert.NoError(t, err)
+		publicIP := strings.Split(v.ComputedIP, "/")[0]
+		assert.NotEmpty(t, publicIP)
+		if !TestConnection(publicIP, "22") {
+			t.Errorf("public ip is not reachable")
+		}
 
-		assert.Equal(t, 20*1024, result.RootfsSize)
-
-		yggIP := result.YggIP
+		yggIP := v.YggIP
 		assert.NotEmpty(t, yggIP)
-
-		if !Wait(yggIP, "22") {
-			t.Errorf("Yggdrasil IP not reachable")
+		if !TestConnection(yggIP, "22") {
+			t.Errorf("yggdrasil ip is not reachable")
 		}
 
-		res, err := RemoteRun("root", yggIP, "cat /proc/1/environ")
-		assert.Contains(t, string(res), "TEST_VAR=this value for test")
+		// cancel all
+		err = tfPluginClient.DeploymentDeployer.Cancel(ctx, &dl)
 		assert.NoError(t, err)
 
-		res, err = RemoteRun("root", yggIP, "grep -c processor /proc/cpuinfo")
-		assert.Equal(t, "2\n", res)
+		err = tfPluginClient.NetworkDeployer.Cancel(ctx, &network)
 		assert.NoError(t, err)
-		res, err = RemoteRun("root", yggIP, "grep MemTotal /proc/meminfo | tr -d -c 0-9")
-		assert.NoError(t, err)
-		resMem, err := strconv.Atoi(res)
-		assert.NoError(t, err)
-		assert.InDelta(t, resMem, 1024*1024, 0.1*1024*1024)
 
+		_, err = tfPluginClient.StateLoader.LoadVMFromGrid(nodeID, vm.Name)
+		assert.Error(t, err)
 	})
-	t.Run("check public ip is reachable", func(t *testing.T) {
-		t.SkipNow()
-		network.Nodes = []uint32{45}
-		vmCp := vm
-		vmCp.PublicIP = true
-
-		_, err := networkManager.Stage(ctx, apiClient, network)
-		assert.NoError(t, err)
-		err = dlManager.Commit(ctx)
-		assert.NoError(t, err)
-
-		err = dlManager.CancelAll()
-		assert.NoError(t, err)
-
-		err = dlManager.Stage(&vmCp, 45)
-		assert.NoError(t, err)
-		err = dlManager.Commit(ctx)
-		assert.NoError(t, err)
-
-		result, err := manager.LoadVMFromGrid(dlManager, 45, "vm")
-		assert.NoError(t, err)
-
-		pIP := strings.Split(result.ComputedIP, "/")[0]
-		if !Wait(pIP, "22") {
-			t.Errorf("public IP not reachable")
-		}
-
-	})
-
 }

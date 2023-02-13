@@ -9,13 +9,10 @@ import (
 	"github.com/threefoldtech/substrate-client"
 )
 
-// Identity is user identity
-type Identity substrate.Identity
-
 // ManagerInterface for substrate manager
 type ManagerInterface interface {
 	substrate.Manager
-	SubstrateExt() (SubstrateExt, error)
+	SubstrateExt() (SubstrateImpl, error)
 }
 
 // Manager is substrate manager struct
@@ -30,36 +27,33 @@ func NewManager(url ...string) Manager {
 }
 
 // SubstrateExt returns a substrate implementation to be used
-func (m *Manager) SubstrateExt() (SubstrateExt, error) {
+func (m *Manager) SubstrateExt() (*SubstrateImpl, error) {
 	sub, err := m.Manager.Substrate()
 	return &SubstrateImpl{sub}, err
 }
 
-// Substrate interface for substrate client
-type Substrate interface {
-	CancelContract(identity Identity, contractID uint64) error
-	CreateNodeContract(identity Identity, node uint32, body string, hash string, publicIPs uint32, solutionProviderID *uint64) (uint64, error)
-	UpdateNodeContract(identity Identity, contract uint64, body string, hash string) (uint64, error)
+// SubstrateExt interface for substrate client
+type SubstrateExt interface {
+	CancelContract(identity substrate.Identity, contractID uint64) error
+	CreateNodeContract(identity substrate.Identity, node uint32, body string, hash string, publicIPs uint32, solutionProviderID *uint64) (uint64, error)
+	UpdateNodeContract(identity substrate.Identity, contract uint64, body string, hash string) (uint64, error)
 	Close()
 	GetTwinByPubKey(pk []byte) (uint32, error)
-}
 
-// SubstrateExt interface for substrate executable functions
-type SubstrateExt interface {
-	Substrate
-	EnsureContractCanceled(identity Identity, contractID uint64) error
+	EnsureContractCanceled(identity substrate.Identity, contractID uint64) error
 	DeleteInvalidContracts(contracts map[uint32]uint64) error
 	IsValidContract(contractID uint64) (bool, error)
 	InvalidateNameContract(
 		ctx context.Context,
-		identity Identity,
+		identity substrate.Identity,
 		contractID uint64,
 		name string,
 	) (uint64, error)
 	GetContract(id uint64) (Contract, error)
 	GetNodeTwin(id uint32) (uint32, error)
-	CreateNameContract(identity Identity, name string) (uint64, error)
-	GetAccount(identity Identity) (types.AccountInfo, error)
+	CreateNameContract(identity substrate.Identity, name string) (uint64, error)
+	GetAccount(identity substrate.Identity) (types.AccountInfo, error)
+	GetBalance(identity substrate.Identity) (balance substrate.Balance, err error)
 	GetTwinIP(twinID uint32) (string, error)
 	GetTwinPK(twinID uint32) ([]byte, error)
 	GetContractIDByNameRegistration(name string) (uint64, error)
@@ -71,9 +65,20 @@ type SubstrateImpl struct {
 }
 
 // GetAccount returns the user's account
-func (s *SubstrateImpl) GetAccount(identity Identity) (types.AccountInfo, error) {
+func (s *SubstrateImpl) GetAccount(identity substrate.Identity) (types.AccountInfo, error) {
 	res, err := s.Substrate.GetAccount(identity)
 	return res, normalizeNotFoundErrors(err)
+}
+
+// GetBalance returns the user's balance
+func (s *SubstrateImpl) GetBalance(identity substrate.Identity) (balance substrate.Balance, err error) {
+	accountAddress, err := substrate.FromAddress(identity.Address())
+	if err != nil {
+		return
+	}
+
+	balance, err = s.Substrate.GetBalance(accountAddress)
+	return balance, normalizeNotFoundErrors(err)
 }
 
 // GetNodeTwin returns the twin ID for a node ID
@@ -104,7 +109,7 @@ func (s *SubstrateImpl) GetTwinPK(id uint32) ([]byte, error) {
 }
 
 // CreateNameContract creates a new name contract
-func (s *SubstrateImpl) CreateNameContract(identity Identity, name string) (uint64, error) {
+func (s *SubstrateImpl) CreateNameContract(identity substrate.Identity, name string) (uint64, error) {
 	return s.Substrate.CreateNameContract(identity, name)
 }
 
@@ -115,13 +120,13 @@ func (s *SubstrateImpl) GetContractIDByNameRegistration(name string) (uint64, er
 }
 
 // CreateNodeContract creates a new node contract
-func (s *SubstrateImpl) CreateNodeContract(identity Identity, node uint32, body string, hash string, publicIPs uint32, solutionProviderID *uint64) (uint64, error) {
+func (s *SubstrateImpl) CreateNodeContract(identity substrate.Identity, node uint32, body string, hash string, publicIPs uint32, solutionProviderID *uint64) (uint64, error) {
 	res, err := s.Substrate.CreateNodeContract(identity, node, body, hash, publicIPs, solutionProviderID)
 	return res, normalizeNotFoundErrors(err)
 }
 
 // UpdateNodeContract updates a new name contract
-func (s *SubstrateImpl) UpdateNodeContract(identity Identity, contract uint64, body string, hash string) (uint64, error) {
+func (s *SubstrateImpl) UpdateNodeContract(identity substrate.Identity, contract uint64, body string, hash string) (uint64, error) {
 	res, err := s.Substrate.UpdateNodeContract(identity, contract, body, hash)
 	return res, normalizeNotFoundErrors(err)
 }
@@ -129,11 +134,11 @@ func (s *SubstrateImpl) UpdateNodeContract(identity Identity, contract uint64, b
 // GetContract returns a contract given its ID
 func (s *SubstrateImpl) GetContract(contractID uint64) (Contract, error) {
 	contract, err := s.Substrate.GetContract(contractID)
-	return &ContractImpl{contract}, normalizeNotFoundErrors(err)
+	return Contract{contract}, normalizeNotFoundErrors(err)
 }
 
 // CancelContract cancels a contract
-func (s *SubstrateImpl) CancelContract(identity Identity, contractID uint64) error {
+func (s *SubstrateImpl) CancelContract(identity substrate.Identity, contractID uint64) error {
 	if contractID == 0 {
 		return nil
 	}
@@ -144,7 +149,7 @@ func (s *SubstrateImpl) CancelContract(identity Identity, contractID uint64) err
 }
 
 // EnsureContractCanceled ensures a canceled contract
-func (s *SubstrateImpl) EnsureContractCanceled(identity Identity, contractID uint64) error {
+func (s *SubstrateImpl) EnsureContractCanceled(identity substrate.Identity, contractID uint64) error {
 	if contractID == 0 {
 		return nil
 	}
@@ -188,7 +193,7 @@ func (s *SubstrateImpl) IsValidContract(contractID uint64) (bool, error) {
 // InvalidateNameContract invalidate a name contract
 func (s *SubstrateImpl) InvalidateNameContract(
 	ctx context.Context,
-	identity Identity,
+	identity substrate.Identity,
 	contractID uint64,
 	name string,
 ) (uint64, error) {

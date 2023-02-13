@@ -5,35 +5,27 @@ import (
 	"github.com/threefoldtech/substrate-client"
 )
 
-// Contract is a contract interface
-type Contract interface {
-	IsDeleted() bool
-	IsCreated() bool
-	TwinID() uint32
-	PublicIPCount() uint32
-}
-
-// ContractImpl is for contract implementation
-type ContractImpl struct {
+// Contract is for contract implementation
+type Contract struct {
 	*substrate.Contract
 }
 
 // IsDeleted checks if contract is deleted
-func (c *ContractImpl) IsDeleted() bool {
+func (c *Contract) IsDeleted() bool {
 	return c.Contract.State.IsDeleted
 }
 
 // IsCreated checks if contract is created
-func (c *ContractImpl) IsCreated() bool {
+func (c *Contract) IsCreated() bool {
 	return c.Contract.State.IsCreated
 }
 
 // TwinID returns contract's twin ID
-func (c *ContractImpl) TwinID() uint32 {
+func (c *Contract) TwinID() uint32 {
 	return uint32(c.Contract.TwinID)
 }
 
 // PublicIPCount returns contract's public IPs count
-func (c *ContractImpl) PublicIPCount() uint32 {
+func (c *Contract) PublicIPCount() uint32 {
 	return uint32(c.Contract.ContractType.NodeContract.PublicIPsCount)
 }

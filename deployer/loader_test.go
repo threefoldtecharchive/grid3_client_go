@@ -1,7 +1,8 @@
-// Package manager for grid manager
-package manager
+// Package deployer for grid deployer
+package deployer
 
 import (
+	"context"
 	"encoding/hex"
 	"encoding/json"
 	"net"
@@ -10,19 +11,45 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/threefoldtech/grid3-go/mocks"
+	client "github.com/threefoldtech/grid3-go/node"
 	"github.com/threefoldtech/grid3-go/workloads"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
-func TestLoadDiskFromGrid(t *testing.T) {
+func SetupLoaderTests(t *testing.T, wls []gridtypes.Workload) *StateLoader {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	manager := mocks.NewMockDeploymentManager(ctrl)
 
+	cl := mocks.NewRMBMockClient(ctrl)
+	sub := mocks.NewMockSubstrateExt(ctrl)
+	ncPool := mocks.NewMockNodeClientGetter(ctrl)
+
+	stateLoader := NewStateLoader(ncPool, sub)
+	stateLoader.currentNodeDeployment = map[uint32]uint64{1: 1}
+	stateLoader.currentNodeNetwork = map[uint32]uint64{1: 1}
+
+	dl1 := workloads.NewGridDeployment(13, wls)
+
+	ncPool.EXPECT().
+		GetNodeClient(sub, uint32(1)).
+		Return(client.NewNodeClient(13, cl), nil).AnyTimes()
+
+	cl.EXPECT().
+		Call(gomock.Any(), uint32(13), "zos.deployment.get", gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, twin uint32, fn string, data, result interface{}) error {
+			var res *gridtypes.Deployment = result.(*gridtypes.Deployment)
+			*res = dl1
+			return nil
+		}).AnyTimes()
+
+	return stateLoader
+}
+
+func TestLoadDiskFromGrid(t *testing.T) {
 	disk := workloads.Disk{
 		Name:        "test",
-		Size:        100,
+		SizeGB:      100,
 		Description: "test des",
 	}
 
@@ -37,9 +64,9 @@ func TestLoadDiskFromGrid(t *testing.T) {
 	}
 
 	t.Run("success", func(t *testing.T) {
-		manager.EXPECT().GetWorkload(uint32(1), "test").Return(diskWl, nil)
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{diskWl})
 
-		got, err := LoadDiskFromGrid(manager, 1, "test")
+		got, err := stateLoader.LoadDiskFromGrid(1, "test")
 		assert.NoError(t, err)
 		assert.Equal(t, disk, got)
 	})
@@ -48,9 +75,9 @@ func TestLoadDiskFromGrid(t *testing.T) {
 		diskWlCp := diskWl
 		diskWlCp.Type = "invalid"
 
-		manager.EXPECT().GetWorkload(uint32(1), "test").Return(diskWlCp, nil)
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{diskWlCp})
 
-		_, err := LoadDiskFromGrid(manager, 1, "test")
+		_, err := stateLoader.LoadDiskFromGrid(1, "test")
 		assert.Error(t, err)
 	})
 
@@ -61,18 +88,14 @@ func TestLoadDiskFromGrid(t *testing.T) {
 			Name: "name",
 		})
 
-		manager.EXPECT().GetWorkload(uint32(1), "test").Return(diskWlCp, nil)
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{diskWlCp})
 
-		_, err := LoadDiskFromGrid(manager, 1, "test")
+		_, err := stateLoader.LoadDiskFromGrid(1, "test")
 		assert.Error(t, err)
 	})
 }
 
 func TestLoadGatewayFqdnFromGrid(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	manager := mocks.NewMockDeploymentManager(ctrl)
-
 	gatewayWl := gridtypes.Workload{
 		Version: 0,
 		Type:    zos.GatewayFQDNProxyType,
@@ -91,9 +114,9 @@ func TestLoadGatewayFqdnFromGrid(t *testing.T) {
 	}
 
 	t.Run("success", func(t *testing.T) {
-		manager.EXPECT().GetWorkload(uint32(1), "test").Return(gatewayWl, nil)
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{gatewayWl})
 
-		got, err := LoadGatewayFqdnFromGrid(manager, 1, "test")
+		got, err := stateLoader.LoadGatewayFqdnFromGrid(1, "test")
 		assert.NoError(t, err)
 		assert.Equal(t, gateway, got)
 	})
@@ -102,8 +125,9 @@ func TestLoadGatewayFqdnFromGrid(t *testing.T) {
 		gatewayWlCp := gatewayWl
 		gatewayWlCp.Type = "invalid"
 
-		manager.EXPECT().GetWorkload(uint32(1), "test").Return(gatewayWlCp, nil)
-		_, err := LoadGatewayFqdnFromGrid(manager, 1, "test")
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{gatewayWlCp})
+
+		_, err := stateLoader.LoadGatewayFqdnFromGrid(1, "test")
 		assert.Error(t, err)
 	})
 
@@ -114,18 +138,14 @@ func TestLoadGatewayFqdnFromGrid(t *testing.T) {
 			Name: "name",
 		})
 
-		manager.EXPECT().GetWorkload(uint32(1), "test").Return(gatewayWlCp, nil)
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{gatewayWlCp})
 
-		_, err := LoadGatewayFqdnFromGrid(manager, 1, "test")
+		_, err := stateLoader.LoadGatewayFqdnFromGrid(1, "test")
 		assert.Error(t, err)
 	})
 }
 
 func TestLoadGatewayNameFromGrid(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	manager := mocks.NewMockDeploymentManager(ctrl)
-
 	res, err := json.Marshal(zos.GatewayNameProxy{
 		Name: "test",
 	})
@@ -153,9 +173,9 @@ func TestLoadGatewayNameFromGrid(t *testing.T) {
 	}
 
 	t.Run("success", func(t *testing.T) {
-		manager.EXPECT().GetWorkload(uint32(1), "test").Return(gatewayWl, nil)
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{gatewayWl})
 
-		got, err := LoadGatewayNameFromGrid(manager, 1, "test")
+		got, err := stateLoader.LoadGatewayNameFromGrid(1, "test")
 		assert.NoError(t, err)
 		assert.Equal(t, gateway, got)
 	})
@@ -163,9 +183,9 @@ func TestLoadGatewayNameFromGrid(t *testing.T) {
 		gatewayWlCp := gatewayWl
 		gatewayWlCp.Type = "invalid"
 
-		manager.EXPECT().GetWorkload(uint32(1), "test").Return(gatewayWlCp, nil)
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{gatewayWlCp})
 
-		_, err := LoadGatewayNameFromGrid(manager, 1, "test")
+		_, err := stateLoader.LoadGatewayNameFromGrid(1, "test")
 		assert.Error(t, err)
 	})
 
@@ -176,18 +196,14 @@ func TestLoadGatewayNameFromGrid(t *testing.T) {
 			FQDN: "123",
 		})
 
-		manager.EXPECT().GetWorkload(uint32(1), "test").Return(gatewayWlCp, nil)
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{gatewayWlCp})
 
-		_, err := LoadGatewayNameFromGrid(manager, 1, "test")
+		_, err := stateLoader.LoadGatewayNameFromGrid(1, "test")
 		assert.Error(t, err)
 	})
 }
 
 func TestLoadK8sFromGrid(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	manager := mocks.NewMockDeploymentManager(ctrl)
-
 	flist := "https://hub.grid.tf/tf-official-apps/base:latest.flist"
 	flistCheckSum, err := workloads.GetFlistChecksum(flist)
 	assert.NoError(t, err)
@@ -197,7 +213,7 @@ func TestLoadK8sFromGrid(t *testing.T) {
 		YggIP: "203:8b0b:5f3e:b859:c36:efdf:ab6e:50cc",
 	})
 
-	master := workloads.K8sNodeData{
+	master := workloads.K8sNode{
 		Name:          "test",
 		Node:          1,
 		DiskSize:      0,
@@ -211,7 +227,7 @@ func TestLoadK8sFromGrid(t *testing.T) {
 		IP:            "1.1.1.1",
 	}
 
-	var Workers []workloads.K8sNodeData
+	var Workers []workloads.K8sNode
 	cluster := workloads.K8sCluster{
 		Master:      &master,
 		Workers:     Workers,
@@ -252,15 +268,10 @@ func TestLoadK8sFromGrid(t *testing.T) {
 		},
 	}
 
-	dl := gridtypes.Deployment{
-		Workloads: []gridtypes.Workload{k8sWorkload},
-	}
-
 	t.Run("success", func(t *testing.T) {
-		manager.EXPECT().GetDeployment(uint32(1)).Return(dl, nil)
-		manager.EXPECT().GetWorkload(uint32(1), "test").Return(k8sWorkload, nil)
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{k8sWorkload})
 
-		got, err := LoadK8sFromGrid(manager, map[uint32]string{1: "test"}, map[uint32][]string{})
+		got, err := stateLoader.LoadK8sFromGrid(map[uint32]string{1: "test"}, map[uint32][]string{})
 		assert.NoError(t, err)
 		assert.Equal(t, cluster, got)
 	})
@@ -269,10 +280,9 @@ func TestLoadK8sFromGrid(t *testing.T) {
 		k8sWorkloadCp := k8sWorkload
 		k8sWorkloadCp.Type = "invalid"
 
-		manager.EXPECT().GetDeployment(uint32(1)).Return(dl, nil)
-		manager.EXPECT().GetWorkload(uint32(1), "test").Return(k8sWorkloadCp, nil)
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{k8sWorkloadCp})
 
-		_, err := LoadK8sFromGrid(manager, map[uint32]string{1: "test"}, map[uint32][]string{})
+		_, err := stateLoader.LoadK8sFromGrid(map[uint32]string{1: "test"}, map[uint32][]string{})
 		assert.Error(t, err)
 	})
 
@@ -283,19 +293,14 @@ func TestLoadK8sFromGrid(t *testing.T) {
 			FList: "",
 		})
 
-		manager.EXPECT().GetDeployment(uint32(1)).Return(dl, nil)
-		manager.EXPECT().GetWorkload(uint32(1), "test").Return(k8sWorkloadCp, nil)
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{k8sWorkloadCp})
 
-		_, err := LoadK8sFromGrid(manager, map[uint32]string{1: "test"}, map[uint32][]string{})
+		_, err := stateLoader.LoadK8sFromGrid(map[uint32]string{1: "test"}, map[uint32][]string{})
 		assert.Error(t, err)
 	})
 }
 
 func TestLoadNetworkFromGrid(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	manager := mocks.NewMockDeploymentManager(ctrl)
-
 	ipRange, err := gridtypes.ParseIPNet("1.1.1.1/24")
 	assert.NoError(t, err)
 
@@ -305,7 +310,6 @@ func TestLoadNetworkFromGrid(t *testing.T) {
 		Nodes:       []uint32{1},
 		IPRange:     ipRange,
 		AddWGAccess: false,
-		ContractID:  1,
 	}
 
 	networkWl := gridtypes.Workload{
@@ -325,13 +329,9 @@ func TestLoadNetworkFromGrid(t *testing.T) {
 	}
 
 	t.Run("success", func(t *testing.T) {
-		dl := gridtypes.Deployment{
-			Workloads: []gridtypes.Workload{networkWl},
-		}
-		manager.EXPECT().GetContractIDs().Return(map[uint32]uint64{1: 1})
-		manager.EXPECT().GetDeployment(uint32(1)).Return(dl, nil)
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{networkWl})
 
-		got, err := LoadNetworkFromGrid(manager, "test")
+		got, err := stateLoader.LoadNetworkFromGrid("test")
 		assert.NoError(t, err)
 		assert.Equal(t, znet, got)
 	})
@@ -340,14 +340,9 @@ func TestLoadNetworkFromGrid(t *testing.T) {
 		networkWlCp := networkWl
 		networkWlCp.Type = "invalid"
 
-		dl := gridtypes.Deployment{
-			Workloads: []gridtypes.Workload{networkWlCp},
-		}
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{networkWlCp})
 
-		manager.EXPECT().GetContractIDs().Return(map[uint32]uint64{1: 1})
-		manager.EXPECT().GetDeployment(uint32(1)).Return(dl, nil)
-
-		_, err := LoadNetworkFromGrid(manager, "test")
+		_, err := stateLoader.LoadNetworkFromGrid("test")
 		assert.Error(t, err)
 	})
 
@@ -358,23 +353,14 @@ func TestLoadNetworkFromGrid(t *testing.T) {
 			WGPrivateKey: "key",
 		})
 
-		dl := gridtypes.Deployment{
-			Workloads: []gridtypes.Workload{networkWlCp},
-		}
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{networkWlCp})
 
-		manager.EXPECT().GetContractIDs().Return(map[uint32]uint64{1: 1})
-		manager.EXPECT().GetDeployment(uint32(1)).Return(dl, nil)
-
-		_, err := LoadNetworkFromGrid(manager, "test")
+		_, err := stateLoader.LoadNetworkFromGrid("test")
 		assert.Error(t, err)
 	})
 }
 
 func TestLoadQsfsFromGrid(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	manager := mocks.NewMockDeploymentManager(ctrl)
-
 	res, err := json.Marshal(zos.QuatumSafeFSResult{
 		Path:            "path",
 		MetricsEndpoint: "endpoint",
@@ -457,9 +443,9 @@ func TestLoadQsfsFromGrid(t *testing.T) {
 	}
 
 	t.Run("success", func(t *testing.T) {
-		manager.EXPECT().GetWorkload(uint32(1), "test").Return(qsfsWl, nil)
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{qsfsWl})
 
-		got, err := LoadQsfsFromGrid(manager, 1, "test")
+		got, err := stateLoader.LoadQsfsFromGrid(1, "test")
 		assert.NoError(t, err)
 		assert.Equal(t, qsfs, got)
 	})
@@ -467,9 +453,9 @@ func TestLoadQsfsFromGrid(t *testing.T) {
 		qsfsWlCp := qsfsWl
 		qsfsWlCp.Type = "invalid"
 
-		manager.EXPECT().GetWorkload(uint32(1), "test").Return(qsfsWlCp, nil)
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{qsfsWlCp})
 
-		_, err := LoadQsfsFromGrid(manager, 1, "test")
+		_, err := stateLoader.LoadQsfsFromGrid(1, "test")
 		assert.Error(t, err)
 	})
 
@@ -480,9 +466,9 @@ func TestLoadQsfsFromGrid(t *testing.T) {
 			Name: "name",
 		})
 
-		manager.EXPECT().GetWorkload(uint32(1), "test").Return(qsfsWlCp, nil)
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{qsfsWlCp})
 
-		_, err := LoadQsfsFromGrid(manager, 1, "test")
+		_, err := stateLoader.LoadQsfsFromGrid(1, "test")
 		assert.Error(t, err)
 	})
 
@@ -490,18 +476,14 @@ func TestLoadQsfsFromGrid(t *testing.T) {
 		qsfsWlCp := qsfsWl
 		qsfsWlCp.Result.Data = nil
 
-		manager.EXPECT().GetWorkload(uint32(1), "test").Return(qsfsWlCp, nil)
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{qsfsWlCp})
 
-		_, err := LoadQsfsFromGrid(manager, 1, "test")
+		_, err := stateLoader.LoadQsfsFromGrid(1, "test")
 		assert.Error(t, err)
 	})
 }
 
 func TestLoadVMFromGrid(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	manager := mocks.NewMockDeploymentManager(ctrl)
-
 	vmRes, err := json.Marshal(zos.ZMachineResult{
 		ID:    "5",
 		IP:    "5.5.5.5",
@@ -509,12 +491,14 @@ func TestLoadVMFromGrid(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
+	var zlogs []workloads.Zlog
+
 	vm := workloads.VM{
 		Name:          "test",
 		Flist:         "flist test",
 		FlistChecksum: "",
-		PublicIP:      true,
-		ComputedIP:    "189.0.0.12/24",
+		PublicIP:      false,
+		ComputedIP:    "",
 		PublicIP6:     false,
 		Planetary:     true,
 		Corex:         false,
@@ -528,9 +512,7 @@ func TestLoadVMFromGrid(t *testing.T) {
 		Mounts: []workloads.Mount{
 			{DiskName: "disk", MountPoint: "mount"},
 		},
-		Zlogs: []workloads.Zlog{
-			{Output: "output", Zmachine: "test"},
-		},
+		Zlogs:       zlogs,
 		EnvVars:     map[string]string{"var1": "val1"},
 		NetworkName: "test_network",
 	}
@@ -571,57 +553,10 @@ func TestLoadVMFromGrid(t *testing.T) {
 		},
 	}
 
-	ipRes, err := json.Marshal(zos.PublicIPResult{
-		IP:      gridtypes.MustParseIPNet("189.0.0.12/24"),
-		Gateway: nil,
-	})
-	assert.NoError(t, err)
-
-	pubIPWl := gridtypes.Workload{
-		Version: 0,
-		Name:    gridtypes.Name("testip"),
-		Type:    zos.PublicIPType,
-		Data: gridtypes.MustMarshal(zos.PublicIP{
-			V4: true,
-			V6: false,
-		}),
-		Result: gridtypes.Result{
-			Created: 10000,
-			State:   gridtypes.StateOk,
-			Data:    ipRes,
-		},
-	}
-
-	zlogWl := gridtypes.Workload{
-		Version: 0,
-		Name:    gridtypes.Name("test_zlogs"),
-		Type:    zos.ZLogsType,
-		Data: gridtypes.MustMarshal(zos.ZLogs{
-			ZMachine: gridtypes.Name("test"),
-			Output:   "output",
-		}),
-		Result: gridtypes.Result{
-			State: gridtypes.StateOk,
-		},
-	}
-
-	deployment := gridtypes.Deployment{
-		Version:     0,
-		TwinID:      1,
-		ContractID:  100,
-		Description: "deployment",
-		Workloads: []gridtypes.Workload{
-			vmWl,
-			pubIPWl,
-			zlogWl,
-		},
-	}
-
 	t.Run("success", func(t *testing.T) {
-		manager.EXPECT().GetWorkload(uint32(1), "test").Return(vmWl, nil)
-		manager.EXPECT().GetDeployment(uint32(1)).Return(deployment, nil)
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{vmWl})
 
-		got, err := LoadVMFromGrid(manager, 1, "test")
+		got, err := stateLoader.LoadVMFromGrid(1, "test")
 		assert.NoError(t, err)
 		assert.Equal(t, vm, got)
 	})
@@ -630,11 +565,9 @@ func TestLoadVMFromGrid(t *testing.T) {
 		vmWlCp := vmWl
 		vmWlCp.Type = "invalid"
 
-		manager := mocks.NewMockDeploymentManager(ctrl)
-		manager.EXPECT().GetDeployment(uint32(1)).Return(deployment, nil)
-		manager.EXPECT().GetWorkload(uint32(1), "test").Return(vmWlCp, nil)
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{vmWlCp})
 
-		_, err := LoadVMFromGrid(manager, 1, "test")
+		_, err := stateLoader.LoadVMFromGrid(1, "test")
 		assert.Error(t, err)
 	})
 
@@ -645,10 +578,9 @@ func TestLoadVMFromGrid(t *testing.T) {
 			FQDN: "123",
 		})
 
-		manager.EXPECT().GetDeployment(uint32(1)).Return(deployment, nil)
-		manager.EXPECT().GetWorkload(uint32(1), "test").Return(vmWlCp, nil)
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{vmWlCp})
 
-		_, err := LoadVMFromGrid(manager, 1, "test")
+		_, err := stateLoader.LoadVMFromGrid(1, "test")
 		assert.Error(t, err)
 	})
 
@@ -656,19 +588,14 @@ func TestLoadVMFromGrid(t *testing.T) {
 		vmWlCp := vmWl
 		vmWlCp.Result.Data = nil
 
-		manager.EXPECT().GetDeployment(uint32(1)).Return(deployment, nil)
-		manager.EXPECT().GetWorkload(uint32(1), "test").Return(vmWlCp, nil)
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{vmWlCp})
 
-		_, err := LoadVMFromGrid(manager, 1, "test")
+		_, err := stateLoader.LoadVMFromGrid(1, "test")
 		assert.Error(t, err)
 	})
 }
 
 func TestLoadZdbFromGrid(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	manager := mocks.NewMockDeploymentManager(ctrl)
-
 	res, err := json.Marshal(zos.ZDBResult{
 		Namespace: "test name",
 		IPs: []string{
@@ -710,10 +637,11 @@ func TestLoadZdbFromGrid(t *testing.T) {
 		},
 		Port: 5000,
 	}
-	t.Run("success", func(t *testing.T) {
-		manager.EXPECT().GetWorkload(uint32(1), "test").Return(zdbWl, nil)
 
-		got, err := LoadZdbFromGrid(manager, 1, "test")
+	t.Run("success", func(t *testing.T) {
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{zdbWl})
+
+		got, err := stateLoader.LoadZdbFromGrid(1, "test")
 		assert.NoError(t, err)
 		assert.Equal(t, zdb, got)
 	})
@@ -722,9 +650,9 @@ func TestLoadZdbFromGrid(t *testing.T) {
 		zdbWlCp := zdbWl
 		zdbWlCp.Type = "invalid"
 
-		manager.EXPECT().GetWorkload(uint32(1), "test").Return(zdbWlCp, nil)
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{zdbWlCp})
 
-		_, err := LoadZdbFromGrid(manager, 1, "test")
+		_, err := stateLoader.LoadZdbFromGrid(1, "test")
 		assert.Error(t, err)
 	})
 
@@ -735,9 +663,9 @@ func TestLoadZdbFromGrid(t *testing.T) {
 			Name: "name",
 		})
 
-		manager.EXPECT().GetWorkload(uint32(1), "test").Return(zdbWlCp, nil)
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{zdbWlCp})
 
-		_, err := LoadZdbFromGrid(manager, 1, "test")
+		_, err := stateLoader.LoadZdbFromGrid(1, "test")
 		assert.Error(t, err)
 	})
 
@@ -745,9 +673,9 @@ func TestLoadZdbFromGrid(t *testing.T) {
 		zdbWlCp := zdbWl
 		zdbWlCp.Result.Data = nil
 
-		manager.EXPECT().GetWorkload(uint32(1), "test").Return(zdbWlCp, nil)
+		stateLoader := SetupLoaderTests(t, []gridtypes.Workload{zdbWlCp})
 
-		_, err := LoadZdbFromGrid(manager, 1, "test")
+		_, err := stateLoader.LoadZdbFromGrid(1, "test")
 		assert.Error(t, err)
 	})
 }
