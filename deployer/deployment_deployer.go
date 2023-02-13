@@ -74,20 +74,13 @@ func (d *DeploymentDeployer) Deploy(ctx context.Context, dl *workloads.Deploymen
 		return errors.Wrap(err, "couldn't generate deployments data")
 	}
 
-	oldDeployments := d.tfPluginClient.StateLoader.currentNodeDeployment
-
-	currentDeployments, err := d.deployer.Deploy(ctx, oldDeployments, newDeployments, newDeploymentsSolutionProvider)
+	dl.NodeDeploymentID, err = d.deployer.Deploy(ctx, dl.NodeDeploymentID, newDeployments, newDeploymentsSolutionProvider)
 
 	// update deployment and plugin state
 	// error is not returned immediately before updating state because of untracked failed deployments
-	if currentDeployments[dl.NodeID] != 0 {
-		if dl.NodeDeploymentID == nil {
-			dl.NodeDeploymentID = make(map[uint32]uint64)
-		}
-
-		dl.ContractID = currentDeployments[dl.NodeID]
-		dl.NodeDeploymentID[dl.NodeID] = dl.ContractID
-		d.tfPluginClient.StateLoader.currentNodeDeployment[dl.NodeID] = dl.ContractID
+	if dl.NodeDeploymentID[dl.NodeID] != 0 {
+		dl.ContractID = dl.NodeDeploymentID[dl.NodeID]
+		d.tfPluginClient.StateLoader.currentNodeDeployment[dl.NodeID] = append(d.tfPluginClient.StateLoader.currentNodeDeployment[dl.NodeID], dl.ContractID)
 	}
 
 	return err
@@ -99,9 +92,7 @@ func (d *DeploymentDeployer) Cancel(ctx context.Context, dl *workloads.Deploymen
 		return err
 	}
 
-	oldDeployments := d.tfPluginClient.StateLoader.currentNodeDeployment
-
-	err := d.deployer.Cancel(ctx, oldDeployments[dl.NodeID])
+	err := d.deployer.Cancel(ctx, dl.NodeDeploymentID[dl.NodeID])
 	if err != nil {
 		return err
 	}
@@ -120,7 +111,7 @@ func (d *DeploymentDeployer) Sync(ctx context.Context, dl *workloads.Deployment)
 	if err != nil {
 		return err
 	}
-	currentDeployments, err := d.deployer.GetDeployments(ctx, d.tfPluginClient.StateLoader.currentNodeDeployment)
+	currentDeployments, err := d.deployer.GetDeployments(ctx, dl.NodeDeploymentID)
 	if err != nil {
 		return errors.Wrap(err, "failed to get deployments to update local state")
 	}

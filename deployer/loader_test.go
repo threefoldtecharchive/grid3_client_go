@@ -26,8 +26,8 @@ func SetupLoaderTests(t *testing.T, wls []gridtypes.Workload) *StateLoader {
 	ncPool := mocks.NewMockNodeClientGetter(ctrl)
 
 	stateLoader := NewStateLoader(ncPool, sub)
-	stateLoader.currentNodeDeployment = map[uint32]uint64{1: 1}
-	stateLoader.currentNodeNetwork = map[uint32]uint64{1: 1}
+	stateLoader.currentNodeDeployment = map[uint32][]uint64{1: {1}}
+	stateLoader.currentNodeNetwork = map[uint32][]uint64{1: {1}}
 
 	dl1 := workloads.NewGridDeployment(13, wls)
 

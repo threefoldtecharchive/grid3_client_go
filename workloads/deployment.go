@@ -57,7 +57,6 @@ func NewDeployment(name string, nodeID uint32,
 		Zdbs:             zdbs,
 		Vms:              vms,
 		Qsfs:             qsfs,
-		ContractID:       0,
 	}
 }
 

@@ -119,22 +119,13 @@ func (d *K8sDeployer) Deploy(ctx context.Context, k8sCluster *workloads.K8sClust
 	newDeploymentsSolutionProvider := make(map[uint32]*uint64)
 	newDeploymentsSolutionProvider[k8sCluster.Master.Node] = nil
 
-	oldDeployments := d.tfPluginClient.StateLoader.currentNodeDeployment
-
-	// TODO: use NodeDeploymentID instead of oldDeployments
-	currentDeployments, err := d.deployer.Deploy(ctx, oldDeployments, newDeployments, newDeploymentsSolutionProvider)
+	k8sCluster.NodeDeploymentID, err = d.deployer.Deploy(ctx, k8sCluster.NodeDeploymentID, newDeployments, newDeploymentsSolutionProvider)
 
 	// update deployments state
-	if currentDeployments[k8sCluster.Master.Node] != 0 {
-		if k8sCluster.NodeDeploymentID == nil {
-			k8sCluster.NodeDeploymentID = make(map[uint32]uint64)
-		}
-
-		k8sCluster.NodeDeploymentID[k8sCluster.Master.Node] = currentDeployments[k8sCluster.Master.Node]
-		d.tfPluginClient.StateLoader.currentNodeDeployment[k8sCluster.Master.Node] = currentDeployments[k8sCluster.Master.Node]
+	if k8sCluster.NodeDeploymentID[k8sCluster.Master.Node] != 0 {
+		d.tfPluginClient.StateLoader.currentNodeDeployment[k8sCluster.Master.Node] = append(d.tfPluginClient.StateLoader.currentNodeDeployment[k8sCluster.Master.Node], k8sCluster.NodeDeploymentID[k8sCluster.Master.Node])
 		for _, w := range k8sCluster.Workers {
-			k8sCluster.NodeDeploymentID[w.Node] = currentDeployments[w.Node]
-			d.tfPluginClient.StateLoader.currentNodeDeployment[w.Node] = currentDeployments[w.Node]
+			d.tfPluginClient.StateLoader.currentNodeDeployment[w.Node] = append(d.tfPluginClient.StateLoader.currentNodeDeployment[w.Node], k8sCluster.NodeDeploymentID[w.Node])
 		}
 	}
 
@@ -146,8 +137,8 @@ func (d *K8sDeployer) Cancel(ctx context.Context, k8sCluster *workloads.K8sClust
 	if err := d.Validate(ctx, k8sCluster); err != nil {
 		return err
 	}
-	oldDeployments := d.tfPluginClient.StateLoader.currentNodeDeployment
-	for nodeID, contractID := range oldDeployments {
+
+	for nodeID, contractID := range k8sCluster.NodeDeploymentID {
 		if k8sCluster.Master.Node == nodeID {
 			err = d.deployer.Cancel(ctx, contractID)
 			if err != nil {
@@ -240,7 +231,7 @@ func (d *K8sDeployer) UpdateFromRemote(ctx context.Context, k8sCluster *workload
 			} else if w.Type == zos.PublicIPType {
 				d := zos.PublicIPResult{}
 				if err := json.Unmarshal(w.Result.Data, &d); err != nil {
-					log.Printf("failed to load pubip data %s", err)
+					log.Printf("failed to load public ip data %s", err)
 					continue
 				}
 				publicIPs[string(w.Name)] = d.IP.String()

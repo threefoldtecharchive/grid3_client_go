@@ -304,8 +304,8 @@ func TestDeploymentSyncDeletedContract(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, dl.ContractID, uint64(0))
 	dl.ContractID = contractID
+	dl.NodeDeploymentID = map[uint32]uint64{dl.NodeID: dl.ContractID}
 
-	d.tfPluginClient.StateLoader.currentNodeDeployment = map[uint32]uint64{dl.NodeID: dl.ContractID}
 	deployer.EXPECT().
 		GetDeployments(gomock.Any(), map[uint32]uint64{nodeID: contractID}).
 		Return(map[uint32]gridtypes.Deployment{}, nil)
@@ -330,7 +330,7 @@ func TestDeploymentGenerateDeployment(t *testing.T) {
 	workload := net.ZosWorkload(net.NodesIPRange[nodeID], "", uint16(0), []zos.Peer{})
 	networkDl := workloads.NewGridDeployment(twinID, []gridtypes.Workload{workload})
 
-	d.tfPluginClient.StateLoader.currentNodeNetwork[nodeID] = contractID
+	d.tfPluginClient.StateLoader.currentNodeNetwork[nodeID] = append(d.tfPluginClient.StateLoader.currentNodeNetwork[nodeID], contractID)
 	d.tfPluginClient.StateLoader.networks = networkState{net.Name: network{
 		subnets:               map[uint32]string{nodeID: net.IPRange.String()},
 		nodeDeploymentHostIDs: map[uint32]deploymentHostIDs{nodeID: map[uint64][]byte{contractID: {}}},
@@ -358,6 +358,7 @@ func TestDeploymentGenerateDeployment(t *testing.T) {
 func TestDeploymentSync(t *testing.T) {
 	dl := constructTestDeployment()
 	dl.ContractID = contractID
+	dl.NodeDeploymentID = make(map[uint32]uint64)
 
 	d, cl, sub, ncPool, deployer := constructTestDeployer(t, true)
 
@@ -365,7 +366,7 @@ func TestDeploymentSync(t *testing.T) {
 	workload := net.ZosWorkload(net.NodesIPRange[nodeID], "", uint16(0), []zos.Peer{})
 	networkDl := workloads.NewGridDeployment(twinID, []gridtypes.Workload{workload})
 
-	d.tfPluginClient.StateLoader.currentNodeNetwork[nodeID] = contractID
+	d.tfPluginClient.StateLoader.currentNodeNetwork[nodeID] = append(d.tfPluginClient.StateLoader.currentNodeNetwork[nodeID], contractID)
 	d.tfPluginClient.StateLoader.networks = networkState{
 		net.Name: network{
 			subnets: map[uint32]string{
@@ -525,7 +526,7 @@ func TestDeploymentDeploy(t *testing.T) {
 
 	net := constructTestNetwork()
 
-	d.tfPluginClient.StateLoader.currentNodeNetwork[nodeID] = contractID
+	d.tfPluginClient.StateLoader.currentNodeNetwork[nodeID] = append(d.tfPluginClient.StateLoader.currentNodeNetwork[nodeID], contractID)
 	d.tfPluginClient.StateLoader.networks = networkState{
 		net.Name: network{
 			subnets: map[uint32]string{
@@ -567,7 +568,7 @@ func TestDeploymentDeploy(t *testing.T) {
 
 		deployer.EXPECT().Deploy(
 			gomock.Any(),
-			map[uint32]uint64{},
+			dl.NodeDeploymentID,
 			dls,
 			gomock.Any(),
 		).Return(map[uint32]uint64{}, errors.New("error"))
@@ -580,7 +581,7 @@ func TestDeploymentDeploy(t *testing.T) {
 		assert.Empty(t, d.tfPluginClient.StateLoader.currentNodeDeployment[nodeID])
 	})
 	t.Run("Deploying succeeded", func(t *testing.T) {
-		d.tfPluginClient.StateLoader.currentNodeDeployment = map[uint32]uint64{}
+		dl.NodeDeploymentID = map[uint32]uint64{}
 		sub.EXPECT().
 			GetBalance(d.tfPluginClient.identity).
 			Return(substrate.Balance{
@@ -591,7 +592,7 @@ func TestDeploymentDeploy(t *testing.T) {
 
 		deployer.EXPECT().Deploy(
 			gomock.Any(),
-			map[uint32]uint64{},
+			dl.NodeDeploymentID,
 			dls,
 			gomock.Any(),
 		).Return(map[uint32]uint64{nodeID: contractID}, nil)
@@ -600,7 +601,7 @@ func TestDeploymentDeploy(t *testing.T) {
 		// should reflect on deployment and state
 		assert.Equal(t, dl.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
 		assert.Equal(t, dl.ContractID, contractID)
-		assert.Equal(t, d.tfPluginClient.StateLoader.currentNodeDeployment, map[uint32]uint64{nodeID: contractID})
+		assert.Equal(t, d.tfPluginClient.StateLoader.currentNodeDeployment, map[uint32][]uint64{nodeID: {contractID}})
 	})
 
 }
@@ -608,11 +609,11 @@ func TestDeploymentDeploy(t *testing.T) {
 func TestDeploymentCancel(t *testing.T) {
 	dl := constructTestDeployment()
 	dl.ContractID = contractID
-
-	d, _, sub, _, deployer := constructTestDeployer(t, true)
 	dl.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
 
-	d.tfPluginClient.StateLoader.currentNodeDeployment = map[uint32]uint64{nodeID: contractID}
+	d, _, sub, _, deployer := constructTestDeployer(t, true)
+	d.tfPluginClient.StateLoader.currentNodeDeployment = map[uint32][]uint64{nodeID: {contractID}}
+
 	t.Run("Validation failed", func(t *testing.T) {
 		sub.EXPECT().
 			GetBalance(d.tfPluginClient.identity).
@@ -626,7 +627,7 @@ func TestDeploymentCancel(t *testing.T) {
 
 		// nothing should change
 		assert.Equal(t, dl.ContractID, contractID)
-		assert.Equal(t, d.tfPluginClient.StateLoader.currentNodeDeployment, map[uint32]uint64{nodeID: contractID})
+		assert.Equal(t, d.tfPluginClient.StateLoader.currentNodeDeployment, map[uint32][]uint64{nodeID: {contractID}})
 		assert.Equal(t, dl.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
 
 	})
@@ -647,7 +648,7 @@ func TestDeploymentCancel(t *testing.T) {
 
 		// nothing should change
 		assert.Equal(t, dl.ContractID, contractID)
-		assert.Equal(t, d.tfPluginClient.StateLoader.currentNodeDeployment, map[uint32]uint64{nodeID: contractID})
+		assert.Equal(t, d.tfPluginClient.StateLoader.currentNodeDeployment, map[uint32][]uint64{nodeID: {contractID}})
 		assert.Equal(t, dl.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
 
 	})

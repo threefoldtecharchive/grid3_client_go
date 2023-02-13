@@ -68,10 +68,10 @@ func TestNetworkValidate(t *testing.T) {
 }
 
 func TestNetworkGenerateDeployment(t *testing.T) {
-	net := constructTestNetwork()
 	d, cl, sub, ncPool := constructTestNetworkDeployer(t, true)
 
-	d.tfPluginClient.StateLoader.currentNodeNetwork[nodeID] = contractID
+	net := constructTestNetwork()
+	net.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
 
 	cl.EXPECT().
 		Call(gomock.Any(), twinID, "zos.network.public_config_get", gomock.Any(), gomock.Any()).

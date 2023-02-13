@@ -274,22 +274,19 @@ func (d *NetworkDeployer) Deploy(ctx context.Context, znet *workloads.ZNet) erro
 		newDeploymentsSolutionProvider[nodeID] = nil
 	}
 
-	currentDeployments, err := d.deployer.Deploy(ctx, d.tfPluginClient.StateLoader.currentNodeNetwork, newDeployments, newDeploymentsSolutionProvider)
+	znet.NodeDeploymentID, err = d.deployer.Deploy(ctx, znet.NodeDeploymentID, newDeployments, newDeploymentsSolutionProvider)
+
+	// update deployment and plugin state
+	// error is not returned immediately before updating state because of untracked failed deployments
+	for _, nodeID := range znet.Nodes {
+		if znet.NodeDeploymentID[nodeID] != 0 {
+			d.tfPluginClient.StateLoader.networks.updateNetwork(znet.Name, znet.NodesIPRange)
+			d.tfPluginClient.StateLoader.currentNodeNetwork[nodeID] = append(d.tfPluginClient.StateLoader.currentNodeNetwork[nodeID], znet.NodeDeploymentID[nodeID])
+		}
+	}
+
 	if err != nil {
 		return errors.Wrapf(err, "couldn't deploy network %s", znet.Name)
-	}
-
-	// update state
-	if znet.NodeDeploymentID == nil {
-		znet.NodeDeploymentID = make(map[uint32]uint64)
-	}
-
-	for _, nodeID := range znet.Nodes {
-		if currentDeployments[nodeID] != 0 {
-			znet.NodeDeploymentID[nodeID] = currentDeployments[nodeID]
-			d.tfPluginClient.StateLoader.networks.updateNetwork(znet.Name, znet.NodesIPRange)
-			d.tfPluginClient.StateLoader.currentNodeNetwork[nodeID] = currentDeployments[nodeID]
-		}
 	}
 
 	if err := d.readNodesConfig(ctx, znet); err != nil {
@@ -306,9 +303,7 @@ func (d *NetworkDeployer) Cancel(ctx context.Context, znet *workloads.ZNet) erro
 		return err
 	}
 
-	oldDeployments := d.tfPluginClient.StateLoader.currentNodeNetwork
-
-	for nodeID, contractID := range oldDeployments {
+	for nodeID, contractID := range znet.NodeDeploymentID {
 		if workloads.Contains(znet.Nodes, nodeID) {
 			err = d.deployer.Cancel(ctx, contractID)
 			if err != nil {

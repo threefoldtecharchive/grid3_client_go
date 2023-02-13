@@ -126,13 +126,11 @@ func TestK8sDeployment(t *testing.T) {
 	workers := [2]workloads.K8sNode{workerNodeData1, workerNodeData2}
 
 	k8sCluster := workloads.K8sCluster{
-		Master:           &master,
-		Workers:          workers[:],
-		Token:            "tokens",
-		SSHKey:           publicKey,
-		NetworkName:      "testingNetwork",
-		NodesIPRange:     make(map[uint32]gridtypes.IPNet),
-		NodeDeploymentID: map[uint32]uint64{},
+		Master:      &master,
+		Workers:     workers[:],
+		Token:       "tokens",
+		SSHKey:      publicKey,
+		NetworkName: "testingNetwork",
 	}
 
 	err = tfPluginClient.K8sDeployer.Deploy(ctx, &k8sCluster)

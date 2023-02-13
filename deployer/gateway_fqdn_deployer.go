@@ -71,18 +71,12 @@ func (d *GatewayFQDNDeployer) Deploy(ctx context.Context, gw *workloads.GatewayF
 	newDeploymentsSolutionProvider := make(map[uint32]*uint64)
 	newDeploymentsSolutionProvider[gw.NodeID] = nil
 
-	oldDeployments := d.tfPluginClient.StateLoader.currentNodeDeployment
-	currentDeployments, err := d.deployer.Deploy(ctx, oldDeployments, newDeployments, newDeploymentsSolutionProvider)
+	gw.NodeDeploymentID, err = d.deployer.Deploy(ctx, gw.NodeDeploymentID, newDeployments, newDeploymentsSolutionProvider)
 
 	// update state
-	if currentDeployments[gw.NodeID] != 0 {
-		if gw.NodeDeploymentID == nil {
-			gw.NodeDeploymentID = make(map[uint32]uint64)
-		}
-
-		gw.ContractID = currentDeployments[gw.NodeID]
-		gw.NodeDeploymentID[gw.NodeID] = gw.ContractID
-		d.tfPluginClient.StateLoader.currentNodeDeployment[gw.NodeID] = gw.ContractID
+	if gw.NodeDeploymentID[gw.NodeID] != 0 {
+		gw.ContractID = gw.NodeDeploymentID[gw.NodeID]
+		d.tfPluginClient.StateLoader.currentNodeDeployment[gw.NodeID] = append(d.tfPluginClient.StateLoader.currentNodeDeployment[gw.NodeID], gw.ContractID)
 	}
 
 	return err
@@ -94,9 +88,7 @@ func (d *GatewayFQDNDeployer) Cancel(ctx context.Context, gw *workloads.GatewayF
 		return err
 	}
 
-	oldDeployments := d.tfPluginClient.StateLoader.currentNodeDeployment
-
-	err = d.deployer.Cancel(ctx, oldDeployments[gw.NodeID])
+	err = d.deployer.Cancel(ctx, gw.NodeDeploymentID[gw.NodeID])
 	if err != nil {
 		return err
 	}

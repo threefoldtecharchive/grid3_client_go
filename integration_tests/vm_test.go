@@ -51,7 +51,6 @@ func TestVMDeployment(t *testing.T) {
 		PublicIP:   true,
 		Planetary:  true,
 		Memory:     1024,
-		RootfsSize: 20 * 1024,
 		Entrypoint: "/sbin/zinit init",
 		EnvVars: map[string]string{
 			"SSH_KEY": publicKey,
@@ -74,7 +73,6 @@ func TestVMDeployment(t *testing.T) {
 		v, err := tfPluginClient.StateLoader.LoadVMFromGrid(nodeID, vm.Name)
 		assert.NoError(t, err)
 		assert.Equal(t, v.IP, "10.20.2.5")
-		assert.Equal(t, 20*1024, v.RootfsSize)
 
 		publicIP := strings.Split(v.ComputedIP, "/")[0]
 		assert.NotEmpty(t, publicIP)

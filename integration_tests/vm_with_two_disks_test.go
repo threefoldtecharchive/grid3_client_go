@@ -59,7 +59,6 @@ func TestVMWithTwoDisk(t *testing.T) {
 		CPU:        2,
 		Planetary:  true,
 		Memory:     1024,
-		RootfsSize: 20 * 1024,
 		Entrypoint: "/sbin/zinit init",
 		EnvVars: map[string]string{
 			"SSH_KEY": publicKey,

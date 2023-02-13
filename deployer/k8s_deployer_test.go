@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/threefoldtech/grid3-go/mocks"
 	client "github.com/threefoldtech/grid3-go/node"
+	"github.com/threefoldtech/grid3-go/subi"
 	"github.com/threefoldtech/grid3-go/workloads"
 	"github.com/threefoldtech/substrate-client"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
@@ -199,7 +200,7 @@ func TestDeploy(t *testing.T) {
 
 	deployer.EXPECT().Deploy(
 		gomock.Any(),
-		map[uint32]uint64{},
+		k8sCluster.NodeDeploymentID,
 		dls,
 		newDeploymentsSolutionProvider,
 	).Return(map[uint32]uint64{nodeID: contractID}, nil)
@@ -215,8 +216,7 @@ func TestUpdateK8s(t *testing.T) {
 
 	k8sCluster, err := constructK8sCluster()
 	assert.NoError(t, err)
-
-	d.tfPluginClient.StateLoader.currentNodeDeployment[nodeID] = contractID
+	k8sCluster.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
 
 	err = d.assignNodeIPRange(&k8sCluster)
 	assert.NoError(t, err)
@@ -225,6 +225,17 @@ func TestUpdateK8s(t *testing.T) {
 	assert.NoError(t, err)
 
 	k8sMockValidation(d.tfPluginClient.identity, cl, sub, ncPool, proxyCl, d)
+
+	sub.EXPECT().GetContract(uint64(100)).Return(subi.Contract{
+		Contract: &substrate.Contract{
+			State: substrate.ContractState{IsCreated: true},
+			ContractType: substrate.ContractType{
+				NodeContract: substrate.NodeContract{
+					Node:           types.U32(nodeID),
+					PublicIPsCount: 0,
+				},
+			}},
+	}, nil)
 
 	deployer.EXPECT().Deploy(
 		gomock.Any(),
@@ -236,7 +247,6 @@ func TestUpdateK8s(t *testing.T) {
 	err = d.Deploy(context.Background(), &k8sCluster)
 	assert.NoError(t, err)
 	assert.Equal(t, k8sCluster.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
-
 }
 
 func TestUpdateK8sFailed(t *testing.T) {
@@ -244,8 +254,7 @@ func TestUpdateK8sFailed(t *testing.T) {
 
 	k8sCluster, err := constructK8sCluster()
 	assert.NoError(t, err)
-
-	d.tfPluginClient.StateLoader.currentNodeDeployment[nodeID] = contractID
+	k8sCluster.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
 
 	err = d.assignNodeIPRange(&k8sCluster)
 	assert.NoError(t, err)
@@ -254,6 +263,17 @@ func TestUpdateK8sFailed(t *testing.T) {
 	assert.NoError(t, err)
 
 	k8sMockValidation(d.tfPluginClient.identity, cl, sub, ncPool, proxyCl, d)
+
+	sub.EXPECT().GetContract(uint64(100)).Return(subi.Contract{
+		Contract: &substrate.Contract{
+			State: substrate.ContractState{IsCreated: true},
+			ContractType: substrate.ContractType{
+				NodeContract: substrate.NodeContract{
+					Node:           types.U32(nodeID),
+					PublicIPsCount: 0,
+				},
+			}},
+	}, nil)
 
 	deployer.EXPECT().Deploy(
 		gomock.Any(),
@@ -270,10 +290,9 @@ func TestUpdateK8sFailed(t *testing.T) {
 func TestCancelK8s(t *testing.T) {
 	d, cl, sub, ncPool, deployer, proxyCl := constructTestK8s(t, true)
 
-	d.tfPluginClient.StateLoader.currentNodeDeployment[nodeID] = contractID
-
 	k8sCluster, err := constructK8sCluster()
 	assert.NoError(t, err)
+	k8sCluster.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
 	k8sCluster.NodesIPRange = map[uint32]gridtypes.IPNet{uint32(10): {}}
 
 	k8sMockValidation(d.tfPluginClient.identity, cl, sub, ncPool, proxyCl, d)
@@ -290,11 +309,9 @@ func TestCancelK8s(t *testing.T) {
 func TestCancelK8sFailed(t *testing.T) {
 	d, cl, sub, ncPool, deployer, proxyCl := constructTestK8s(t, true)
 
-	d.tfPluginClient.StateLoader.currentNodeDeployment[nodeID] = contractID
-
 	k8sCluster, err := constructK8sCluster()
-	k8sCluster.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
 	assert.NoError(t, err)
+	k8sCluster.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
 	k8sCluster.NodesIPRange = map[uint32]gridtypes.IPNet{uint32(10): {}}
 
 	k8sMockValidation(d.tfPluginClient.identity, cl, sub, ncPool, proxyCl, d)
