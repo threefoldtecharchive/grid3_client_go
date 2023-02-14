@@ -122,13 +122,14 @@ func (d *K8sDeployer) Deploy(ctx context.Context, k8sCluster *workloads.K8sClust
 	k8sCluster.NodeDeploymentID, err = d.deployer.Deploy(ctx, k8sCluster.NodeDeploymentID, newDeployments, newDeploymentsSolutionProvider)
 
 	// update deployments state
-	if k8sCluster.NodeDeploymentID[k8sCluster.Master.Node] != 0 {
-		if !workloads.Contains(d.tfPluginClient.StateLoader.currentNodeDeployment[k8sCluster.Master.Node], k8sCluster.NodeDeploymentID[k8sCluster.Master.Node]) {
-			d.tfPluginClient.StateLoader.currentNodeDeployment[k8sCluster.Master.Node] = append(d.tfPluginClient.StateLoader.currentNodeDeployment[k8sCluster.Master.Node], k8sCluster.NodeDeploymentID[k8sCluster.Master.Node])
+	// error is not returned immediately before updating state because of untracked failed deployments
+	if contractID, ok := k8sCluster.NodeDeploymentID[k8sCluster.Master.Node]; ok && contractID != 0 {
+		if !workloads.Contains(d.tfPluginClient.State.currentNodeDeployments[k8sCluster.Master.Node], contractID) {
+			d.tfPluginClient.State.currentNodeDeployments[k8sCluster.Master.Node] = append(d.tfPluginClient.State.currentNodeDeployments[k8sCluster.Master.Node], contractID)
 		}
 		for _, w := range k8sCluster.Workers {
-			if !workloads.Contains(d.tfPluginClient.StateLoader.currentNodeDeployment[w.Node], k8sCluster.NodeDeploymentID[w.Node]) {
-				d.tfPluginClient.StateLoader.currentNodeDeployment[w.Node] = append(d.tfPluginClient.StateLoader.currentNodeDeployment[w.Node], k8sCluster.NodeDeploymentID[w.Node])
+			if !workloads.Contains(d.tfPluginClient.State.currentNodeDeployments[w.Node], k8sCluster.NodeDeploymentID[w.Node]) {
+				d.tfPluginClient.State.currentNodeDeployments[w.Node] = append(d.tfPluginClient.State.currentNodeDeployments[w.Node], k8sCluster.NodeDeploymentID[w.Node])
 			}
 		}
 	}
@@ -148,7 +149,7 @@ func (d *K8sDeployer) Cancel(ctx context.Context, k8sCluster *workloads.K8sClust
 			if err != nil {
 				return errors.Wrapf(err, "couldn't cancel master %s, contract %d", k8sCluster.Master.Name, contractID)
 			}
-			delete(d.tfPluginClient.StateLoader.currentNodeDeployment, nodeID)
+			d.tfPluginClient.State.currentNodeDeployments[nodeID] = workloads.Deletes(d.tfPluginClient.State.currentNodeDeployments[nodeID], contractID)
 			delete(k8sCluster.NodeDeploymentID, nodeID)
 			continue
 		}
@@ -158,7 +159,7 @@ func (d *K8sDeployer) Cancel(ctx context.Context, k8sCluster *workloads.K8sClust
 				if err != nil {
 					return errors.Wrapf(err, "couldn't cancel worker %s, contract %d", worker.Name, contractID)
 				}
-				delete(d.tfPluginClient.StateLoader.currentNodeDeployment, nodeID)
+				d.tfPluginClient.State.currentNodeDeployments[nodeID] = workloads.Deletes(d.tfPluginClient.State.currentNodeDeployments[nodeID], contractID)
 				delete(k8sCluster.NodeDeploymentID, nodeID)
 				break
 			}
@@ -235,16 +236,14 @@ func (d *K8sDeployer) UpdateFromRemote(ctx context.Context, k8sCluster *workload
 			} else if w.Type == zos.PublicIPType {
 				d := zos.PublicIPResult{}
 				if err := json.Unmarshal(w.Result.Data, &d); err != nil {
-					log.Printf("failed to load public ip data %s", err)
-					continue
+					return errors.Wrap(err, "failed to load public ip data")
 				}
 				publicIPs[string(w.Name)] = d.IP.String()
 				publicIP6s[string(w.Name)] = d.IPv6.String()
 			} else if w.Type == zos.ZMountType {
 				d, err := w.WorkloadData()
 				if err != nil {
-					log.Printf("failed to load disk data %s", err)
-					continue
+					return errors.Wrap(err, "failed to load disk data")
 				}
 				diskSize[string(w.Name)] = int(d.(*zos.ZMount).Size / gridtypes.Gigabyte)
 			}
@@ -381,7 +380,7 @@ func (d *K8sDeployer) assignNodesIPs(k8sCluster *workloads.K8sCluster) error {
 }
 
 func (d *K8sDeployer) assignNodeIPRange(k8sCluster *workloads.K8sCluster) (err error) {
-	network := d.tfPluginClient.StateLoader.networks.getNetwork(k8sCluster.NetworkName)
+	network := d.tfPluginClient.State.networks.getNetwork(k8sCluster.NetworkName)
 	nodesIPRange := make(map[uint32]gridtypes.IPNet)
 	nodesIPRange[k8sCluster.Master.Node], err = gridtypes.ParseIPNet(network.getNodeSubnet(k8sCluster.Master.Node))
 	if err != nil {

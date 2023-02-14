@@ -70,7 +70,7 @@ func TestGatewayNameDeployment(t *testing.T) {
 	err = tfPluginClient.DeploymentDeployer.Deploy(ctx, &dl)
 	assert.NoError(t, err)
 
-	v, err := tfPluginClient.StateLoader.LoadVMFromGrid(nodeID, vm.Name)
+	v, err := tfPluginClient.State.LoadVMFromGrid(nodeID, vm.Name)
 	assert.NoError(t, err)
 	assert.True(t, TestConnection(v.YggIP, "22"))
 
@@ -85,7 +85,7 @@ func TestGatewayNameDeployment(t *testing.T) {
 	err = tfPluginClient.GatewayNameDeployer.Deploy(ctx, &gw)
 	assert.NoError(t, err)
 
-	result, err := tfPluginClient.StateLoader.LoadGatewayNameFromGrid(gwNodeID, gw.Name)
+	result, err := tfPluginClient.State.LoadGatewayNameFromGrid(gwNodeID, gw.Name)
 	assert.NoError(t, err)
 
 	assert.NotEmpty(t, result.FQDN)
@@ -115,7 +115,7 @@ func TestGatewayNameDeployment(t *testing.T) {
 	err = tfPluginClient.DeploymentDeployer.Cancel(ctx, &dl)
 	assert.NoError(t, err)
 
-	_, err = tfPluginClient.StateLoader.LoadGatewayNameFromGrid(nodeID, gw.Name)
+	_, err = tfPluginClient.State.LoadGatewayNameFromGrid(nodeID, gw.Name)
 	assert.Error(t, err)
 
 }

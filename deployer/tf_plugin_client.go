@@ -58,7 +58,7 @@ type TFPluginClient struct {
 	K8sDeployer         K8sDeployer
 
 	// state
-	StateLoader *StateLoader
+	State *State
 }
 
 // NewTFPluginClient generates a new tf plugin client
@@ -172,7 +172,7 @@ func NewTFPluginClient(
 	tfPluginClient.K8sDeployer = NewK8sDeployer(&tfPluginClient)
 	tfPluginClient.GatewayNameDeployer = NewGatewayNameDeployer(&tfPluginClient)
 
-	tfPluginClient.StateLoader = NewStateLoader(tfPluginClient.NcPool, tfPluginClient.SubstrateConn)
+	tfPluginClient.State = NewState(tfPluginClient.NcPool, tfPluginClient.SubstrateConn)
 
 	return tfPluginClient, nil
 }

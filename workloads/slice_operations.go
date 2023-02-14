@@ -10,3 +10,14 @@ func Contains[T comparable](elements []T, element T) bool {
 	}
 	return false
 }
+
+// Deletes removes an element from a slice
+func Deletes[T comparable](elements []T, element T) []T {
+	for i, v := range elements {
+		if v == element {
+			elements = append(elements[:i], elements[i+1:]...)
+			break
+		}
+	}
+	return elements
+}

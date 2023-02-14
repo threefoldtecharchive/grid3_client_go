@@ -44,8 +44,8 @@ func constructTestNetworkDeployer(t *testing.T, mock bool) (NetworkDeployer, *mo
 		tfPluginClient.NcPool = ncPool
 		tfPluginClient.RMB = cl
 
-		tfPluginClient.StateLoader.ncPool = ncPool
-		tfPluginClient.StateLoader.substrate = sub
+		tfPluginClient.State.ncPool = ncPool
+		tfPluginClient.State.substrate = sub
 
 		tfPluginClient.twinID = twinID
 
