@@ -46,14 +46,14 @@ func constructTestK8s(t *testing.T, mock bool) (
 		tfPluginClient.RMB = cl
 		tfPluginClient.GridProxyClient = gridProxyCl
 
-		tfPluginClient.StateLoader.ncPool = ncPool
-		tfPluginClient.StateLoader.substrate = sub
+		tfPluginClient.State.ncPool = ncPool
+		tfPluginClient.State.substrate = sub
 
 		tfPluginClient.K8sDeployer.deployer = deployer
 		tfPluginClient.K8sDeployer.tfPluginClient = &tfPluginClient
 	}
 	net := constructTestNetwork()
-	tfPluginClient.StateLoader.networks = networkState{net.Name: network{
+	tfPluginClient.State.networks = networkState{net.Name: network{
 		subnets:               map[uint32]string{nodeID: net.IPRange.String()},
 		nodeDeploymentHostIDs: map[uint32]deploymentHostIDs{nodeID: map[uint64][]byte{contractID: {}}},
 	}}
@@ -213,7 +213,7 @@ func TestDeploy(t *testing.T) {
 
 func TestUpdateK8s(t *testing.T) {
 	d, cl, sub, ncPool, deployer, proxyCl := constructTestK8s(t, true)
-	d.tfPluginClient.StateLoader.currentNodeDeployment = map[uint32][]uint64{nodeID: {contractID}}
+	d.tfPluginClient.State.currentNodeDeployments = map[uint32]contractIDs{nodeID: {contractID}}
 
 	k8sCluster, err := constructK8sCluster()
 	assert.NoError(t, err)
@@ -248,12 +248,12 @@ func TestUpdateK8s(t *testing.T) {
 	err = d.Deploy(context.Background(), &k8sCluster)
 	assert.NoError(t, err)
 	assert.Equal(t, k8sCluster.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
-	assert.Equal(t, d.tfPluginClient.StateLoader.currentNodeDeployment, map[uint32][]uint64{nodeID: {contractID}})
+	assert.Equal(t, d.tfPluginClient.State.currentNodeDeployments, map[uint32]contractIDs{nodeID: {contractID}})
 }
 
 func TestUpdateK8sFailed(t *testing.T) {
 	d, cl, sub, ncPool, deployer, proxyCl := constructTestK8s(t, true)
-	d.tfPluginClient.StateLoader.currentNodeDeployment = map[uint32][]uint64{nodeID: {contractID}}
+	d.tfPluginClient.State.currentNodeDeployments = map[uint32]contractIDs{nodeID: {contractID}}
 
 	k8sCluster, err := constructK8sCluster()
 	assert.NoError(t, err)
@@ -288,12 +288,12 @@ func TestUpdateK8sFailed(t *testing.T) {
 	err = d.Deploy(context.Background(), &k8sCluster)
 	assert.Error(t, err)
 	assert.Equal(t, k8sCluster.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
-	assert.Equal(t, d.tfPluginClient.StateLoader.currentNodeDeployment, map[uint32][]uint64{nodeID: {contractID}})
+	assert.Equal(t, d.tfPluginClient.State.currentNodeDeployments, map[uint32]contractIDs{nodeID: {contractID}})
 }
 
 func TestCancelK8s(t *testing.T) {
 	d, cl, sub, ncPool, deployer, proxyCl := constructTestK8s(t, true)
-	d.tfPluginClient.StateLoader.currentNodeDeployment = map[uint32][]uint64{nodeID: {contractID}}
+	d.tfPluginClient.State.currentNodeDeployments = map[uint32]contractIDs{nodeID: {contractID}}
 
 	k8sCluster, err := constructK8sCluster()
 	assert.NoError(t, err)
@@ -309,12 +309,12 @@ func TestCancelK8s(t *testing.T) {
 	err = d.Cancel(context.Background(), &k8sCluster)
 	assert.NoError(t, err)
 	assert.Empty(t, k8sCluster.NodeDeploymentID)
-	assert.Empty(t, d.tfPluginClient.StateLoader.currentNodeDeployment)
+	assert.Empty(t, d.tfPluginClient.State.currentNodeDeployments[nodeID])
 }
 
 func TestCancelK8sFailed(t *testing.T) {
 	d, cl, sub, ncPool, deployer, proxyCl := constructTestK8s(t, true)
-	d.tfPluginClient.StateLoader.currentNodeDeployment = map[uint32][]uint64{nodeID: {contractID}}
+	d.tfPluginClient.State.currentNodeDeployments = map[uint32]contractIDs{nodeID: {contractID}}
 
 	k8sCluster, err := constructK8sCluster()
 	assert.NoError(t, err)
@@ -330,6 +330,6 @@ func TestCancelK8sFailed(t *testing.T) {
 	err = d.Cancel(context.Background(), &k8sCluster)
 	assert.Error(t, err)
 	assert.Equal(t, k8sCluster.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
-	assert.Equal(t, d.tfPluginClient.StateLoader.currentNodeDeployment, map[uint32][]uint64{nodeID: {contractID}})
+	assert.Equal(t, d.tfPluginClient.State.currentNodeDeployments, map[uint32]contractIDs{nodeID: {contractID}})
 
 }

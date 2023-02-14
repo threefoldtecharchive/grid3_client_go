@@ -79,10 +79,11 @@ func (d *GatewayNameDeployer) Deploy(ctx context.Context, gw *workloads.GatewayN
 	gw.NodeDeploymentID, err = d.deployer.Deploy(ctx, gw.NodeDeploymentID, newDeployments, newDeploymentsSolutionProvider)
 
 	// update state
-	if gw.NodeDeploymentID[gw.NodeID] != 0 {
-		gw.ContractID = gw.NodeDeploymentID[gw.NodeID]
-		if !workloads.Contains(d.tfPluginClient.StateLoader.currentNodeDeployment[gw.NodeID], gw.ContractID) {
-			d.tfPluginClient.StateLoader.currentNodeDeployment[gw.NodeID] = append(d.tfPluginClient.StateLoader.currentNodeDeployment[gw.NodeID], gw.ContractID)
+	// error is not returned immediately before updating state because of untracked failed deployments
+	if contractID, ok := gw.NodeDeploymentID[gw.NodeID]; ok && contractID != 0 {
+		gw.ContractID = contractID
+		if !workloads.Contains(d.tfPluginClient.State.currentNodeDeployments[gw.NodeID], gw.ContractID) {
+			d.tfPluginClient.State.currentNodeDeployments[gw.NodeID] = append(d.tfPluginClient.State.currentNodeDeployments[gw.NodeID], gw.ContractID)
 		}
 	}
 
@@ -95,14 +96,15 @@ func (d *GatewayNameDeployer) Cancel(ctx context.Context, gw *workloads.GatewayN
 		return err
 	}
 
-	err = d.deployer.Cancel(ctx, gw.NodeDeploymentID[gw.NodeID])
+	contractID := gw.NodeDeploymentID[gw.NodeID]
+	err = d.deployer.Cancel(ctx, contractID)
 	if err != nil {
 		return err
 	}
 
 	gw.ContractID = 0
 	delete(gw.NodeDeploymentID, gw.NodeID)
-	delete(d.tfPluginClient.StateLoader.currentNodeDeployment, gw.NodeID)
+	d.tfPluginClient.State.currentNodeDeployments[gw.NodeID] = workloads.Delete(d.tfPluginClient.State.currentNodeDeployments[gw.NodeID], contractID)
 
 	if gw.NameContractID != 0 {
 		if err := d.tfPluginClient.SubstrateConn.EnsureContractCanceled(d.tfPluginClient.identity, gw.NameContractID); err != nil {

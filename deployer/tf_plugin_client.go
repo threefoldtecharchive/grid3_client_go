@@ -65,7 +65,7 @@ type TFPluginClient struct {
 	K8sDeployer         K8sDeployer
 
 	// state
-	StateLoader *StateLoader
+	State *State
 
 	// contracts
 	graphQl         graphQl
@@ -183,7 +183,7 @@ func NewTFPluginClient(
 	tfPluginClient.K8sDeployer = NewK8sDeployer(&tfPluginClient)
 	tfPluginClient.GatewayNameDeployer = NewGatewayNameDeployer(&tfPluginClient)
 
-	tfPluginClient.StateLoader = NewStateLoader(tfPluginClient.NcPool, tfPluginClient.SubstrateConn)
+	tfPluginClient.State = NewState(tfPluginClient.NcPool, tfPluginClient.SubstrateConn)
 
 	graphqlURL := GraphQlURLs[network]
 	tfPluginClient.graphQl, err = newGraphQl(graphqlURL)

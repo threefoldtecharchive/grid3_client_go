@@ -1,4 +1,4 @@
-// Package workloads includes workloads types (vm, zdb, qsfs, public IP, gateway name, gateway fqdn, disk)
+// Package workloads includes workloads types (vm, zdb, QSFS, public IP, gateway name, gateway fqdn, disk)
 package workloads
 
 import (
@@ -31,7 +31,7 @@ type Deployment struct {
 	Disks            []Disk
 	Zdbs             []ZDB
 	Vms              []VM
-	Qsfs             []QSFS
+	QSFS             []QSFS
 
 	// computed
 	NodeDeploymentID map[uint32]uint64
@@ -45,7 +45,7 @@ func NewDeployment(name string, nodeID uint32,
 	disks []Disk,
 	zdbs []ZDB,
 	vms []VM,
-	qsfs []QSFS,
+	QSFS []QSFS,
 ) Deployment {
 	return Deployment{
 		Name:             name,
@@ -56,7 +56,7 @@ func NewDeployment(name string, nodeID uint32,
 		Disks:            disks,
 		Zdbs:             zdbs,
 		Vms:              vms,
-		Qsfs:             qsfs,
+		QSFS:             QSFS,
 	}
 }
 
@@ -97,21 +97,21 @@ func (d *Deployment) GenerateMetadata() (string, error) {
 // Nullify resets deployment
 func (d *Deployment) Nullify() {
 	d.Vms = nil
-	d.Qsfs = nil
+	d.QSFS = nil
 	d.Disks = nil
 	d.Zdbs = nil
 	d.ContractID = 0
 }
 
 // Match objects to match the input
-func (d *Deployment) Match(disks []Disk, qsfs []QSFS, zdbs []ZDB, vms []VM) {
+func (d *Deployment) Match(disks []Disk, QSFS []QSFS, zdbs []ZDB, vms []VM) {
 	vmMap := make(map[string]*VM)
-	l := len(d.Disks) + len(d.Qsfs) + len(d.Zdbs) + len(d.Vms)
+	l := len(d.Disks) + len(d.QSFS) + len(d.Zdbs) + len(d.Vms)
 	names := make(map[string]int)
 	for idx, o := range d.Disks {
 		names[o.Name] = idx - l
 	}
-	for idx, o := range d.Qsfs {
+	for idx, o := range d.QSFS {
 		names[o.Name] = idx - l
 	}
 	for idx, o := range d.Zdbs {
@@ -124,8 +124,8 @@ func (d *Deployment) Match(disks []Disk, qsfs []QSFS, zdbs []ZDB, vms []VM) {
 	sort.Slice(disks, func(i, j int) bool {
 		return names[disks[i].Name] < names[disks[j].Name]
 	})
-	sort.Slice(qsfs, func(i, j int) bool {
-		return names[qsfs[i].Name] < names[qsfs[j].Name]
+	sort.Slice(QSFS, func(i, j int) bool {
+		return names[QSFS[i].Name] < names[QSFS[j].Name]
 	})
 	sort.Slice(zdbs, func(i, j int) bool {
 		return names[zdbs[i].Name] < names[zdbs[j].Name]
@@ -160,7 +160,7 @@ func (d *Deployment) ZosDeployment(twin uint32) (gridtypes.Deployment, error) {
 		wls = append(wls, vmWls...)
 	}
 
-	for _, q := range d.Qsfs {
+	for _, q := range d.QSFS {
 		qWls, err := q.ZosWorkload()
 		if err != nil {
 			return gridtypes.Deployment{}, err

@@ -71,7 +71,7 @@ func TestGatewayFQDNDeployment(t *testing.T) {
 	err = tfPluginClient.DeploymentDeployer.Deploy(ctx, &dl)
 	assert.NoError(t, err)
 
-	v, err := tfPluginClient.StateLoader.LoadVMFromGrid(nodeID, vm.Name)
+	v, err := tfPluginClient.State.LoadVMFromGrid(nodeID, vm.Name)
 	assert.NoError(t, err)
 	assert.True(t, TestConnection(v.YggIP, "22"))
 
@@ -88,7 +88,7 @@ func TestGatewayFQDNDeployment(t *testing.T) {
 	err = tfPluginClient.GatewayFQDNDeployer.Deploy(ctx, &gw)
 	assert.NoError(t, err)
 
-	result, err := tfPluginClient.StateLoader.LoadGatewayFqdnFromGrid(nodeID, gw.Name)
+	result, err := tfPluginClient.State.LoadGatewayFqdnFromGrid(nodeID, gw.Name)
 	assert.NoError(t, err)
 	assert.Equal(t, gw, result)
 
@@ -117,7 +117,7 @@ func TestGatewayFQDNDeployment(t *testing.T) {
 	err = tfPluginClient.NetworkDeployer.Cancel(ctx, &network)
 	assert.NoError(t, err)
 
-	_, err = tfPluginClient.StateLoader.LoadGatewayFqdnFromGrid(nodeID, gw.Name)
+	_, err = tfPluginClient.State.LoadGatewayFqdnFromGrid(nodeID, gw.Name)
 	assert.Error(t, err)
 }
 */

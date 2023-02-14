@@ -1,4 +1,4 @@
-// Package workloads includes workloads types (vm, zdb, qsfs, public IP, gateway name, gateway fqdn, disk)
+// Package workloads includes workloads types (vm, zdb, QSFS, public IP, gateway name, gateway fqdn, disk)
 package workloads
 
 import (
@@ -8,8 +8,8 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 )
 
-// QsfsWorkload for testing
-var QsfsWorkload = QSFS{
+// QSFSWorkload for testing
+var QSFSWorkload = QSFS{
 	Name:                 "test",
 	Description:          "test des",
 	Cache:                2048,
@@ -35,26 +35,26 @@ var QsfsWorkload = QSFS{
 	}}},
 }
 
-func TestQsfsWorkload(t *testing.T) {
+func TestQSFSWorkload(t *testing.T) {
 	var qsfs gridtypes.Workload
 
-	t.Run("test new qsfs to/from map", func(t *testing.T) {
-		qsfsFromMap := NewQSFSFromMap(QsfsWorkload.ToMap())
-		assert.Equal(t, qsfsFromMap, QsfsWorkload)
+	t.Run("test new QSFS to/from map", func(t *testing.T) {
+		QSFSFromMap := NewQSFSFromMap(QSFSWorkload.ToMap())
+		assert.Equal(t, QSFSFromMap, QSFSWorkload)
 	})
 
-	t.Run("test_new_qsfs_from_workload", func(t *testing.T) {
+	t.Run("test_new_QSFS_from_workload", func(t *testing.T) {
 		var err error
-		qsfs, err = QsfsWorkload.ZosWorkload()
+		qsfs, err = QSFSWorkload.ZosWorkload()
 		assert.NoError(t, err)
 
-		qsfsFromWorkload, err := NewQSFSFromWorkload(&qsfs)
+		QSFSFromWorkload, err := NewQSFSFromWorkload(&qsfs)
 		assert.NoError(t, err)
-		assert.Equal(t, qsfsFromWorkload, QsfsWorkload)
+		assert.Equal(t, QSFSFromWorkload, QSFSWorkload)
 	})
 
-	t.Run("test_update_qsfs_from_workload", func(t *testing.T) {
-		err := QsfsWorkload.UpdateFromWorkload(&qsfs)
+	t.Run("test_update_QSFS_from_workload", func(t *testing.T) {
+		err := QSFSWorkload.UpdateFromWorkload(&qsfs)
 		assert.NoError(t, err)
 	})
 }

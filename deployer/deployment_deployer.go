@@ -44,10 +44,10 @@ func (d *DeploymentDeployer) GenerateVersionlessDeployments(ctx context.Context,
 		newDl.Workloads = append(newDl.Workloads, vm.ZosWorkload()...)
 	}
 
-	for idx, q := range dl.Qsfs {
+	for idx, q := range dl.QSFS {
 		qsfsWorkload, err := q.ZosWorkload()
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to generate qsfs %d", idx)
+			return nil, errors.Wrapf(err, "failed to generate QSFS %d", idx)
 		}
 		newDl.Workloads = append(newDl.Workloads, qsfsWorkload)
 	}
@@ -78,10 +78,10 @@ func (d *DeploymentDeployer) Deploy(ctx context.Context, dl *workloads.Deploymen
 
 	// update deployment and plugin state
 	// error is not returned immediately before updating state because of untracked failed deployments
-	if dl.NodeDeploymentID[dl.NodeID] != 0 {
-		dl.ContractID = dl.NodeDeploymentID[dl.NodeID]
-		if !workloads.Contains(d.tfPluginClient.StateLoader.currentNodeDeployment[dl.NodeID], dl.ContractID) {
-			d.tfPluginClient.StateLoader.currentNodeDeployment[dl.NodeID] = append(d.tfPluginClient.StateLoader.currentNodeDeployment[dl.NodeID], dl.ContractID)
+	if contractID, ok := dl.NodeDeploymentID[dl.NodeID]; ok && contractID != 0 {
+		dl.ContractID = contractID
+		if !workloads.Contains(d.tfPluginClient.State.currentNodeDeployments[dl.NodeID], dl.ContractID) {
+			d.tfPluginClient.State.currentNodeDeployments[dl.NodeID] = append(d.tfPluginClient.State.currentNodeDeployments[dl.NodeID], dl.ContractID)
 		}
 	}
 
@@ -94,7 +94,8 @@ func (d *DeploymentDeployer) Cancel(ctx context.Context, dl *workloads.Deploymen
 		return err
 	}
 
-	err := d.deployer.Cancel(ctx, dl.NodeDeploymentID[dl.NodeID])
+	contractID := dl.NodeDeploymentID[dl.NodeID]
+	err := d.deployer.Cancel(ctx, contractID)
 	if err != nil {
 		return err
 	}
@@ -102,7 +103,7 @@ func (d *DeploymentDeployer) Cancel(ctx context.Context, dl *workloads.Deploymen
 	// update state
 	dl.ContractID = 0
 	delete(dl.NodeDeploymentID, dl.NodeID)
-	delete(d.tfPluginClient.StateLoader.currentNodeDeployment, dl.NodeID)
+	d.tfPluginClient.State.currentNodeDeployments[dl.NodeID] = workloads.Delete(d.tfPluginClient.State.currentNodeDeployments[dl.NodeID], contractID)
 
 	return nil
 }
@@ -130,7 +131,7 @@ func (d *DeploymentDeployer) Sync(ctx context.Context, dl *workloads.Deployment)
 	qsfs := make([]workloads.QSFS, 0)
 	disks := make([]workloads.Disk, 0)
 
-	network := d.tfPluginClient.StateLoader.networks.getNetwork(dl.NetworkName)
+	network := d.tfPluginClient.State.networks.getNetwork(dl.NetworkName)
 	network.deleteDeploymentHostIDs(dl.NodeID, dl.ContractID)
 
 	usedIPs := []byte{}
@@ -179,13 +180,13 @@ func (d *DeploymentDeployer) Sync(ctx context.Context, dl *workloads.Deployment)
 		}
 	}
 
-	network = d.tfPluginClient.StateLoader.networks.getNetwork(dl.NetworkName)
+	network = d.tfPluginClient.State.networks.getNetwork(dl.NetworkName)
 	network.setDeploymentHostIDs(dl.NodeID, dl.ContractID, usedIPs)
 
 	dl.Match(disks, qsfs, zdbs, vms)
 
 	dl.Disks = disks
-	dl.Qsfs = qsfs
+	dl.QSFS = qsfs
 	dl.Zdbs = zdbs
 	dl.Vms = vms
 
@@ -204,7 +205,7 @@ func (d *DeploymentDeployer) Validate(ctx context.Context, dl *workloads.Deploym
 }
 
 func (d *DeploymentDeployer) assignNodesIPs(dl *workloads.Deployment) error {
-	network := d.tfPluginClient.StateLoader.networks.getNetwork(dl.NetworkName)
+	network := d.tfPluginClient.State.networks.getNetwork(dl.NetworkName)
 	ipRange := network.getNodeSubnet(dl.NodeID)
 
 	usedHosts := network.getUsedNetworkHostIDs(dl.NodeID)
