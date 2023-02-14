@@ -52,7 +52,7 @@ func TestQSFSDeployment(t *testing.T) {
 	metaZDBs := []workloads.ZDB{}
 	for i := 1; i <= DataZDBNum; i++ {
 		zdb := workloads.ZDB{
-			Name:        "QSFSDataZdb" + strconv.Itoa(i),
+			Name:        "qsfsDataZdb" + strconv.Itoa(i),
 			Password:    "password",
 			Public:      true,
 			Size:        1,
@@ -64,7 +64,7 @@ func TestQSFSDeployment(t *testing.T) {
 
 	for i := 1; i <= MetaZDBNum; i++ {
 		zdb := workloads.ZDB{
-			Name:        "QSFSMetaZdb" + strconv.Itoa(i),
+			Name:        "qsfsMetaZdb" + strconv.Itoa(i),
 			Password:    "password",
 			Public:      true,
 			Size:        1,
@@ -77,7 +77,7 @@ func TestQSFSDeployment(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 	defer cancel()
 
-	dl := workloads.NewDeployment("QSFS", nodeID, "", nil, "", nil, append(dataZDBs, metaZDBs...), nil, nil)
+	dl := workloads.NewDeployment("qsfs", nodeID, "", nil, "", nil, append(dataZDBs, metaZDBs...), nil, nil)
 	err = tfPluginClient.DeploymentDeployer.Deploy(ctx, &dl)
 	assert.NoError(t, err)
 
@@ -85,13 +85,13 @@ func TestQSFSDeployment(t *testing.T) {
 	resDataZDBs := []workloads.ZDB{}
 	resMetaZDBs := []workloads.ZDB{}
 	for i := 1; i <= DataZDBNum; i++ {
-		res, err := tfPluginClient.State.LoadZdbFromGrid(nodeID, "QSFSDataZdb"+strconv.Itoa(i))
+		res, err := tfPluginClient.State.LoadZdbFromGrid(nodeID, "qsfsDataZdb"+strconv.Itoa(i))
 		assert.NoError(t, err)
 		assert.NotEmpty(t, res)
 		resDataZDBs = append(resDataZDBs, res)
 	}
 	for i := 1; i <= MetaZDBNum; i++ {
-		res, err := tfPluginClient.State.LoadZdbFromGrid(nodeID, "QSFSMetaZdb"+strconv.Itoa(i))
+		res, err := tfPluginClient.State.LoadZdbFromGrid(nodeID, "qsfsMetaZdb"+strconv.Itoa(i))
 		assert.NoError(t, err)
 		assert.NotEmpty(t, res)
 		resMetaZDBs = append(resMetaZDBs, res)
@@ -113,9 +113,9 @@ func TestQSFSDeployment(t *testing.T) {
 			Password:  resMetaZDBs[i].Password})
 	}
 
-	QSFS := workloads.QSFS{
-		Name:                 "QSFSTest",
-		Description:          "QSFS for testing",
+	qsfs := workloads.QSFS{
+		Name:                 "qsfsTest",
+		Description:          "qsfs for testing",
 		Cache:                1024,
 		MinimalShards:        2,
 		ExpectedShards:       4,
@@ -146,7 +146,7 @@ func TestQSFSDeployment(t *testing.T) {
 			"SSH_KEY": publicKey,
 		},
 		Mounts: []workloads.Mount{
-			{DiskName: QSFS.Name, MountPoint: "/QSFS"},
+			{DiskName: qsfs.Name, MountPoint: "/qsfs"},
 		},
 		NetworkName: network.Name,
 	}
@@ -154,14 +154,14 @@ func TestQSFSDeployment(t *testing.T) {
 	err = tfPluginClient.NetworkDeployer.Deploy(ctx, &network)
 	assert.NoError(t, err)
 
-	dl = workloads.NewDeployment("QSFS", nodeID, "", nil, network.Name, nil, append(dataZDBs, metaZDBs...), []workloads.VM{vm}, []workloads.QSFS{QSFS})
+	dl = workloads.NewDeployment("qsfs", nodeID, "", nil, network.Name, nil, append(dataZDBs, metaZDBs...), []workloads.VM{vm}, []workloads.QSFS{qsfs})
 	err = tfPluginClient.DeploymentDeployer.Deploy(ctx, &dl)
 	assert.NoError(t, err)
 
 	resVM, err := tfPluginClient.State.LoadVMFromGrid(nodeID, vm.Name)
 	assert.NoError(t, err)
 
-	resQSFS, err := tfPluginClient.State.LoadQSFSFromGrid(nodeID, QSFS.Name)
+	resQSFS, err := tfPluginClient.State.LoadQSFSFromGrid(nodeID, qsfs.Name)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, resQSFS.MetricsEndpoint)
 
@@ -182,7 +182,7 @@ func TestQSFSDeployment(t *testing.T) {
 	assert.Contains(t, string(output), "fs_syscalls{syscall=\"create\"} 0")
 
 	// try write to a file in mounted disk
-	_, err = RemoteRun("root", yggIP, "cd /QSFS && echo hamadatext >> hamadafile", privateKey)
+	_, err = RemoteRun("root", yggIP, "cd /qsfs && echo hamadatext >> hamadafile", privateKey)
 	assert.NoError(t, err)
 
 	// get metrics after write
@@ -192,7 +192,7 @@ func TestQSFSDeployment(t *testing.T) {
 	assert.Contains(t, string(output), "fs_syscalls{syscall=\"create\"} 1")
 
 	resQSFS.MetricsEndpoint = ""
-	assert.Equal(t, QSFS, resQSFS)
+	assert.Equal(t, qsfs, resQSFS)
 
 	// cancel all
 	err = tfPluginClient.DeploymentDeployer.Cancel(ctx, &dl)
@@ -201,6 +201,6 @@ func TestQSFSDeployment(t *testing.T) {
 	err = tfPluginClient.NetworkDeployer.Cancel(ctx, &network)
 	assert.NoError(t, err)
 
-	_, err = tfPluginClient.State.LoadQSFSFromGrid(nodeID, QSFS.Name)
+	_, err = tfPluginClient.State.LoadQSFSFromGrid(nodeID, qsfs.Name)
 	assert.Error(t, err)
 }

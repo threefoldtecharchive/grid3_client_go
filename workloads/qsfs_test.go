@@ -36,7 +36,7 @@ var QSFSWorkload = QSFS{
 }
 
 func TestQSFSWorkload(t *testing.T) {
-	var QSFS gridtypes.Workload
+	var qsfs gridtypes.Workload
 
 	t.Run("test new QSFS to/from map", func(t *testing.T) {
 		QSFSFromMap := NewQSFSFromMap(QSFSWorkload.ToMap())
@@ -45,16 +45,16 @@ func TestQSFSWorkload(t *testing.T) {
 
 	t.Run("test_new_QSFS_from_workload", func(t *testing.T) {
 		var err error
-		QSFS, err = QSFSWorkload.ZosWorkload()
+		qsfs, err = QSFSWorkload.ZosWorkload()
 		assert.NoError(t, err)
 
-		QSFSFromWorkload, err := NewQSFSFromWorkload(&QSFS)
+		QSFSFromWorkload, err := NewQSFSFromWorkload(&qsfs)
 		assert.NoError(t, err)
 		assert.Equal(t, QSFSFromWorkload, QSFSWorkload)
 	})
 
 	t.Run("test_update_QSFS_from_workload", func(t *testing.T) {
-		err := QSFSWorkload.UpdateFromWorkload(&QSFS)
+		err := QSFSWorkload.UpdateFromWorkload(&qsfs)
 		assert.NoError(t, err)
 	})
 }

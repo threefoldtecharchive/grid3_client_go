@@ -152,8 +152,8 @@ func (m *Metadata) ToMap() map[string]interface{} {
 }
 
 // NewQSFSFromMap generates a new QSFS from a given map of its data
-func NewQSFSFromMap(QSFSMap map[string]interface{}) QSFS {
-	metadataIf := QSFSMap["metadata"].([]interface{})
+func NewQSFSFromMap(qsfsMap map[string]interface{}) QSFS {
+	metadataIf := qsfsMap["metadata"].([]interface{})
 	metadataMap := metadataIf[0].(map[string]interface{})
 
 	metadata := Metadata{
@@ -163,7 +163,7 @@ func NewQSFSFromMap(QSFSMap map[string]interface{}) QSFS {
 		EncryptionKey:       metadataMap["encryption_key"].(string),
 		Backends:            getBackends(metadataMap["backends"].([]interface{})),
 	}
-	groupsIf := QSFSMap["groups"].([]interface{})
+	groupsIf := qsfsMap["groups"].([]interface{})
 	groups := make([]Group, 0, len(groupsIf))
 	for _, gr := range groupsIf {
 		groupMap := gr.(map[string]interface{})
@@ -172,17 +172,17 @@ func NewQSFSFromMap(QSFSMap map[string]interface{}) QSFS {
 		})
 	}
 	return QSFS{
-		Name:                 QSFSMap["name"].(string),
-		Description:          QSFSMap["description"].(string),
-		Cache:                QSFSMap["cache"].(int),
-		MinimalShards:        uint32(QSFSMap["minimal_shards"].(uint32)),
-		ExpectedShards:       uint32(QSFSMap["expected_shards"].(uint32)),
-		RedundantGroups:      uint32(QSFSMap["redundant_groups"].(uint32)),
-		RedundantNodes:       uint32(QSFSMap["redundant_nodes"].(uint32)),
-		MaxZDBDataDirSize:    uint32(QSFSMap["max_zdb_data_dir_size"].(uint32)),
-		EncryptionAlgorithm:  QSFSMap["encryption_algorithm"].(string),
-		EncryptionKey:        QSFSMap["encryption_key"].(string),
-		CompressionAlgorithm: QSFSMap["compression_algorithm"].(string),
+		Name:                 qsfsMap["name"].(string),
+		Description:          qsfsMap["description"].(string),
+		Cache:                qsfsMap["cache"].(int),
+		MinimalShards:        uint32(qsfsMap["minimal_shards"].(uint32)),
+		ExpectedShards:       uint32(qsfsMap["expected_shards"].(uint32)),
+		RedundantGroups:      uint32(qsfsMap["redundant_groups"].(uint32)),
+		RedundantNodes:       uint32(qsfsMap["redundant_nodes"].(uint32)),
+		MaxZDBDataDirSize:    uint32(qsfsMap["max_zdb_data_dir_size"].(uint32)),
+		EncryptionAlgorithm:  qsfsMap["encryption_algorithm"].(string),
+		EncryptionKey:        qsfsMap["encryption_key"].(string),
+		CompressionAlgorithm: qsfsMap["compression_algorithm"].(string),
 		Metadata:             metadata,
 		Groups:               groups,
 	}
@@ -206,7 +206,7 @@ func NewQSFSFromWorkload(wl *gridtypes.Workload) (QSFS, error) {
 
 	data, ok := dataI.(*zos.QuantumSafeFS)
 	if !ok {
-		return QSFS{}, fmt.Errorf("could not create QSFS workload from data %v", dataI)
+		return QSFS{}, fmt.Errorf("could not create qsfs workload from data %v", dataI)
 	}
 
 	return QSFS{

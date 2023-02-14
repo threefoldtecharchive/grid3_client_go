@@ -158,7 +158,7 @@ func constructTestDeployment() workloads.Deployment {
 		},
 	}
 
-	QSFS := []workloads.QSFS{
+	qsfs := []workloads.QSFS{
 		{
 			Name:                 "name1",
 			Description:          "description1",
@@ -235,7 +235,7 @@ func constructTestDeployment() workloads.Deployment {
 		Disks:       disks,
 		Zdbs:        zdbs,
 		Vms:         vms,
-		QSFS:        QSFS,
+		QSFS:        qsfs,
 		NetworkName: "network",
 	}
 }

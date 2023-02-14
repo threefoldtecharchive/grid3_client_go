@@ -45,11 +45,11 @@ func (d *DeploymentDeployer) GenerateVersionlessDeployments(ctx context.Context,
 	}
 
 	for idx, q := range dl.QSFS {
-		QSFSWorkload, err := q.ZosWorkload()
+		qsfsWorkload, err := q.ZosWorkload()
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to generate QSFS %d", idx)
 		}
-		newDl.Workloads = append(newDl.Workloads, QSFSWorkload)
+		newDl.Workloads = append(newDl.Workloads, qsfsWorkload)
 	}
 
 	newDl.Metadata, err = dl.GenerateMetadata()
@@ -128,7 +128,7 @@ func (d *DeploymentDeployer) Sync(ctx context.Context, dl *workloads.Deployment)
 
 	vms := make([]workloads.VM, 0)
 	zdbs := make([]workloads.ZDB, 0)
-	QSFS := make([]workloads.QSFS, 0)
+	qsfs := make([]workloads.QSFS, 0)
 	disks := make([]workloads.Disk, 0)
 
 	network := d.tfPluginClient.State.networks.getNetwork(dl.NetworkName)
@@ -163,11 +163,11 @@ func (d *DeploymentDeployer) Sync(ctx context.Context, dl *workloads.Deployment)
 		case zos.QuantumSafeFSType:
 			q, err := workloads.NewQSFSFromWorkload(&w)
 			if err != nil {
-				log.Printf("error parsing QSFS: %s", err.Error())
+				log.Printf("error parsing qsfs: %s", err.Error())
 				continue
 			}
 
-			QSFS = append(QSFS, q)
+			qsfs = append(qsfs, q)
 
 		case zos.ZMountType:
 			disk, err := workloads.NewDiskFromWorkload(&w)
@@ -183,10 +183,10 @@ func (d *DeploymentDeployer) Sync(ctx context.Context, dl *workloads.Deployment)
 	network = d.tfPluginClient.State.networks.getNetwork(dl.NetworkName)
 	network.setDeploymentHostIDs(dl.NodeID, dl.ContractID, usedIPs)
 
-	dl.Match(disks, QSFS, zdbs, vms)
+	dl.Match(disks, qsfs, zdbs, vms)
 
 	dl.Disks = disks
-	dl.QSFS = QSFS
+	dl.QSFS = qsfs
 	dl.Zdbs = zdbs
 	dl.Vms = vms
 
