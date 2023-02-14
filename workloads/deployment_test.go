@@ -1,4 +1,4 @@
-// Package workloads includes workloads types (vm, zdb, qsfs, public IP, gateway name, gateway fqdn, disk)
+// Package workloads includes workloads types (vm, zdb, QSFS, public IP, gateway name, gateway fqdn, disk)
 package workloads
 
 import (
@@ -17,7 +17,7 @@ func TestNewDeployment(t *testing.T) {
 		[]Disk{DiskWorkload},
 		[]ZDB{ZDBWorkload},
 		[]VM{VMWorkload},
-		[]QSFS{QsfsWorkload},
+		[]QSFS{QSFSWorkload},
 	)
 
 	t.Run("test deployment validate", func(t *testing.T) {
@@ -31,9 +31,9 @@ func TestNewDeployment(t *testing.T) {
 
 		workloads := []gridtypes.Workload{DiskWorkload.ZosWorkload(), ZDBWorkload.ZosWorkload()}
 		workloads = append(workloads, VMWorkload.ZosWorkload()...)
-		qsfs, err := QsfsWorkload.ZosWorkload()
+		QSFS, err := QSFSWorkload.ZosWorkload()
 		assert.NoError(t, err)
-		workloads = append(workloads, qsfs)
+		workloads = append(workloads, QSFS)
 
 		newZosDeployment := NewGridDeployment(1, workloads)
 		assert.Equal(t, newZosDeployment, zosDeployment)
@@ -63,7 +63,7 @@ func TestNewDeployment(t *testing.T) {
 		deployment.Nullify()
 		assert.Equal(t, deployment.Vms, []VM(nil))
 		assert.Equal(t, deployment.Disks, []Disk(nil))
-		assert.Equal(t, deployment.Qsfs, []QSFS(nil))
+		assert.Equal(t, deployment.QSFS, []QSFS(nil))
 		assert.Equal(t, deployment.Zdbs, []ZDB(nil))
 		assert.Equal(t, deployment.ContractID, uint64(0))
 	})

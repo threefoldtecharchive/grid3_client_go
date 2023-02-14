@@ -184,7 +184,7 @@ grid3_go is a go client created to interact with threefold grid. It should manag
 - ### **Workers:**
 
   - It is responsible for conversions between grid workloads/types and the grid client workloads/types.
-  - It supports the following: deployments, disks, gateways, k8s, networks, publicIP workloads, vms, qsfs, zlog, zdb
+  - It supports the following: deployments, disks, gateways, k8s, networks, publicIP workloads, vms, QSFS, zlog, zdb
 
 ### Example
 

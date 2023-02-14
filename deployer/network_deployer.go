@@ -312,7 +312,7 @@ func (d *NetworkDeployer) Cancel(ctx context.Context, znet *workloads.ZNet) erro
 				return errors.Wrapf(err, "couldn't cancel network %s, contract %d", znet.Name, contractID)
 			}
 			delete(znet.NodeDeploymentID, nodeID)
-			d.tfPluginClient.State.currentNodeDeployments[nodeID] = workloads.Deletes(d.tfPluginClient.State.currentNodeDeployments[nodeID], contractID)
+			d.tfPluginClient.State.currentNodeDeployments[nodeID] = workloads.Delete(d.tfPluginClient.State.currentNodeDeployments[nodeID], contractID)
 		}
 	}
 

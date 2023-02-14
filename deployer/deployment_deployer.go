@@ -44,12 +44,12 @@ func (d *DeploymentDeployer) GenerateVersionlessDeployments(ctx context.Context,
 		newDl.Workloads = append(newDl.Workloads, vm.ZosWorkload()...)
 	}
 
-	for idx, q := range dl.Qsfs {
-		qsfsWorkload, err := q.ZosWorkload()
+	for idx, q := range dl.QSFS {
+		QSFSWorkload, err := q.ZosWorkload()
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to generate qsfs %d", idx)
+			return nil, errors.Wrapf(err, "failed to generate QSFS %d", idx)
 		}
-		newDl.Workloads = append(newDl.Workloads, qsfsWorkload)
+		newDl.Workloads = append(newDl.Workloads, QSFSWorkload)
 	}
 
 	newDl.Metadata, err = dl.GenerateMetadata()
@@ -103,7 +103,7 @@ func (d *DeploymentDeployer) Cancel(ctx context.Context, dl *workloads.Deploymen
 	// update state
 	dl.ContractID = 0
 	delete(dl.NodeDeploymentID, dl.NodeID)
-	d.tfPluginClient.State.currentNodeDeployments[dl.NodeID] = workloads.Deletes(d.tfPluginClient.State.currentNodeDeployments[dl.NodeID], contractID)
+	d.tfPluginClient.State.currentNodeDeployments[dl.NodeID] = workloads.Delete(d.tfPluginClient.State.currentNodeDeployments[dl.NodeID], contractID)
 
 	return nil
 }
@@ -128,7 +128,7 @@ func (d *DeploymentDeployer) Sync(ctx context.Context, dl *workloads.Deployment)
 
 	vms := make([]workloads.VM, 0)
 	zdbs := make([]workloads.ZDB, 0)
-	qsfs := make([]workloads.QSFS, 0)
+	QSFS := make([]workloads.QSFS, 0)
 	disks := make([]workloads.Disk, 0)
 
 	network := d.tfPluginClient.State.networks.getNetwork(dl.NetworkName)
@@ -163,11 +163,11 @@ func (d *DeploymentDeployer) Sync(ctx context.Context, dl *workloads.Deployment)
 		case zos.QuantumSafeFSType:
 			q, err := workloads.NewQSFSFromWorkload(&w)
 			if err != nil {
-				log.Printf("error parsing qsfs: %s", err.Error())
+				log.Printf("error parsing QSFS: %s", err.Error())
 				continue
 			}
 
-			qsfs = append(qsfs, q)
+			QSFS = append(QSFS, q)
 
 		case zos.ZMountType:
 			disk, err := workloads.NewDiskFromWorkload(&w)
@@ -183,10 +183,10 @@ func (d *DeploymentDeployer) Sync(ctx context.Context, dl *workloads.Deployment)
 	network = d.tfPluginClient.State.networks.getNetwork(dl.NetworkName)
 	network.setDeploymentHostIDs(dl.NodeID, dl.ContractID, usedIPs)
 
-	dl.Match(disks, qsfs, zdbs, vms)
+	dl.Match(disks, QSFS, zdbs, vms)
 
 	dl.Disks = disks
-	dl.Qsfs = qsfs
+	dl.QSFS = QSFS
 	dl.Zdbs = zdbs
 	dl.Vms = vms
 

@@ -360,7 +360,7 @@ func TestLoadNetworkFromGrid(t *testing.T) {
 	})
 }
 
-func TestLoadQsfsFromGrid(t *testing.T) {
+func TestLoadQSFSFromGrid(t *testing.T) {
 	res, err := json.Marshal(zos.QuatumSafeFSResult{
 		Path:            "path",
 		MetricsEndpoint: "endpoint",
@@ -370,7 +370,7 @@ func TestLoadQsfsFromGrid(t *testing.T) {
 	k, err := hex.DecodeString("4d778ba3216e4da4231540c92a55f06157cabba802f9b68fb0f78375d2e825af")
 	assert.NoError(t, err)
 
-	qsfsWl := gridtypes.Workload{
+	QSFSWl := gridtypes.Workload{
 		Version:     0,
 		Name:        gridtypes.Name("test"),
 		Type:        zos.QuantumSafeFSType,
@@ -415,7 +415,7 @@ func TestLoadQsfsFromGrid(t *testing.T) {
 		},
 	}
 
-	qsfs := workloads.QSFS{
+	QSFS := workloads.QSFS{
 		Name:                 "test",
 		Description:          "test des",
 		Cache:                2048,
@@ -443,42 +443,42 @@ func TestLoadQsfsFromGrid(t *testing.T) {
 	}
 
 	t.Run("success", func(t *testing.T) {
-		state := SetupLoaderTests(t, []gridtypes.Workload{qsfsWl})
+		state := SetupLoaderTests(t, []gridtypes.Workload{QSFSWl})
 
-		got, err := state.LoadQsfsFromGrid(1, "test")
+		got, err := state.LoadQSFSFromGrid(1, "test")
 		assert.NoError(t, err)
-		assert.Equal(t, qsfs, got)
+		assert.Equal(t, QSFS, got)
 	})
 	t.Run("invalid type", func(t *testing.T) {
-		qsfsWlCp := qsfsWl
-		qsfsWlCp.Type = "invalid"
+		QSFSWlCp := QSFSWl
+		QSFSWlCp.Type = "invalid"
 
-		state := SetupLoaderTests(t, []gridtypes.Workload{qsfsWlCp})
+		state := SetupLoaderTests(t, []gridtypes.Workload{QSFSWlCp})
 
-		_, err := state.LoadQsfsFromGrid(1, "test")
+		_, err := state.LoadQSFSFromGrid(1, "test")
 		assert.Error(t, err)
 	})
 
 	t.Run("wrong workload data", func(t *testing.T) {
-		qsfsWlCp := qsfsWl
-		qsfsWlCp.Type = zos.GatewayNameProxyType
-		qsfsWlCp.Data = gridtypes.MustMarshal(zos.GatewayNameProxy{
+		QSFSWlCp := QSFSWl
+		QSFSWlCp.Type = zos.GatewayNameProxyType
+		QSFSWlCp.Data = gridtypes.MustMarshal(zos.GatewayNameProxy{
 			Name: "name",
 		})
 
-		state := SetupLoaderTests(t, []gridtypes.Workload{qsfsWlCp})
+		state := SetupLoaderTests(t, []gridtypes.Workload{QSFSWlCp})
 
-		_, err := state.LoadQsfsFromGrid(1, "test")
+		_, err := state.LoadQSFSFromGrid(1, "test")
 		assert.Error(t, err)
 	})
 
 	t.Run("invalid result data", func(t *testing.T) {
-		qsfsWlCp := qsfsWl
-		qsfsWlCp.Result.Data = nil
+		QSFSWlCp := QSFSWl
+		QSFSWlCp.Result.Data = nil
 
-		state := SetupLoaderTests(t, []gridtypes.Workload{qsfsWlCp})
+		state := SetupLoaderTests(t, []gridtypes.Workload{QSFSWlCp})
 
-		_, err := state.LoadQsfsFromGrid(1, "test")
+		_, err := state.LoadQSFSFromGrid(1, "test")
 		assert.Error(t, err)
 	})
 }

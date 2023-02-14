@@ -100,7 +100,7 @@ func (d *GatewayFQDNDeployer) Cancel(ctx context.Context, gw *workloads.GatewayF
 	// update state
 	gw.ContractID = 0
 	delete(gw.NodeDeploymentID, gw.NodeID)
-	d.tfPluginClient.State.currentNodeDeployments[gw.NodeID] = workloads.Deletes(d.tfPluginClient.State.currentNodeDeployments[gw.NodeID], contractID)
+	d.tfPluginClient.State.currentNodeDeployments[gw.NodeID] = workloads.Delete(d.tfPluginClient.State.currentNodeDeployments[gw.NodeID], contractID)
 
 	return nil
 }

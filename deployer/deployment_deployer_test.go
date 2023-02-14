@@ -158,7 +158,7 @@ func constructTestDeployment() workloads.Deployment {
 		},
 	}
 
-	qsfs := []workloads.QSFS{
+	QSFS := []workloads.QSFS{
 		{
 			Name:                 "name1",
 			Description:          "description1",
@@ -235,7 +235,7 @@ func constructTestDeployment() workloads.Deployment {
 		Disks:       disks,
 		Zdbs:        zdbs,
 		Vms:         vms,
-		Qsfs:        qsfs,
+		QSFS:        QSFS,
 		NetworkName: "network",
 	}
 }
@@ -315,7 +315,7 @@ func TestDeploymentSyncDeletedContract(t *testing.T) {
 	assert.Equal(t, dl.ContractID, uint64(0))
 	assert.Empty(t, dl.Vms)
 	assert.Empty(t, dl.Disks)
-	assert.Empty(t, dl.Qsfs)
+	assert.Empty(t, dl.QSFS)
 	assert.Empty(t, dl.Zdbs)
 }
 
@@ -460,13 +460,13 @@ func TestDeploymentSync(t *testing.T) {
 		}),
 	})
 
-	wl, err = gridDl.Get(gridtypes.Name(dl.Qsfs[0].Name))
+	wl, err = gridDl.Get(gridtypes.Name(dl.QSFS[0].Name))
 	assert.NoError(t, err)
 
 	*wl.Workload = wl.WithResults(gridtypes.Result{
 		State: gridtypes.StateOk,
 		Data: mustMarshal(t, zos.QuatumSafeFSResult{
-			MetricsEndpoint: dl.Qsfs[0].MetricsEndpoint,
+			MetricsEndpoint: dl.QSFS[0].MetricsEndpoint,
 		}),
 	})
 
@@ -514,7 +514,7 @@ func TestDeploymentSync(t *testing.T) {
 	assert.NoError(t, d.Sync(context.Background(), &dl))
 	assert.Equal(t, dl.Vms, cp.Vms)
 	assert.Equal(t, dl.Disks, cp.Disks)
-	assert.Equal(t, dl.Qsfs, cp.Qsfs)
+	assert.Equal(t, dl.QSFS, cp.QSFS)
 	assert.Equal(t, dl.Zdbs, cp.Zdbs)
 	assert.Equal(t, dl.ContractID, cp.ContractID)
 	assert.Equal(t, dl.NodeID, cp.NodeID)

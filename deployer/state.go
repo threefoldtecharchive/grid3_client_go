@@ -59,8 +59,8 @@ func (l *State) LoadGatewayFqdnFromGrid(nodeID uint32, name string) (workloads.G
 	return workloads.NewGatewayFQDNProxyFromZosWorkload(wl)
 }
 
-// LoadQsfsFromGrid loads a qsfs from grid
-func (l *State) LoadQsfsFromGrid(nodeID uint32, name string) (workloads.QSFS, error) {
+// LoadQSFSFromGrid loads a QSFS from grid
+func (l *State) LoadQSFSFromGrid(nodeID uint32, name string) (workloads.QSFS, error) {
 	wl, dl, err := l.GetWorkloadInDeployment(nodeID, name)
 	if err != nil {
 		return workloads.QSFS{}, errors.Wrapf(err, "couldn't get workload from node %d within deployment %v", nodeID, dl)
