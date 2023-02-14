@@ -53,7 +53,7 @@ func NewDeployer(
 ) Deployer {
 
 	return Deployer{
-		tfPluginClient.identity,
+		tfPluginClient.Identity,
 		tfPluginClient.twinID,
 		tfPluginClient.GridProxyClient,
 		tfPluginClient.NcPool,

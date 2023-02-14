@@ -40,7 +40,7 @@ func NewNetworkDeployer(tfPluginClient *TFPluginClient) NetworkDeployer {
 func (d *NetworkDeployer) Validate(ctx context.Context, znet *workloads.ZNet) error {
 	sub := d.tfPluginClient.SubstrateConn
 
-	if err := validateAccountBalanceForExtrinsics(sub, d.tfPluginClient.identity); err != nil {
+	if err := validateAccountBalanceForExtrinsics(sub, d.tfPluginClient.Identity); err != nil {
 		return err
 	}
 

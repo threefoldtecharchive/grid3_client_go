@@ -541,7 +541,7 @@ func TestDeploymentDeploy(t *testing.T) {
 
 	t.Run("Validation failed", func(t *testing.T) {
 		sub.EXPECT().
-			GetBalance(d.tfPluginClient.identity).
+			GetBalance(d.tfPluginClient.Identity).
 			Return(substrate.Balance{
 				Free: types.U128{
 					Int: big.NewInt(10),
@@ -558,7 +558,7 @@ func TestDeploymentDeploy(t *testing.T) {
 
 	t.Run("Deploying failed", func(t *testing.T) {
 		sub.EXPECT().
-			GetBalance(d.tfPluginClient.identity).
+			GetBalance(d.tfPluginClient.Identity).
 			Return(substrate.Balance{
 				Free: types.U128{
 					Int: big.NewInt(100000),
@@ -582,7 +582,7 @@ func TestDeploymentDeploy(t *testing.T) {
 	t.Run("Deploying succeeded", func(t *testing.T) {
 		d.tfPluginClient.StateLoader.currentNodeDeployment = map[uint32]uint64{}
 		sub.EXPECT().
-			GetBalance(d.tfPluginClient.identity).
+			GetBalance(d.tfPluginClient.Identity).
 			Return(substrate.Balance{
 				Free: types.U128{
 					Int: big.NewInt(100000),
@@ -615,7 +615,7 @@ func TestDeploymentCancel(t *testing.T) {
 	d.tfPluginClient.StateLoader.currentNodeDeployment = map[uint32]uint64{nodeID: contractID}
 	t.Run("Validation failed", func(t *testing.T) {
 		sub.EXPECT().
-			GetBalance(d.tfPluginClient.identity).
+			GetBalance(d.tfPluginClient.Identity).
 			Return(substrate.Balance{
 				Free: types.U128{
 					Int: big.NewInt(10),
@@ -632,7 +632,7 @@ func TestDeploymentCancel(t *testing.T) {
 	})
 	t.Run("Canceling failed", func(t *testing.T) {
 		sub.EXPECT().
-			GetBalance(d.tfPluginClient.identity).
+			GetBalance(d.tfPluginClient.Identity).
 			Return(substrate.Balance{
 				Free: types.U128{
 					Int: big.NewInt(100000),
@@ -653,7 +653,7 @@ func TestDeploymentCancel(t *testing.T) {
 	})
 	t.Run("Canceling succeeded", func(t *testing.T) {
 		sub.EXPECT().
-			GetBalance(d.tfPluginClient.identity).
+			GetBalance(d.tfPluginClient.Identity).
 			Return(substrate.Balance{
 				Free: types.U128{
 					Int: big.NewInt(100000),

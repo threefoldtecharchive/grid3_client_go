@@ -30,7 +30,7 @@ func NewGatewayNameDeployer(tfPluginClient *TFPluginClient) GatewayNameDeployer 
 // Validate validates gatewayName deployer
 func (d *GatewayNameDeployer) Validate(ctx context.Context, gw *workloads.GatewayNameProxy) error {
 	sub := d.tfPluginClient.SubstrateConn
-	if err := validateAccountBalanceForExtrinsics(sub, d.tfPluginClient.identity); err != nil {
+	if err := validateAccountBalanceForExtrinsics(sub, d.tfPluginClient.Identity); err != nil {
 		return err
 	}
 	return client.AreNodesUp(ctx, sub, []uint32{gw.NodeID}, d.tfPluginClient.NcPool)
@@ -70,7 +70,7 @@ func (d *GatewayNameDeployer) Deploy(ctx context.Context, gw *workloads.GatewayN
 		return err
 	}
 	if gw.NameContractID == 0 {
-		gw.NameContractID, err = d.tfPluginClient.SubstrateConn.CreateNameContract(d.tfPluginClient.identity, gw.Name)
+		gw.NameContractID, err = d.tfPluginClient.SubstrateConn.CreateNameContract(d.tfPluginClient.Identity, gw.Name)
 		if err != nil {
 			return err
 		}
@@ -108,7 +108,7 @@ func (d *GatewayNameDeployer) Cancel(ctx context.Context, gw *workloads.GatewayN
 	delete(d.tfPluginClient.StateLoader.currentNodeDeployment, gw.NodeID)
 
 	if gw.NameContractID != 0 {
-		if err := d.tfPluginClient.SubstrateConn.EnsureContractCanceled(d.tfPluginClient.identity, gw.NameContractID); err != nil {
+		if err := d.tfPluginClient.SubstrateConn.EnsureContractCanceled(d.tfPluginClient.Identity, gw.NameContractID); err != nil {
 			return err
 		}
 		gw.NameContractID = 0
@@ -125,7 +125,7 @@ func (d *GatewayNameDeployer) InvalidateNameContract(ctx context.Context, gw *wo
 
 	gw.NameContractID, err = d.tfPluginClient.SubstrateConn.InvalidateNameContract(
 		ctx,
-		d.tfPluginClient.identity,
+		d.tfPluginClient.Identity,
 		gw.NameContractID,
 		gw.Name,
 	)
