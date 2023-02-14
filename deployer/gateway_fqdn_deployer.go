@@ -33,7 +33,7 @@ func (d *GatewayFQDNDeployer) Validate(ctx context.Context, gw *workloads.Gatewa
 	if len(gw.Name) == 0 {
 		return errors.New("gateway workload must have a name")
 	}
-	if err := validateAccountBalanceForExtrinsics(sub, d.tfPluginClient.identity); err != nil {
+	if err := validateAccountBalanceForExtrinsics(sub, d.tfPluginClient.Identity); err != nil {
 		return err
 	}
 	return client.AreNodesUp(ctx, sub, []uint32{gw.NodeID}, d.tfPluginClient.NcPool)

@@ -72,7 +72,7 @@ func constructTestName() workloads.GatewayNameProxy {
 func TestNameValidateNodeNotReachable(t *testing.T) {
 	d, cl, sub, ncPool, _, _ := constructTestNameDeployer(t, true)
 	sub.EXPECT().
-		GetBalance(d.tfPluginClient.identity).
+		GetBalance(d.tfPluginClient.Identity).
 		Return(substrate.Balance{
 			Free: types.U128{
 				Int: big.NewInt(100000),
@@ -134,7 +134,7 @@ func TestNameDeploy(t *testing.T) {
 	dls, err := d.GenerateVersionlessDeployments(context.Background(), &gw)
 	assert.NoError(t, err)
 
-	mockValidation(d.tfPluginClient.identity, cl, sub, ncPool, proxyCl)
+	mockValidation(d.tfPluginClient.Identity, cl, sub, ncPool, proxyCl)
 
 	newDeploymentsSolutionProvider := map[uint32]*uint64{nodeID: nil}
 
@@ -146,7 +146,7 @@ func TestNameDeploy(t *testing.T) {
 	).Return(map[uint32]uint64{nodeID: contractID}, nil)
 
 	sub.EXPECT().
-		CreateNameContract(d.tfPluginClient.identity, gw.Name).
+		CreateNameContract(d.tfPluginClient.Identity, gw.Name).
 		Return(contractID, nil)
 
 	err = d.Deploy(context.Background(), &gw)
@@ -166,7 +166,7 @@ func TestNameUpdate(t *testing.T) {
 	dls, err := d.GenerateVersionlessDeployments(context.Background(), &gw)
 	assert.NoError(t, err)
 
-	mockValidation(d.tfPluginClient.identity, cl, sub, ncPool, proxyCl)
+	mockValidation(d.tfPluginClient.Identity, cl, sub, ncPool, proxyCl)
 
 	deployer.EXPECT().Deploy(
 		gomock.Any(),
@@ -176,7 +176,7 @@ func TestNameUpdate(t *testing.T) {
 	).Return(map[uint32]uint64{nodeID: contractID}, nil)
 
 	sub.EXPECT().
-		InvalidateNameContract(gomock.Any(), d.tfPluginClient.identity, nameContractID, gw.Name).
+		InvalidateNameContract(gomock.Any(), d.tfPluginClient.Identity, nameContractID, gw.Name).
 		Return(nameContractID, nil)
 
 	err = d.Deploy(context.Background(), &gw)
@@ -196,7 +196,7 @@ func TestNameUpdateFailed(t *testing.T) {
 	dls, err := d.GenerateVersionlessDeployments(context.Background(), &gw)
 	assert.NoError(t, err)
 
-	mockValidation(d.tfPluginClient.identity, cl, sub, ncPool, proxyCl)
+	mockValidation(d.tfPluginClient.Identity, cl, sub, ncPool, proxyCl)
 
 	deployer.EXPECT().Deploy(
 		gomock.Any(),
@@ -206,7 +206,7 @@ func TestNameUpdateFailed(t *testing.T) {
 	).Return(map[uint32]uint64{nodeID: contractID}, errors.New("error"))
 
 	sub.EXPECT().
-		InvalidateNameContract(gomock.Any(), d.tfPluginClient.identity, nameContractID, gw.Name).
+		InvalidateNameContract(gomock.Any(), d.tfPluginClient.Identity, nameContractID, gw.Name).
 		Return(nameContractID, nil)
 
 	err = d.Deploy(context.Background(), &gw)
@@ -232,7 +232,7 @@ func TestNameCancel(t *testing.T) {
 	).Return(nil)
 
 	sub.EXPECT().
-		EnsureContractCanceled(d.tfPluginClient.identity, nameContractID).
+		EnsureContractCanceled(d.tfPluginClient.Identity, nameContractID).
 		Return(nil)
 
 	err := d.Cancel(context.Background(), &gw)
@@ -278,7 +278,7 @@ func TestNameCancelContractsFailed(t *testing.T) {
 	).Return(nil)
 
 	sub.EXPECT().
-		EnsureContractCanceled(d.tfPluginClient.identity, nameContractID).
+		EnsureContractCanceled(d.tfPluginClient.Identity, nameContractID).
 		Return(errors.New("error"))
 
 	err := d.Cancel(context.Background(), &gw)

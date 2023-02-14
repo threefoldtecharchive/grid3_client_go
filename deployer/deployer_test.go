@@ -105,7 +105,7 @@ func TestCreate(t *testing.T) {
 	tfPluginClient, err := setup()
 	assert.NoError(t, err)
 
-	identity := tfPluginClient.identity
+	identity := tfPluginClient.Identity
 	twinID := tfPluginClient.twinID
 
 	ctrl := gomock.NewController(t)
@@ -218,7 +218,7 @@ func TestUpdate(t *testing.T) {
 	tfPluginClient, err := setup()
 	assert.NoError(t, err)
 
-	identity := tfPluginClient.identity
+	identity := tfPluginClient.Identity
 	twinID := tfPluginClient.twinID
 
 	ctrl := gomock.NewController(t)
@@ -316,7 +316,7 @@ func TestCancel(t *testing.T) {
 	tfPluginClient, err := setup()
 	assert.NoError(t, err)
 
-	identity := tfPluginClient.identity
+	identity := tfPluginClient.Identity
 	twinID := tfPluginClient.twinID
 
 	ctrl := gomock.NewController(t)
@@ -358,7 +358,7 @@ func TestCocktail(t *testing.T) {
 	tfPluginClient, err := setup()
 	assert.NoError(t, err)
 
-	identity := tfPluginClient.identity
+	identity := tfPluginClient.Identity
 	twinID := tfPluginClient.twinID
 
 	ctrl := gomock.NewController(t)

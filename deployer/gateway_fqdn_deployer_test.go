@@ -101,7 +101,7 @@ func mockValidation(identity substrate.Identity, cl *mocks.RMBMockClient, sub *m
 func TestValidateFQDNNodeReachable(t *testing.T) {
 	d, cl, sub, ncPool, _, proxyCl := constructTestFQDNDeployer(t, true)
 
-	mockValidation(d.tfPluginClient.identity, cl, sub, ncPool, proxyCl)
+	mockValidation(d.tfPluginClient.Identity, cl, sub, ncPool, proxyCl)
 	err := d.Validate(context.Background(), &workloads.GatewayFQDNProxy{Name: "test", NodeID: nodeID})
 	assert.NoError(t, err)
 }
@@ -139,7 +139,7 @@ func TestDeployFQDN(t *testing.T) {
 	dls, err := d.GenerateVersionlessDeployments(context.Background(), &gw)
 	assert.NoError(t, err)
 
-	mockValidation(d.tfPluginClient.identity, cl, sub, ncPool, proxyCl)
+	mockValidation(d.tfPluginClient.Identity, cl, sub, ncPool, proxyCl)
 
 	deployer.EXPECT().Deploy(
 		gomock.Any(),
@@ -165,7 +165,7 @@ func TestUpdateFQDN(t *testing.T) {
 	dls, err := d.GenerateVersionlessDeployments(context.Background(), &gw)
 	assert.NoError(t, err)
 
-	mockValidation(d.tfPluginClient.identity, cl, sub, ncPool, proxyCl)
+	mockValidation(d.tfPluginClient.Identity, cl, sub, ncPool, proxyCl)
 
 	deployer.EXPECT().Deploy(
 		gomock.Any(),
@@ -190,7 +190,7 @@ func TestUpdateFQDNFailed(t *testing.T) {
 	dls, err := d.GenerateVersionlessDeployments(context.Background(), &gw)
 	assert.NoError(t, err)
 
-	mockValidation(d.tfPluginClient.identity, cl, sub, ncPool, proxyCl)
+	mockValidation(d.tfPluginClient.Identity, cl, sub, ncPool, proxyCl)
 
 	deployer.EXPECT().Deploy(
 		gomock.Any(),
@@ -212,7 +212,7 @@ func TestCancelFQDN(t *testing.T) {
 	gw := constructTestFQDN()
 	gw.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
 
-	mockValidation(d.tfPluginClient.identity, cl, sub, ncPool, proxyCl)
+	mockValidation(d.tfPluginClient.Identity, cl, sub, ncPool, proxyCl)
 
 	deployer.EXPECT().Cancel(
 		gomock.Any(),
@@ -232,7 +232,7 @@ func TestCancelFQDNFailed(t *testing.T) {
 	gw := constructTestFQDN()
 	gw.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
 
-	mockValidation(d.tfPluginClient.identity, cl, sub, ncPool, proxyCl)
+	mockValidation(d.tfPluginClient.Identity, cl, sub, ncPool, proxyCl)
 
 	deployer.EXPECT().Cancel(
 		gomock.Any(),

@@ -36,7 +36,7 @@ var (
 type TFPluginClient struct {
 	twinID       uint32
 	mnemonics    string
-	identity     substrate.Identity
+	Identity     substrate.Identity
 	substrateURL string
 	rmbProxyURL  string
 	useRmbProxy  bool
@@ -97,7 +97,7 @@ func NewTFPluginClient(
 	if err != nil {
 		return TFPluginClient{}, errors.Wrapf(err, "error getting identity using mnemonics %s", mnemonics)
 	}
-	tfPluginClient.identity = identity
+	tfPluginClient.Identity = identity
 
 	keyPair, err := identity.KeyPair()
 	if err != nil {
@@ -123,7 +123,7 @@ func NewTFPluginClient(
 		return TFPluginClient{}, errors.Wrap(err, "couldn't get substrate client")
 	}
 
-	if err := validateAccount(sub, tfPluginClient.identity, tfPluginClient.mnemonics); err != nil {
+	if err := validateAccount(sub, tfPluginClient.Identity, tfPluginClient.mnemonics); err != nil {
 		return TFPluginClient{}, errors.Wrap(err, "couldn't validate substrate account")
 	}
 
