@@ -30,6 +30,13 @@ var (
 		"qa":   "https://gridproxy.qa.grid.tf/",
 		"main": "https://gridproxy.grid.tf/",
 	}
+	// GraphQlURLs urls
+	GraphQlURLs = map[string]string{
+		"dev":  "https://graphql.dev.grid.tf/graphql",
+		"test": "https://graphql.test.grid.tf/graphql",
+		"qa":   "https://graphql.qa.grid.tf/graphql",
+		"main": "https://graphql.grid.tf/graphql",
+	}
 )
 
 // TFPluginClient is a Threefold plugin client
@@ -59,6 +66,10 @@ type TFPluginClient struct {
 
 	// state
 	State *State
+
+	// contracts
+	graphQl         graphQl
+	ContractsGetter ContractsGetter
 }
 
 // NewTFPluginClient generates a new tf plugin client
@@ -173,6 +184,14 @@ func NewTFPluginClient(
 	tfPluginClient.GatewayNameDeployer = NewGatewayNameDeployer(&tfPluginClient)
 
 	tfPluginClient.State = NewState(tfPluginClient.NcPool, tfPluginClient.SubstrateConn)
+
+	graphqlURL := GraphQlURLs[network]
+	tfPluginClient.graphQl, err = newGraphQl(graphqlURL)
+	if err != nil {
+		return TFPluginClient{}, errors.Wrapf(err, "couldn't create a new graphql with url: %s", graphqlURL)
+	}
+
+	tfPluginClient.ContractsGetter = NewContractsGetter(tfPluginClient.twinID, tfPluginClient.graphQl)
 
 	return tfPluginClient, nil
 }
