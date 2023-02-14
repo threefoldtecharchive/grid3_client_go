@@ -76,9 +76,7 @@ func parseHTTPResponse(resp *http.Response) (map[string]interface{}, error) {
 		return map[string]interface{}{}, err
 	}
 
-	if resBody != nil {
-		defer resp.Body.Close()
-	}
+	defer resp.Body.Close()
 
 	var data map[string]interface{}
 	err = json.Unmarshal(resBody, &data)

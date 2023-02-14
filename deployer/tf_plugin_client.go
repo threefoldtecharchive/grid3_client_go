@@ -188,7 +188,7 @@ func NewTFPluginClient(
 	graphqlURL := GraphQlURLs[network]
 	tfPluginClient.graphQl, err = newGraphQl(graphqlURL)
 	if err != nil {
-		return TFPluginClient{}, errors.Wrap(err, "couldn't create a new graphql")
+		return TFPluginClient{}, errors.Wrapf(err, "couldn't create a new graphql with url: %s", graphqlURL)
 	}
 
 	tfPluginClient.ContractsGetter = NewContractsGetter(tfPluginClient.twinID, tfPluginClient.graphQl)
