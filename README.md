@@ -65,14 +65,14 @@ err := tfPluginClient.NetworkDeployer.Deploy(context.Background(), &network)
 
 // Load the network using the state loader
 // this loader should load the deployment as json then convert it to a deployment go object with workloads inside it
-networkObj, err := tfPluginClient.StateLoader.LoadNetworkFromGrid(network.Name)
+networkObj, err := tfPluginClient.State.LoadNetworkFromGrid(network.Name)
 
 // Deploy the VM deployment
 dl := workloads.NewDeployment("vm", nodeID, "", nil, network.Name, nil, nil, []workloads.VM{vm}, nil)
 err = tfPluginClient.DeploymentDeployer.Deploy(ctx, &dl)
 
 // Load the vm using the state loader
-vmObj, err := tfPluginClient.StateLoader.LoadVMFromGrid(nodeID, vm.Name)
+vmObj, err := tfPluginClient.State.LoadVMFromGrid(nodeID, vm.Name)
 
 // Cancel the VM deployment
 err = tfPluginClient.NetworkDeployer.Cancel(ctx, &dl)

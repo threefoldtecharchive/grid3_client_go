@@ -44,8 +44,8 @@ func constructTestNetworkDeployer(t *testing.T, mock bool) (NetworkDeployer, *mo
 		tfPluginClient.NcPool = ncPool
 		tfPluginClient.RMB = cl
 
-		tfPluginClient.StateLoader.ncPool = ncPool
-		tfPluginClient.StateLoader.substrate = sub
+		tfPluginClient.State.ncPool = ncPool
+		tfPluginClient.State.substrate = sub
 
 		tfPluginClient.twinID = twinID
 
@@ -68,10 +68,10 @@ func TestNetworkValidate(t *testing.T) {
 }
 
 func TestNetworkGenerateDeployment(t *testing.T) {
-	net := constructTestNetwork()
 	d, cl, sub, ncPool := constructTestNetworkDeployer(t, true)
 
-	d.tfPluginClient.StateLoader.currentNodeNetwork[nodeID] = contractID
+	net := constructTestNetwork()
+	net.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
 
 	cl.EXPECT().
 		Call(gomock.Any(), twinID, "zos.network.public_config_get", gomock.Any(), gomock.Any()).

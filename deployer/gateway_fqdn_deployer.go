@@ -71,18 +71,15 @@ func (d *GatewayFQDNDeployer) Deploy(ctx context.Context, gw *workloads.GatewayF
 	newDeploymentsSolutionProvider := make(map[uint32]*uint64)
 	newDeploymentsSolutionProvider[gw.NodeID] = nil
 
-	oldDeployments := d.tfPluginClient.StateLoader.currentNodeDeployment
-	currentDeployments, err := d.deployer.Deploy(ctx, oldDeployments, newDeployments, newDeploymentsSolutionProvider)
+	gw.NodeDeploymentID, err = d.deployer.Deploy(ctx, gw.NodeDeploymentID, newDeployments, newDeploymentsSolutionProvider)
 
 	// update state
-	if currentDeployments[gw.NodeID] != 0 {
-		if gw.NodeDeploymentID == nil {
-			gw.NodeDeploymentID = make(map[uint32]uint64)
+	// error is not returned immediately before updating state because of untracked failed deployments
+	if contractID, ok := gw.NodeDeploymentID[gw.NodeID]; ok && contractID != 0 {
+		gw.ContractID = contractID
+		if !workloads.Contains(d.tfPluginClient.State.currentNodeDeployments[gw.NodeID], gw.ContractID) {
+			d.tfPluginClient.State.currentNodeDeployments[gw.NodeID] = append(d.tfPluginClient.State.currentNodeDeployments[gw.NodeID], gw.ContractID)
 		}
-
-		gw.ContractID = currentDeployments[gw.NodeID]
-		gw.NodeDeploymentID[gw.NodeID] = gw.ContractID
-		d.tfPluginClient.StateLoader.currentNodeDeployment[gw.NodeID] = gw.ContractID
 	}
 
 	return err
@@ -94,9 +91,8 @@ func (d *GatewayFQDNDeployer) Cancel(ctx context.Context, gw *workloads.GatewayF
 		return err
 	}
 
-	oldDeployments := d.tfPluginClient.StateLoader.currentNodeDeployment
-
-	err = d.deployer.Cancel(ctx, oldDeployments[gw.NodeID])
+	contractID := gw.NodeDeploymentID[gw.NodeID]
+	err = d.deployer.Cancel(ctx, contractID)
 	if err != nil {
 		return err
 	}
@@ -104,7 +100,7 @@ func (d *GatewayFQDNDeployer) Cancel(ctx context.Context, gw *workloads.GatewayF
 	// update state
 	gw.ContractID = 0
 	delete(gw.NodeDeploymentID, gw.NodeID)
-	delete(d.tfPluginClient.StateLoader.currentNodeDeployment, gw.NodeID)
+	d.tfPluginClient.State.currentNodeDeployments[gw.NodeID] = workloads.Delete(d.tfPluginClient.State.currentNodeDeployments[gw.NodeID], contractID)
 
 	return nil
 }

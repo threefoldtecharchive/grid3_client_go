@@ -57,7 +57,7 @@ grid3_go is a go client created to interact with threefold grid. It should manag
 
 - ### **Reverting a deployment:**
 
-  1. before applying any change, the deployer should first retrieve the `currentState` from the nodes `stateLoader`.
+  1. before applying any change, the deployer should first retrieve the `currentState` from the nodes `state`.
   2. every contract deletion or creation, should directly be reflected in the `currentState`.
   3. if some error happens while applying some change, the deployer should revert to its old state using the `currentState` as the `oldDeploymentIDs` and the `oldState` as the `newDeployments`.
 
@@ -166,7 +166,7 @@ grid3_go is a go client created to interact with threefold grid. It should manag
     }
     ```
 
-- ### **StateLoader:**
+- ### **State:**
 
   - save all current deployments and networks
   - loads any workload from grid
@@ -184,7 +184,7 @@ grid3_go is a go client created to interact with threefold grid. It should manag
 - ### **Workers:**
 
   - It is responsible for conversions between grid workloads/types and the grid client workloads/types.
-  - It supports the following: deployments, disks, gateways, k8s, networks, publicIP workloads, vms, qsfs, zlog, zdb
+  - It supports the following: deployments, disks, gateways, k8s, networks, publicIP workloads, vms, QSFS, zlog, zdb
 
 ### Example
 
@@ -219,7 +219,7 @@ err = tfPluginClient.NetworkDeployer.Deploy(ctx, &network)
 
 // Load using the state loader
 // this loader should load the deployment as json then convert it to a deployment go object with workloads inside it
-networkObj, err := tfPluginClient.StateLoader.LoadNetworkFromGrid(network.Name)
+networkObj, err := tfPluginClient.State.LoadNetworkFromGrid(network.Name)
 
 // Cancel
 err = tfPluginClient.NetworkDeployer.Cancel(ctx, &network)

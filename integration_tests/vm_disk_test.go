@@ -55,7 +55,6 @@ func TestVmDisk(t *testing.T) {
 		CPU:        2,
 		Planetary:  true,
 		Memory:     1024,
-		RootfsSize: 20 * 1024,
 		Entrypoint: "/sbin/zinit init",
 		EnvVars: map[string]string{
 			"SSH_KEY": publicKey,
@@ -77,10 +76,10 @@ func TestVmDisk(t *testing.T) {
 	err = tfPluginClient.DeploymentDeployer.Deploy(ctx, &dl)
 	assert.NoError(t, err)
 
-	v, err := tfPluginClient.StateLoader.LoadVMFromGrid(nodeID, vm.Name)
+	v, err := tfPluginClient.State.LoadVMFromGrid(nodeID, vm.Name)
 	assert.NoError(t, err)
 
-	resDisk, err := tfPluginClient.StateLoader.LoadDiskFromGrid(nodeID, disk.Name)
+	resDisk, err := tfPluginClient.State.LoadDiskFromGrid(nodeID, disk.Name)
 	assert.NoError(t, err)
 	assert.Equal(t, disk, resDisk)
 

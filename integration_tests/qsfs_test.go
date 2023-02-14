@@ -85,13 +85,13 @@ func TestQSFSDeployment(t *testing.T) {
 	resDataZDBs := []workloads.ZDB{}
 	resMetaZDBs := []workloads.ZDB{}
 	for i := 1; i <= DataZDBNum; i++ {
-		res, err := tfPluginClient.StateLoader.LoadZdbFromGrid(nodeID, "qsfsDataZdb"+strconv.Itoa(i))
+		res, err := tfPluginClient.State.LoadZdbFromGrid(nodeID, "qsfsDataZdb"+strconv.Itoa(i))
 		assert.NoError(t, err)
 		assert.NotEmpty(t, res)
 		resDataZDBs = append(resDataZDBs, res)
 	}
 	for i := 1; i <= MetaZDBNum; i++ {
-		res, err := tfPluginClient.StateLoader.LoadZdbFromGrid(nodeID, "qsfsMetaZdb"+strconv.Itoa(i))
+		res, err := tfPluginClient.State.LoadZdbFromGrid(nodeID, "qsfsMetaZdb"+strconv.Itoa(i))
 		assert.NoError(t, err)
 		assert.NotEmpty(t, res)
 		resMetaZDBs = append(resMetaZDBs, res)
@@ -158,10 +158,10 @@ func TestQSFSDeployment(t *testing.T) {
 	err = tfPluginClient.DeploymentDeployer.Deploy(ctx, &dl)
 	assert.NoError(t, err)
 
-	resVM, err := tfPluginClient.StateLoader.LoadVMFromGrid(nodeID, vm.Name)
+	resVM, err := tfPluginClient.State.LoadVMFromGrid(nodeID, vm.Name)
 	assert.NoError(t, err)
 
-	resQSFS, err := tfPluginClient.StateLoader.LoadQsfsFromGrid(nodeID, qsfs.Name)
+	resQSFS, err := tfPluginClient.State.LoadQSFSFromGrid(nodeID, qsfs.Name)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, resQSFS.MetricsEndpoint)
 
@@ -201,6 +201,6 @@ func TestQSFSDeployment(t *testing.T) {
 	err = tfPluginClient.NetworkDeployer.Cancel(ctx, &network)
 	assert.NoError(t, err)
 
-	_, err = tfPluginClient.StateLoader.LoadQsfsFromGrid(nodeID, qsfs.Name)
+	_, err = tfPluginClient.State.LoadQSFSFromGrid(nodeID, qsfs.Name)
 	assert.Error(t, err)
 }

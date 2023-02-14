@@ -47,8 +47,8 @@ func constructTestFQDNDeployer(t *testing.T, mock bool) (
 		tfPluginClient.RMB = cl
 		tfPluginClient.GridProxyClient = gridProxyCl
 
-		tfPluginClient.StateLoader.ncPool = ncPool
-		tfPluginClient.StateLoader.substrate = sub
+		tfPluginClient.State.ncPool = ncPool
+		tfPluginClient.State.substrate = sub
 
 		tfPluginClient.GatewayFQDNDeployer.deployer = deployer
 		tfPluginClient.GatewayFQDNDeployer.tfPluginClient = &tfPluginClient
@@ -143,7 +143,7 @@ func TestDeployFQDN(t *testing.T) {
 
 	deployer.EXPECT().Deploy(
 		gomock.Any(),
-		map[uint32]uint64{},
+		gw.NodeDeploymentID,
 		dls,
 		gomock.Any(),
 	).Return(map[uint32]uint64{nodeID: contractID}, nil)
@@ -152,14 +152,16 @@ func TestDeployFQDN(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEqual(t, gw.ContractID, 0)
 	assert.Equal(t, gw.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
+	assert.Equal(t, d.tfPluginClient.State.currentNodeDeployments, map[uint32]contractIDs{nodeID: {contractID}})
 }
 
 func TestUpdateFQDN(t *testing.T) {
 	d, cl, sub, ncPool, deployer, proxyCl := constructTestFQDNDeployer(t, true)
+	d.tfPluginClient.State.currentNodeDeployments = map[uint32]contractIDs{nodeID: {contractID}}
 
 	gw := constructTestFQDN()
+	gw.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
 
-	d.tfPluginClient.StateLoader.currentNodeDeployment = map[uint32]uint64{nodeID: contractID}
 	dls, err := d.GenerateVersionlessDeployments(context.Background(), &gw)
 	assert.NoError(t, err)
 
@@ -175,13 +177,14 @@ func TestUpdateFQDN(t *testing.T) {
 	err = d.Deploy(context.Background(), &gw)
 	assert.NoError(t, err)
 	assert.Equal(t, gw.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
+	assert.Equal(t, d.tfPluginClient.State.currentNodeDeployments, map[uint32]contractIDs{nodeID: {contractID}})
 }
 
 func TestUpdateFQDNFailed(t *testing.T) {
 	d, cl, sub, ncPool, deployer, proxyCl := constructTestFQDNDeployer(t, true)
+	d.tfPluginClient.State.currentNodeDeployments = map[uint32]contractIDs{nodeID: {contractID}}
 
 	gw := constructTestFQDN()
-	d.tfPluginClient.StateLoader.currentNodeDeployment = map[uint32]uint64{nodeID: contractID}
 	gw.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
 
 	dls, err := d.GenerateVersionlessDeployments(context.Background(), &gw)
@@ -199,14 +202,15 @@ func TestUpdateFQDNFailed(t *testing.T) {
 	err = d.Deploy(context.Background(), &gw)
 	assert.Error(t, err)
 	assert.Equal(t, gw.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
+	assert.Equal(t, d.tfPluginClient.State.currentNodeDeployments, map[uint32]contractIDs{nodeID: {contractID}})
 }
 
 func TestCancelFQDN(t *testing.T) {
 	d, cl, sub, ncPool, deployer, proxyCl := constructTestFQDNDeployer(t, true)
+	d.tfPluginClient.State.currentNodeDeployments = map[uint32]contractIDs{nodeID: {contractID}}
 
 	gw := constructTestFQDN()
 	gw.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
-	d.tfPluginClient.StateLoader.currentNodeDeployment = map[uint32]uint64{nodeID: contractID}
 
 	mockValidation(d.tfPluginClient.identity, cl, sub, ncPool, proxyCl)
 
@@ -218,15 +222,15 @@ func TestCancelFQDN(t *testing.T) {
 	err := d.Cancel(context.Background(), &gw)
 	assert.NoError(t, err)
 	assert.Equal(t, gw.NodeDeploymentID, map[uint32]uint64{})
-	assert.Equal(t, d.tfPluginClient.StateLoader.currentNodeDeployment, map[uint32]uint64{})
+	assert.Empty(t, d.tfPluginClient.State.currentNodeDeployments[nodeID])
 }
 
 func TestCancelFQDNFailed(t *testing.T) {
 	d, cl, sub, ncPool, deployer, proxyCl := constructTestFQDNDeployer(t, true)
+	d.tfPluginClient.State.currentNodeDeployments = map[uint32]contractIDs{nodeID: {contractID}}
 
 	gw := constructTestFQDN()
 	gw.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
-	d.tfPluginClient.StateLoader.currentNodeDeployment = map[uint32]uint64{nodeID: contractID}
 
 	mockValidation(d.tfPluginClient.identity, cl, sub, ncPool, proxyCl)
 
@@ -238,7 +242,7 @@ func TestCancelFQDNFailed(t *testing.T) {
 	err := d.Cancel(context.Background(), &gw)
 	assert.Error(t, err)
 	assert.Equal(t, gw.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
-	assert.Equal(t, d.tfPluginClient.StateLoader.currentNodeDeployment, map[uint32]uint64{nodeID: contractID})
+	assert.Equal(t, d.tfPluginClient.State.currentNodeDeployments, map[uint32]contractIDs{nodeID: {contractID}})
 }
 
 func TestSyncFQDNContracts(t *testing.T) {

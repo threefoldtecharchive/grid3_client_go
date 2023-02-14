@@ -126,13 +126,11 @@ func TestK8sDeployment(t *testing.T) {
 	workers := [2]workloads.K8sNode{workerNodeData1, workerNodeData2}
 
 	k8sCluster := workloads.K8sCluster{
-		Master:           &master,
-		Workers:          workers[:],
-		Token:            "tokens",
-		SSHKey:           publicKey,
-		NetworkName:      "testingNetwork",
-		NodesIPRange:     make(map[uint32]gridtypes.IPNet),
-		NodeDeploymentID: map[uint32]uint64{},
+		Master:      &master,
+		Workers:     workers[:],
+		Token:       "tokens",
+		SSHKey:      publicKey,
+		NetworkName: "testingNetwork",
 	}
 
 	err = tfPluginClient.K8sDeployer.Deploy(ctx, &k8sCluster)
@@ -141,7 +139,7 @@ func TestK8sDeployment(t *testing.T) {
 	masterMap := map[uint32]string{master.Node: master.Name}
 	workerMap := map[uint32][]string{workerNodeData1.Node: {workerNodeData1.Name, workerNodeData2.Name}}
 
-	result, err := tfPluginClient.StateLoader.LoadK8sFromGrid(masterMap, workerMap)
+	result, err := tfPluginClient.State.LoadK8sFromGrid(masterMap, workerMap)
 	assert.NoError(t, err)
 
 	// check workers count
