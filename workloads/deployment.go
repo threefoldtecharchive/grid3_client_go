@@ -224,3 +224,14 @@ func GetUsedIPs(dl gridtypes.Deployment) ([]byte, error) {
 	}
 	return usedIPs, nil
 }
+
+// ParseDeploymentDate parses the deployment meta date
+func ParseDeploymentDate(deploymentMetaData string) (DeploymentData, error) {
+	var deploymentData DeploymentData
+	err := json.Unmarshal([]byte(deploymentMetaData), &deploymentData)
+	if err != nil {
+		return DeploymentData{}, err
+	}
+
+	return deploymentData, nil
+}

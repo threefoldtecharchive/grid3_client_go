@@ -139,7 +139,7 @@ func TestK8sDeployment(t *testing.T) {
 	masterMap := map[uint32]string{master.Node: master.Name}
 	workerMap := map[uint32][]string{workerNodeData1.Node: {workerNodeData1.Name, workerNodeData2.Name}}
 
-	result, err := tfPluginClient.State.LoadK8sFromGrid(masterMap, workerMap)
+	result, err := tfPluginClient.State.LoadK8sFromGrid(masterMap, workerMap, k8sCluster.Master.Name)
 	assert.NoError(t, err)
 
 	// check workers count
@@ -166,4 +166,7 @@ func TestK8sDeployment(t *testing.T) {
 
 	err = tfPluginClient.NetworkDeployer.Cancel(ctx, &network)
 	assert.NoError(t, err)
+
+	_, err = tfPluginClient.State.LoadK8sFromGrid(masterMap, workerMap, k8sCluster.Master.Name)
+	assert.Error(t, err)
 }

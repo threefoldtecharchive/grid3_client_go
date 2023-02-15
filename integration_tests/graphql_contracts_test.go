@@ -1,5 +1,5 @@
-// Package deployer for grid deployer
-package deployer
+// Package integration for integration tests
+package integration
 
 import (
 	"testing"
