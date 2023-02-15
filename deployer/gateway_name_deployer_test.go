@@ -224,7 +224,7 @@ func TestNameCancel(t *testing.T) {
 	gw.NameContractID = nameContractID
 	gw.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
 
-	mockValidation(d.tfPluginClient.identity, cl, sub, ncPool, proxyCl)
+	mockValidation(d.tfPluginClient.Identity, cl, sub, ncPool, proxyCl)
 
 	deployer.EXPECT().Cancel(
 		gomock.Any(),
@@ -249,7 +249,7 @@ func TestNameCancelDeploymentsFailed(t *testing.T) {
 	gw := constructTestName()
 	gw.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
 
-	mockValidation(d.tfPluginClient.identity, cl, sub, ncPool, proxyCl)
+	mockValidation(d.tfPluginClient.Identity, cl, sub, ncPool, proxyCl)
 
 	deployer.EXPECT().Cancel(
 		gomock.Any(),
@@ -270,7 +270,7 @@ func TestNameCancelContractsFailed(t *testing.T) {
 	gw.NameContractID = nameContractID
 	gw.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
 
-	mockValidation(d.tfPluginClient.identity, cl, sub, ncPool, proxyCl)
+	mockValidation(d.tfPluginClient.Identity, cl, sub, ncPool, proxyCl)
 
 	deployer.EXPECT().Cancel(
 		gomock.Any(),
