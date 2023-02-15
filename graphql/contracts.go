@@ -1,5 +1,5 @@
-// Package deployer for grid deployer
-package deployer
+// Package graphql for grid graphql support
+package graphql
 
 import (
 	"context"
@@ -19,7 +19,7 @@ import (
 // ContractsGetter for contracts getter from graphql
 type ContractsGetter struct {
 	twinID        uint32
-	graphql       graphQl
+	graphql       GraphQl
 	substrateConn subi.SubstrateExt
 	ncPool        client.NodeClientGetter
 }
@@ -44,7 +44,7 @@ type Contract struct {
 }
 
 // NewContractsGetter return a new Getter for contracts
-func NewContractsGetter(twinID uint32, graphql graphQl, substrateConn subi.SubstrateExt, ncPool client.NodeClientGetter) ContractsGetter {
+func NewContractsGetter(twinID uint32, graphql GraphQl, substrateConn subi.SubstrateExt, ncPool client.NodeClientGetter) ContractsGetter {
 	return ContractsGetter{
 		twinID:        twinID,
 		graphql:       graphql,
@@ -58,22 +58,22 @@ func (c *ContractsGetter) ListContractsByTwinID(states []string) (Contracts, err
 	state := fmt.Sprintf(`[%v]`, strings.Join(states, ", "))
 	options := fmt.Sprintf(`(where: {twinID_eq: %v, state_in: %v}, orderBy: twinID_ASC)`, c.twinID, state)
 
-	nameContractsCount, err := c.graphql.getItemTotalCount("nameContracts", options)
+	nameContractsCount, err := c.graphql.GetItemTotalCount("nameContracts", options)
 	if err != nil {
 		return Contracts{}, err
 	}
 
-	nodeContractsCount, err := c.graphql.getItemTotalCount("nodeContracts", options)
+	nodeContractsCount, err := c.graphql.GetItemTotalCount("nodeContracts", options)
 	if err != nil {
 		return Contracts{}, err
 	}
 
-	rentContractsCount, err := c.graphql.getItemTotalCount("rentContracts", options)
+	rentContractsCount, err := c.graphql.GetItemTotalCount("rentContracts", options)
 	if err != nil {
 		return Contracts{}, err
 	}
 
-	contractsData, err := c.graphql.query(fmt.Sprintf(`query getContracts($nameContractsCount: Int!, $nodeContractsCount: Int!, $rentContractsCount: Int!){
+	contractsData, err := c.graphql.Query(fmt.Sprintf(`query getContracts($nameContractsCount: Int!, $nodeContractsCount: Int!, $rentContractsCount: Int!){
             nameContracts(where: {twinID_eq: %v, state_in: %v}, limit: $nameContractsCount) {
               contractID
               state
@@ -127,47 +127,12 @@ func (c *ContractsGetter) ListContractsOfProjectName(projectName string) (Contra
 	}
 
 	for _, contract := range contractsList.NodeContracts {
-		deploymentData, err := contract.parseContractDeploymentDate()
+		deploymentData, err := workloads.ParseDeploymentDate(contract.DeploymentData)
 		if err != nil {
 			return Contracts{}, err
 		}
 
 		if deploymentData.ProjectName == projectName {
-			contracts.NodeContracts = append(contracts.NodeContracts, contract)
-		}
-	}
-
-	nameGatewaysWorkloads, err := c.filterNameGatewaysWithinNodeContracts(contracts.NodeContracts)
-	if err != nil {
-		return Contracts{}, err
-	}
-
-	contracts.NameContracts, err = c.filterNameContracts(contractsList.NameContracts, nameGatewaysWorkloads)
-	if err != nil {
-		return Contracts{}, err
-	}
-
-	return contracts, nil
-}
-
-// ListContractsOfDeploymentName returns contracts for a deployment name
-func (c *ContractsGetter) ListContractsOfDeploymentName(deploymentName string) (Contracts, error) {
-	contracts := Contracts{
-		NodeContracts: make([]Contract, 0),
-		NameContracts: make([]Contract, 0),
-	}
-	contractsList, err := c.ListContractsByTwinID([]string{"Created, GracePeriod"})
-	if err != nil {
-		return Contracts{}, err
-	}
-
-	for _, contract := range contractsList.NodeContracts {
-		deploymentData, err := contract.parseContractDeploymentDate()
-		if err != nil {
-			return Contracts{}, err
-		}
-
-		if deploymentData.Name == deploymentName {
 			contracts.NodeContracts = append(contracts.NodeContracts, contract)
 		}
 	}
@@ -225,14 +190,4 @@ func (c *ContractsGetter) filterNameGatewaysWithinNodeContracts(nodeContracts []
 	}
 
 	return nameGatewayWorkloads, nil
-}
-
-func (c *Contract) parseContractDeploymentDate() (workloads.DeploymentData, error) {
-	var deploymentData workloads.DeploymentData
-	err := json.Unmarshal([]byte(c.DeploymentData), &deploymentData)
-	if err != nil {
-		return workloads.DeploymentData{}, err
-	}
-
-	return deploymentData, nil
 }

@@ -1,5 +1,5 @@
-// Package deployer for grid deployer
-package deployer
+// Package graphql for grid graphql support
+package graphql
 
 import (
 	"bytes"
@@ -9,15 +9,15 @@ import (
 	"net/http"
 )
 
-type graphQl struct {
+type GraphQl struct {
 	url string
 }
 
-func newGraphQl(url string) (graphQl, error) {
-	return graphQl{url}, nil
+func NewGraphQl(url string) (GraphQl, error) {
+	return GraphQl{url}, nil
 }
 
-func (g *graphQl) getItemTotalCount(itemName string, options string) (float64, error) {
+func (g *GraphQl) GetItemTotalCount(itemName string, options string) (float64, error) {
 	countBody := fmt.Sprintf(`query { items: %vConnection%v { count: totalCount } }`, itemName, options)
 	requestBody := map[string]interface{}{"query": countBody}
 
@@ -45,7 +45,7 @@ func (g *graphQl) getItemTotalCount(itemName string, options string) (float64, e
 	return count, nil
 }
 
-func (g *graphQl) query(body string, variables map[string]interface{}) (map[string]interface{}, error) {
+func (g *GraphQl) Query(body string, variables map[string]interface{}) (map[string]interface{}, error) {
 	result := make(map[string]interface{})
 
 	requestBody := map[string]interface{}{"query": body, "variables": variables}

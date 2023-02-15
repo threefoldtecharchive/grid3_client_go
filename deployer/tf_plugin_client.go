@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/threefoldtech/grid3-go/graphql"
 	client "github.com/threefoldtech/grid3-go/node"
 	"github.com/threefoldtech/grid3-go/subi"
 	proxy "github.com/threefoldtech/grid_proxy_server/pkg/client"
@@ -68,8 +69,8 @@ type TFPluginClient struct {
 	State *State
 
 	// contracts
-	graphQl         graphQl
-	ContractsGetter ContractsGetter
+	graphQl         graphql.GraphQl
+	ContractsGetter graphql.ContractsGetter
 }
 
 // NewTFPluginClient generates a new tf plugin client
@@ -186,12 +187,12 @@ func NewTFPluginClient(
 	tfPluginClient.State = NewState(tfPluginClient.NcPool, tfPluginClient.SubstrateConn)
 
 	graphqlURL := GraphQlURLs[network]
-	tfPluginClient.graphQl, err = newGraphQl(graphqlURL)
+	tfPluginClient.graphQl, err = graphql.NewGraphQl(graphqlURL)
 	if err != nil {
 		return TFPluginClient{}, errors.Wrapf(err, "couldn't create a new graphql with url: %s", graphqlURL)
 	}
 
-	tfPluginClient.ContractsGetter = NewContractsGetter(tfPluginClient.twinID, tfPluginClient.graphQl, tfPluginClient.SubstrateConn, tfPluginClient.NcPool)
+	tfPluginClient.ContractsGetter = graphql.NewContractsGetter(tfPluginClient.twinID, tfPluginClient.graphQl, tfPluginClient.SubstrateConn, tfPluginClient.NcPool)
 
 	return tfPluginClient, nil
 }

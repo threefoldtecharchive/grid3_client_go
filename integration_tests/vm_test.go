@@ -70,7 +70,7 @@ func TestVMDeployment(t *testing.T) {
 		err = tfPluginClient.DeploymentDeployer.Deploy(ctx, &dl)
 		assert.NoError(t, err)
 
-		v, err := tfPluginClient.State.LoadVMFromGrid(nodeID, vm.Name)
+		v, err := tfPluginClient.State.LoadVMFromGrid(nodeID, vm.Name, dl.Name)
 		assert.NoError(t, err)
 		assert.Equal(t, v.IP, "10.20.2.5")
 
@@ -93,7 +93,7 @@ func TestVMDeployment(t *testing.T) {
 		err = tfPluginClient.NetworkDeployer.Cancel(ctx, &network)
 		assert.NoError(t, err)
 
-		_, err = tfPluginClient.State.LoadVMFromGrid(nodeID, vm.Name)
+		_, err = tfPluginClient.State.LoadVMFromGrid(nodeID, vm.Name, dl.Name)
 		assert.Error(t, err)
 	})
 }
