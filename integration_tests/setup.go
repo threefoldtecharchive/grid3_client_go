@@ -18,10 +18,9 @@ import (
 
 func setup() (deployer.TFPluginClient, error) {
 	mnemonics := os.Getenv("MNEMONICS")
-	mnemonics = "winner giant reward damage expose pulse recipe manual brand volcano dry avoid"
 	log.Printf("mnemonics: %s", mnemonics)
 
-	network := "qa" //os.Getenv("NETWORK")
+	network := os.Getenv("NETWORK")
 	log.Printf("network: %s", network)
 
 	return deployer.NewTFPluginClient(mnemonics, "sr25519", network, "", "", true, true)
