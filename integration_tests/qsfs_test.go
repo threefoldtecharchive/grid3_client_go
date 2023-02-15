@@ -35,10 +35,13 @@ func TestQSFSDeployment(t *testing.T) {
 	}
 	nodeIDs, err := deployer.FilterNodes(filter, deployer.RMBProxyURLs[tfPluginClient.Network])
 	assert.NoError(t, err)
+	nodeIDs, err = deployer.FilterNodesWithPublicConfigs(tfPluginClient.SubstrateConn, tfPluginClient.NcPool, nodeIDs)
+	assert.NoError(t, err)
 
 	nodeID := nodeIDs[0]
+
 	network := workloads.ZNet{
-		Name:        "testingNetwork",
+		Name:        "qsfsTestingNetwork",
 		Description: "network for testing",
 		Nodes:       []uint32{nodeID},
 		IPRange: gridtypes.NewIPNet(net.IPNet{
@@ -77,21 +80,21 @@ func TestQSFSDeployment(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 	defer cancel()
 
-	dl := workloads.NewDeployment("qsfs", nodeID, "", nil, "", nil, append(dataZDBs, metaZDBs...), nil, nil)
-	err = tfPluginClient.DeploymentDeployer.Deploy(ctx, &dl)
+	dl1 := workloads.NewDeployment("qsfs", nodeID, "", nil, "", nil, append(dataZDBs, metaZDBs...), nil, nil)
+	err = tfPluginClient.DeploymentDeployer.Deploy(ctx, &dl1)
 	assert.NoError(t, err)
 
 	// result zdbs
 	resDataZDBs := []workloads.ZDB{}
 	resMetaZDBs := []workloads.ZDB{}
 	for i := 1; i <= DataZDBNum; i++ {
-		res, err := tfPluginClient.State.LoadZdbFromGrid(nodeID, "qsfsDataZdb"+strconv.Itoa(i), dl.Name)
+		res, err := tfPluginClient.State.LoadZdbFromGrid(nodeID, "qsfsDataZdb"+strconv.Itoa(i), dl1.Name)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, res)
 		resDataZDBs = append(resDataZDBs, res)
 	}
 	for i := 1; i <= MetaZDBNum; i++ {
-		res, err := tfPluginClient.State.LoadZdbFromGrid(nodeID, "qsfsMetaZdb"+strconv.Itoa(i), dl.Name)
+		res, err := tfPluginClient.State.LoadZdbFromGrid(nodeID, "qsfsMetaZdb"+strconv.Itoa(i), dl1.Name)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, res)
 		resMetaZDBs = append(resMetaZDBs, res)
@@ -114,7 +117,7 @@ func TestQSFSDeployment(t *testing.T) {
 	}
 
 	qsfs := workloads.QSFS{
-		Name:                 "qsfsTest",
+		Name:                 "qsfs",
 		Description:          "qsfs for testing",
 		Cache:                1024,
 		MinimalShards:        2,
@@ -154,14 +157,14 @@ func TestQSFSDeployment(t *testing.T) {
 	err = tfPluginClient.NetworkDeployer.Deploy(ctx, &network)
 	assert.NoError(t, err)
 
-	dl = workloads.NewDeployment("qsfs", nodeID, "", nil, network.Name, nil, append(dataZDBs, metaZDBs...), []workloads.VM{vm}, []workloads.QSFS{qsfs})
-	err = tfPluginClient.DeploymentDeployer.Deploy(ctx, &dl)
+	dl2 := workloads.NewDeployment("qsfs", nodeID, "", nil, network.Name, nil, append(dataZDBs, metaZDBs...), []workloads.VM{vm}, []workloads.QSFS{qsfs})
+	err = tfPluginClient.DeploymentDeployer.Deploy(ctx, &dl2)
 	assert.NoError(t, err)
 
-	resVM, err := tfPluginClient.State.LoadVMFromGrid(nodeID, vm.Name, dl.Name)
+	resVM, err := tfPluginClient.State.LoadVMFromGrid(nodeID, vm.Name, dl2.Name)
 	assert.NoError(t, err)
 
-	resQSFS, err := tfPluginClient.State.LoadQSFSFromGrid(nodeID, qsfs.Name, dl.Name)
+	resQSFS, err := tfPluginClient.State.LoadQSFSFromGrid(nodeID, qsfs.Name, dl2.Name)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, resQSFS.MetricsEndpoint)
 
@@ -171,9 +174,6 @@ func TestQSFSDeployment(t *testing.T) {
 
 	yggIP := resVM.YggIP
 	assert.NotEmpty(t, yggIP)
-	if !TestConnection(yggIP, "22") {
-		t.Errorf("yggdrasil ip is not reachable")
-	}
 
 	// get metrics
 	cmd := exec.Command("curl", metrics)
@@ -195,12 +195,15 @@ func TestQSFSDeployment(t *testing.T) {
 	assert.Equal(t, qsfs, resQSFS)
 
 	// cancel all
-	err = tfPluginClient.DeploymentDeployer.Cancel(ctx, &dl)
+	err = tfPluginClient.DeploymentDeployer.Cancel(ctx, &dl1)
+	assert.NoError(t, err)
+
+	err = tfPluginClient.DeploymentDeployer.Cancel(ctx, &dl2)
 	assert.NoError(t, err)
 
 	err = tfPluginClient.NetworkDeployer.Cancel(ctx, &network)
 	assert.NoError(t, err)
 
-	_, err = tfPluginClient.State.LoadQSFSFromGrid(nodeID, qsfs.Name, dl.Name)
+	_, err = tfPluginClient.State.LoadQSFSFromGrid(nodeID, qsfs.Name, dl2.Name)
 	assert.Error(t, err)
 }

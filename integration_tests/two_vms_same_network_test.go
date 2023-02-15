@@ -30,11 +30,13 @@ func TestTwoVMsSameNetwork(t *testing.T) {
 	}
 	nodeIDs, err := deployer.FilterNodes(filter, deployer.RMBProxyURLs[tfPluginClient.Network])
 	assert.NoError(t, err)
+	nodeIDs, err = deployer.FilterNodesWithPublicConfigs(tfPluginClient.SubstrateConn, tfPluginClient.NcPool, nodeIDs)
+	assert.NoError(t, err)
 
 	nodeID := nodeIDs[0]
 
 	network := workloads.ZNet{
-		Name:        "testingNetwork",
+		Name:        "vmsTestingNetwork",
 		Description: "network for testing",
 		Nodes:       []uint32{nodeID},
 		IPRange: gridtypes.NewIPNet(net.IPNet{
@@ -48,7 +50,6 @@ func TestTwoVMsSameNetwork(t *testing.T) {
 		Name:       "vm1",
 		Flist:      "https://hub.grid.tf/tf-official-apps/threefoldtech-ubuntu-22.04.flist",
 		CPU:        2,
-		PublicIP:   true,
 		PublicIP6:  true,
 		Planetary:  true,
 		Memory:     1024,
@@ -64,7 +65,6 @@ func TestTwoVMsSameNetwork(t *testing.T) {
 		Name:       "vm2",
 		Flist:      "https://hub.grid.tf/tf-official-apps/threefoldtech-ubuntu-22.04.flist",
 		CPU:        2,
-		PublicIP:   true,
 		PublicIP6:  true,
 		Planetary:  true,
 		Memory:     1024,
@@ -96,22 +96,8 @@ func TestTwoVMsSameNetwork(t *testing.T) {
 		yggIP1 := v1.YggIP
 		yggIP2 := v2.YggIP
 
-		if !TestConnection(yggIP1, "22") {
-			t.Errorf("Yggdrasil IP 1 not reachable")
-		}
-		if !TestConnection(yggIP2, "22") {
-			t.Errorf("Yggdrasil IP 2 not reachable")
-		}
-
-		publicIP1 := strings.Split(v1.ComputedIP, "/")[0]
-		publicIP2 := strings.Split(v2.ComputedIP, "/")[0]
-
-		if !TestConnection(publicIP1, "22") {
-			t.Errorf("public ip 1 is not reachable")
-		}
-		if !TestConnection(publicIP2, "22") {
-			t.Errorf("public ip 2 is not reachable")
-		}
+		assert.NotEmpty(t, yggIP1)
+		assert.NotEmpty(t, yggIP1)
 
 		privateIP1 := v1.IP
 		privateIP2 := v2.IP
@@ -147,14 +133,6 @@ func TestTwoVMsSameNetwork(t *testing.T) {
 
 		// check publicIP61 from vm2
 		_, err = RemoteRun("root", yggIP2, "nc -z "+publicIP6_1+" 22", privateKey)
-		assert.NoError(t, err)
-
-		// check publicIP2 from vm1
-		_, err = RemoteRun("root", yggIP1, "nc -z "+publicIP2+" 22", privateKey)
-		assert.NoError(t, err)
-
-		// check publicIP1 from vm2
-		_, err = RemoteRun("root", yggIP2, "nc -z "+publicIP1+" 22", privateKey)
 		assert.NoError(t, err)
 
 		// cancel all

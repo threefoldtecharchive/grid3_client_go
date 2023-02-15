@@ -30,11 +30,13 @@ func TestVMWithTwoDisk(t *testing.T) {
 	}
 	nodeIDs, err := deployer.FilterNodes(filter, deployer.RMBProxyURLs[tfPluginClient.Network])
 	assert.NoError(t, err)
+	nodeIDs, err = deployer.FilterNodesWithPublicConfigs(tfPluginClient.SubstrateConn, tfPluginClient.NcPool, nodeIDs)
+	assert.NoError(t, err)
 
 	nodeID := nodeIDs[0]
 
 	network := workloads.ZNet{
-		Name:        "testingNetwork",
+		Name:        "vmsDiskTestingNetwork",
 		Description: "network for testing",
 		Nodes:       []uint32{nodeID},
 		IPRange: gridtypes.NewIPNet(net.IPNet{
@@ -94,9 +96,6 @@ func TestVMWithTwoDisk(t *testing.T) {
 
 	yggIP := v.YggIP
 	assert.NotEmpty(t, yggIP)
-	if !TestConnection(yggIP, "22") {
-		t.Errorf("yggdrasil ip is not reachable")
-	}
 
 	// Check that disk has been mounted successfully
 

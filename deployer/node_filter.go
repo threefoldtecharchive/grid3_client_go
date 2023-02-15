@@ -2,12 +2,15 @@
 package deployer
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 
 	"github.com/google/go-querystring/query"
+	client "github.com/threefoldtech/grid3-go/node"
+	"github.com/threefoldtech/grid3-go/subi"
 )
 
 // NodeFilter struct for options
@@ -68,4 +71,26 @@ func FilterNodes(options NodeFilter, url string) ([]uint32, error) {
 	}
 
 	return nodes, nil
+}
+
+// FilterNodesWithPublicConfigs filters nodes with public configs
+func FilterNodesWithPublicConfigs(sub subi.SubstrateExt, ncPool client.NodeClientGetter, nodes []uint32) ([]uint32, error) {
+	filteredNodes := make([]uint32, 0)
+	for _, nodeID := range nodes {
+		nodeClient, err := ncPool.GetNodeClient(sub, nodeID)
+		if err != nil {
+			return nodes, err
+		}
+		_, err = nodeClient.NetworkGetPublicConfig(context.Background())
+		if err != nil {
+			continue
+		}
+		filteredNodes = append(filteredNodes, nodeID)
+	}
+
+	if len(nodes) == 0 {
+		return nodes, fmt.Errorf("couldn't find any node with public configs")
+	}
+
+	return filteredNodes, nil
 }

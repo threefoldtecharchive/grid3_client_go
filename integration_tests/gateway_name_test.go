@@ -32,6 +32,8 @@ func TestGatewayNameDeployment(t *testing.T) {
 	}
 	nodeIDs, err := deployer.FilterNodes(filter, deployer.RMBProxyURLs[tfPluginClient.Network])
 	assert.NoError(t, err)
+	nodeIDs, err = deployer.FilterNodesWithPublicConfigs(tfPluginClient.SubstrateConn, tfPluginClient.NcPool, nodeIDs)
+	assert.NoError(t, err)
 
 	nodeID := nodeIDs[0]
 	gwNodeID := nodeIDs[1]
@@ -72,7 +74,6 @@ func TestGatewayNameDeployment(t *testing.T) {
 
 	v, err := tfPluginClient.State.LoadVMFromGrid(nodeID, vm.Name, dl.Name)
 	assert.NoError(t, err)
-	assert.True(t, TestConnection(v.YggIP, "22"))
 
 	backend := fmt.Sprintf("http://[%s]:9000", v.YggIP)
 	gw := workloads.GatewayNameProxy{

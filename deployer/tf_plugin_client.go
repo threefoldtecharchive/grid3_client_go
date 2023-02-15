@@ -2,9 +2,11 @@
 package deployer
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log"
+	"os"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -12,8 +14,9 @@ import (
 	client "github.com/threefoldtech/grid3-go/node"
 	"github.com/threefoldtech/grid3-go/subi"
 	proxy "github.com/threefoldtech/grid_proxy_server/pkg/client"
+	"github.com/threefoldtech/rmb-sdk-go"
+	"github.com/threefoldtech/rmb-sdk-go/direct"
 	"github.com/threefoldtech/substrate-client"
-	"github.com/threefoldtech/zos/pkg/rmb"
 )
 
 var (
@@ -38,6 +41,13 @@ var (
 		"qa":   "https://graphql.qa.grid.tf/graphql",
 		"main": "https://graphql.grid.tf/graphql",
 	}
+	// RelayURLS relay urls
+	RelayURLS = map[string]string{
+		"dev":  "wss://relay.dev.grid.tf",
+		"test": "wss://relay.test.grid.tf",
+		"qa":   "wss://relay.qa.grid.tf",
+		"main": "wss://relay.grid.tf",
+	}
 )
 
 // TFPluginClient is a Threefold plugin client
@@ -46,6 +56,7 @@ type TFPluginClient struct {
 	mnemonics    string
 	Identity     substrate.Identity
 	substrateURL string
+	relayURL     string
 	rmbProxyURL  string
 	useRmbProxy  bool
 
@@ -79,6 +90,7 @@ func NewTFPluginClient(
 	keyType string,
 	network string,
 	substrateURL string,
+	passedRelayURL string,
 	passedRmbProxyURL string,
 	verifyReply bool,
 	showLogs bool,
@@ -123,7 +135,7 @@ func NewTFPluginClient(
 
 	tfPluginClient.substrateURL = SubstrateURLs[network]
 	if len(strings.TrimSpace(substrateURL)) != 0 {
-		if err := validateSubstrateURL(substrateURL); err != nil {
+		if err := validateWssURL(substrateURL); err != nil {
 			return TFPluginClient{}, errors.Wrapf(err, "couldn't validate substrate url %s", substrateURL)
 		}
 		tfPluginClient.substrateURL = substrateURL
@@ -160,12 +172,20 @@ func NewTFPluginClient(
 
 	tfPluginClient.useRmbProxy = true
 	// if tfPluginClient.useRmbProxy
-	rmbClient, err := client.NewProxyBus(tfPluginClient.rmbProxyURL, tfPluginClient.twinID, tfPluginClient.SubstrateConn, identity, verifyReply)
+	sessionID := generateSessionID(tfPluginClient.twinID)
+	db := client.NewTwinDB(tfPluginClient.SubstrateConn)
+
+	tfPluginClient.relayURL = RelayURLS[network]
+	if len(strings.TrimSpace(passedRelayURL)) != 0 {
+		if err := validateWssURL(passedRelayURL); err != nil {
+			return TFPluginClient{}, errors.Wrapf(err, "couldn't validate relay url %s", passedRelayURL)
+		}
+		tfPluginClient.relayURL = passedRelayURL
+	}
+
+	rmbClient, err := direct.NewClient(context.Background(), tfPluginClient.Identity, tfPluginClient.relayURL, sessionID, db)
 	if err != nil {
 		return TFPluginClient{}, errors.Wrap(err, "couldn't create rmb client")
-	}
-	if err := validateTwinYggdrasil(tfPluginClient.SubstrateConn, tfPluginClient.twinID); err != nil {
-		return TFPluginClient{}, errors.Wrapf(err, "couldn't validate twin %d yggdrasil", tfPluginClient.twinID)
 	}
 	tfPluginClient.RMB = rmbClient
 
@@ -195,4 +215,8 @@ func NewTFPluginClient(
 	tfPluginClient.ContractsGetter = graphql.NewContractsGetter(tfPluginClient.twinID, tfPluginClient.graphQl, tfPluginClient.SubstrateConn, tfPluginClient.NcPool)
 
 	return tfPluginClient, nil
+}
+
+func generateSessionID(twinID uint32) string {
+	return fmt.Sprintf("tf-%d", os.Getpid())
 }

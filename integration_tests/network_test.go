@@ -25,6 +25,8 @@ func TestNetworkDeployment(t *testing.T) {
 	}
 	nodeIDs, err := deployer.FilterNodes(filter, deployer.RMBProxyURLs[tfPluginClient.Network])
 	assert.NoError(t, err)
+	nodeIDs, err = deployer.FilterNodesWithPublicConfigs(tfPluginClient.SubstrateConn, tfPluginClient.NcPool, nodeIDs)
+	assert.NoError(t, err)
 
 	network := workloads.ZNet{
 		Name:        "net1",

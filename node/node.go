@@ -82,9 +82,9 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/threefoldtech/grid3-go/subi"
+	"github.com/threefoldtech/rmb-sdk-go"
 	"github.com/threefoldtech/zos/pkg/capacity/dmi"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
-	"github.com/threefoldtech/zos/pkg/rmb"
 )
 
 // IfaceType define the different public interface supported

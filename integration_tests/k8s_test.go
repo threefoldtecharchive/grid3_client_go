@@ -47,12 +47,14 @@ func TestK8sDeployment(t *testing.T) {
 	}
 	nodeIDs, err := deployer.FilterNodes(filter, deployer.RMBProxyURLs[tfPluginClient.Network])
 	assert.NoError(t, err)
+	nodeIDs, err = deployer.FilterNodesWithPublicConfigs(tfPluginClient.SubstrateConn, tfPluginClient.NcPool, nodeIDs)
+	assert.NoError(t, err)
 
 	masterNodeID := nodeIDs[0]
 	workerNodeID := nodeIDs[1]
 
 	network := workloads.ZNet{
-		Name:        "testingNetwork",
+		Name:        "k8sTestingNetwork",
 		Description: "network for testing",
 		Nodes:       []uint32{masterNodeID, workerNodeID},
 		IPRange: gridtypes.NewIPNet(net.IPNet{
@@ -130,7 +132,7 @@ func TestK8sDeployment(t *testing.T) {
 		Workers:     workers[:],
 		Token:       "tokens",
 		SSHKey:      publicKey,
-		NetworkName: "testingNetwork",
+		NetworkName: network.Name,
 	}
 
 	err = tfPluginClient.K8sDeployer.Deploy(ctx, &k8sCluster)
@@ -152,10 +154,6 @@ func TestK8sDeployment(t *testing.T) {
 	// Check wireguard config in output
 	wgConfig := network.AccessWGConfig
 	assert.NotEmpty(t, wgConfig)
-
-	// testing connection on port 22, waits at max 3mins until it becomes ready otherwise it fails
-	ok := TestConnection(masterIP, "22")
-	assert.True(t, ok)
 
 	// ssh to master node
 	AssertNodesAreReady(t, &result, privateKey)

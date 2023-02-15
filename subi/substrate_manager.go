@@ -54,7 +54,6 @@ type SubstrateExt interface {
 	CreateNameContract(identity substrate.Identity, name string) (uint64, error)
 	GetAccount(identity substrate.Identity) (types.AccountInfo, error)
 	GetBalance(identity substrate.Identity) (balance substrate.Balance, err error)
-	GetTwinIP(twinID uint32) (string, error)
 	GetTwinPK(twinID uint32) ([]byte, error)
 	GetContractIDByNameRegistration(name string) (uint64, error)
 }
@@ -88,15 +87,6 @@ func (s *SubstrateImpl) GetNodeTwin(nodeID uint32) (uint32, error) {
 		return 0, normalizeNotFoundErrors(err)
 	}
 	return uint32(node.TwinID), nil
-}
-
-// GetTwinIP returns twin IP given its ID
-func (s *SubstrateImpl) GetTwinIP(id uint32) (string, error) {
-	twin, err := s.Substrate.GetTwin(id)
-	if err != nil {
-		return "", normalizeNotFoundErrors(err)
-	}
-	return twin.IP, nil
 }
 
 // GetTwinPK returns twin's public key
