@@ -1,7 +1,10 @@
 name: Integration tests
 
-on: [pull_request]
-
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+  
 jobs:
   test:
     runs-on: ubuntu-latest
