@@ -9,14 +9,17 @@ import (
 	"net/http"
 )
 
+// GraphQl for tf graphql
 type GraphQl struct {
 	url string
 }
 
+// NewGraphQl new tf graphql
 func NewGraphQl(url string) (GraphQl, error) {
 	return GraphQl{url}, nil
 }
 
+// GetItemTotalCount return count of items
 func (g *GraphQl) GetItemTotalCount(itemName string, options string) (float64, error) {
 	countBody := fmt.Sprintf(`query { items: %vConnection%v { count: totalCount } }`, itemName, options)
 	requestBody := map[string]interface{}{"query": countBody}
@@ -45,6 +48,7 @@ func (g *GraphQl) GetItemTotalCount(itemName string, options string) (float64, e
 	return count, nil
 }
 
+// Query queries graphql
 func (g *GraphQl) Query(body string, variables map[string]interface{}) (map[string]interface{}, error) {
 	result := make(map[string]interface{})
 

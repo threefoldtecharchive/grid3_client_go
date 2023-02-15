@@ -228,6 +228,7 @@ func (l *State) LoadNetworkFromGrid(name string) (znet workloads.ZNet, err error
 	return znet, nil
 }
 
+// GetWorkloadInDeployment return a workload in a deployment using their names and node ID
 func (l *State) GetWorkloadInDeployment(nodeID uint32, name string, deploymentName string) (gridtypes.Workload, gridtypes.Deployment, error) {
 	sub := l.substrate
 	if contractIDs, ok := l.currentNodeDeployments[nodeID]; ok {
