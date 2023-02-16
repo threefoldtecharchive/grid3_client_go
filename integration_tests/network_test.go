@@ -84,4 +84,13 @@ func TestNetworkDeployment(t *testing.T) {
 		assert.Error(t, err)
 	})
 
+	t.Run("test get public node", func(t *testing.T) {
+		publicNodeID, err := workloads.GetPublicNode(
+			context.Background(),
+			tfPluginClient.GridProxyClient,
+			[]uint32{},
+		)
+		assert.NoError(t, err)
+		assert.Equal(t, uint32(14), publicNodeID)
+	})
 }
