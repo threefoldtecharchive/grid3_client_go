@@ -82,7 +82,7 @@ func TestGatewayFQDNDeployment(t *testing.T) {
 	err = tfPluginClient.GatewayFQDNDeployer.Deploy(ctx, &gw)
 	assert.NoError(t, err)
 
-	_, err = tfPluginClient.State.LoadGatewayFqdnFromGrid(gatewayNode, gw.Name, gw.Name)
+	_, err = tfPluginClient.State.LoadGatewayFQDNFromGrid(gatewayNode, gw.Name, gw.Name)
 	assert.NoError(t, err)
 
 	_, err = RemoteRun("root", v.YggIP, "apk add python3; python3 -m http.server 9000 --bind :: &> /dev/null &", privateKey)
@@ -110,6 +110,6 @@ func TestGatewayFQDNDeployment(t *testing.T) {
 	err = tfPluginClient.NetworkDeployer.Cancel(ctx, &network)
 	assert.NoError(t, err)
 
-	_, err = tfPluginClient.State.LoadGatewayFqdnFromGrid(nodeID, gw.Name, gw.Name)
+	_, err = tfPluginClient.State.LoadGatewayFQDNFromGrid(nodeID, gw.Name, gw.Name)
 	assert.Error(t, err)
 }

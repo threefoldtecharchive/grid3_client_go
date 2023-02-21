@@ -98,7 +98,7 @@ func TestLoadDiskFromGrid(t *testing.T) {
 	})
 }
 
-func TestLoadGatewayFqdnFromGrid(t *testing.T) {
+func TestLoadGatewayFQDNFromGrid(t *testing.T) {
 	gatewayWl := gridtypes.Workload{
 		Version: 0,
 		Type:    zos.GatewayFQDNProxyType,
@@ -119,7 +119,7 @@ func TestLoadGatewayFqdnFromGrid(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		state := SetupLoaderTests(t, []gridtypes.Workload{gatewayWl})
 
-		got, err := state.LoadGatewayFqdnFromGrid(1, "test", deploymentName)
+		got, err := state.LoadGatewayFQDNFromGrid(1, "test", deploymentName)
 		assert.NoError(t, err)
 		assert.Equal(t, gateway, got)
 	})
@@ -130,7 +130,7 @@ func TestLoadGatewayFqdnFromGrid(t *testing.T) {
 
 		state := SetupLoaderTests(t, []gridtypes.Workload{gatewayWlCp})
 
-		_, err := state.LoadGatewayFqdnFromGrid(1, "test", deploymentName)
+		_, err := state.LoadGatewayFQDNFromGrid(1, "test", deploymentName)
 		assert.Error(t, err)
 	})
 
@@ -143,7 +143,7 @@ func TestLoadGatewayFqdnFromGrid(t *testing.T) {
 
 		state := SetupLoaderTests(t, []gridtypes.Workload{gatewayWlCp})
 
-		_, err := state.LoadGatewayFqdnFromGrid(1, "test", deploymentName)
+		_, err := state.LoadGatewayFQDNFromGrid(1, "test", deploymentName)
 		assert.Error(t, err)
 	})
 }

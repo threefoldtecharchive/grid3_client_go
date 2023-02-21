@@ -50,8 +50,8 @@ func (l *State) LoadDiskFromGrid(nodeID uint32, name string, deploymentName stri
 	return workloads.NewDiskFromWorkload(&wl)
 }
 
-// LoadGatewayFqdnFromGrid loads a gateway FQDN proxy from grid
-func (l *State) LoadGatewayFqdnFromGrid(nodeID uint32, name string, deploymentName string) (workloads.GatewayFQDNProxy, error) {
+// LoadGatewayFQDNFromGrid loads a gateway FQDN proxy from grid
+func (l *State) LoadGatewayFQDNFromGrid(nodeID uint32, name string, deploymentName string) (workloads.GatewayFQDNProxy, error) {
 	wl, dl, err := l.GetWorkloadInDeployment(nodeID, name, deploymentName)
 	if err != nil {
 		return workloads.GatewayFQDNProxy{}, errors.Wrapf(err, "could not get workload from node %d within deployment %v", nodeID, dl)
