@@ -8,7 +8,7 @@ require (
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.8.1
-	github.com/threefoldtech/grid_proxy_server v1.6.6
+	github.com/threefoldtech/grid_proxy_server v1.6.12
 	github.com/threefoldtech/rmb-sdk-go v0.0.0-20230214123537-4833a4e157e6
 	github.com/threefoldtech/substrate-client v0.0.0-20230203145052-45be626d311b
 	github.com/threefoldtech/zos v0.5.6-0.20230103093557-d9c7fe2b92e7
