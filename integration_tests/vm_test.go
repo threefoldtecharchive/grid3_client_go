@@ -21,19 +21,16 @@ func TestVMDeployment(t *testing.T) {
 	publicKey, privateKey, err := GenerateSSHKeyPair()
 	assert.NoError(t, err)
 
-	filter := deployer.NodeFilter{
-		CRU:       2,
-		SRU:       2,
-		MRU:       1,
-		Status:    "up",
-		PublicIPs: true,
-	}
-	nodeIDs, err := deployer.FilterNodes(filter, deployer.RMBProxyURLs[tfPluginClient.Network])
-	assert.NoError(t, err)
-	nodeIDs, err = deployer.FilterNodesWithPublicConfigs(tfPluginClient.SubstrateConn, tfPluginClient.NcPool, nodeIDs)
+	nodeFilter.IPv4 = &trueVal
+	nodeFilter.FreeIPs = &value1
+	nodes, err := deployer.FilterNodes(tfPluginClient.GridProxyClient, nodeFilter)
 	assert.NoError(t, err)
 
-	nodeID := nodeIDs[0]
+	if err != nil {
+		return
+	}
+
+	nodeID := uint32(nodes[0].NodeID)
 
 	network := workloads.ZNet{
 		Name:        "vmTestingNetwork",

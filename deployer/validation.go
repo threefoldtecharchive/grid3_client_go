@@ -6,6 +6,7 @@ import (
 	"log"
 	"math/big"
 	"regexp"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/grid3-go/subi"
@@ -57,13 +58,13 @@ func validateMnemonics(mnemonics string) error {
 }
 
 func validateWssURL(url string) error {
-	if len(url) == 0 {
+	if len(strings.TrimSpace(url)) == 0 {
 		return errors.New("url is required")
 	}
 
 	alphaOnly := regexp.MustCompile(`^wss:\/\/[a-z0-9]+\.[a-z0-9]\/?([^\s<>\#%"\,\{\}\\|\\\^\[\]]+)?$`)
 	if !alphaOnly.MatchString(url) {
-		return errors.New("wss url is not valid")
+		return fmt.Errorf("wss url '%s' is not valid", url)
 	}
 
 	return nil

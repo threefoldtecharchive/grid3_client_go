@@ -29,16 +29,10 @@ func TestQSFSDeployment(t *testing.T) {
 	publicKey, privateKey, err := GenerateSSHKeyPair()
 	assert.NoError(t, err)
 
-	filter := deployer.NodeFilter{
-		Status: "up",
-		SRU:    10,
-	}
-	nodeIDs, err := deployer.FilterNodes(filter, deployer.RMBProxyURLs[tfPluginClient.Network])
-	assert.NoError(t, err)
-	nodeIDs, err = deployer.FilterNodesWithPublicConfigs(tfPluginClient.SubstrateConn, tfPluginClient.NcPool, nodeIDs)
+	nodes, err := deployer.FilterNodes(tfPluginClient.GridProxyClient, nodeFilter)
 	assert.NoError(t, err)
 
-	nodeID := nodeIDs[0]
+	nodeID := uint32(nodes[0].NodeID)
 
 	network := workloads.ZNet{
 		Name:        "qsfsTestingNetwork",

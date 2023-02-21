@@ -17,21 +17,16 @@ func TestNetworkDeployment(t *testing.T) {
 	tfPluginClient, err := setup()
 	assert.NoError(t, err)
 
-	filter := deployer.NodeFilter{
-		CRU:    2,
-		SRU:    2,
-		MRU:    1,
-		Status: "up",
-	}
-	nodeIDs, err := deployer.FilterNodes(filter, deployer.RMBProxyURLs[tfPluginClient.Network])
+	nodes, err := deployer.FilterNodes(tfPluginClient.GridProxyClient, nodeFilter)
 	assert.NoError(t, err)
-	nodeIDs, err = deployer.FilterNodesWithPublicConfigs(tfPluginClient.SubstrateConn, tfPluginClient.NcPool, nodeIDs)
-	assert.NoError(t, err)
+
+	nodeID1 := uint32(nodes[0].NodeID)
+	nodeID2 := uint32(nodes[1].NodeID)
 
 	network := workloads.ZNet{
 		Name:        "net1",
 		Description: "not skynet",
-		Nodes:       nodeIDs[:1],
+		Nodes:       []uint32{nodeID1},
 		IPRange: gridtypes.NewIPNet(net.IPNet{
 			IP:   net.IPv4(10, 1, 0, 0),
 			Mask: net.CIDRMask(16, 32),
@@ -53,7 +48,7 @@ func TestNetworkDeployment(t *testing.T) {
 	})
 
 	t.Run("deploy network with wireguard access on different nodes", func(t *testing.T) {
-		networkCp.Nodes = []uint32{nodeIDs[1]}
+		networkCp.Nodes = []uint32{nodeID2}
 
 		err = tfPluginClient.NetworkDeployer.Deploy(ctx, &networkCp)
 		assert.NoError(t, err)
@@ -64,7 +59,7 @@ func TestNetworkDeployment(t *testing.T) {
 
 	t.Run("update network remove wireguard access", func(t *testing.T) {
 		networkCp.AddWGAccess = false
-		networkCp.Nodes = []uint32{nodeIDs[1]}
+		networkCp.Nodes = []uint32{nodeID2}
 
 		err = tfPluginClient.NetworkDeployer.Deploy(ctx, &networkCp)
 		assert.NoError(t, err)
@@ -85,7 +80,7 @@ func TestNetworkDeployment(t *testing.T) {
 	})
 
 	t.Run("test get public node", func(t *testing.T) {
-		publicNodeID, err := workloads.GetPublicNode(
+		publicNodeID, err := deployer.GetPublicNode(
 			context.Background(),
 			tfPluginClient.GridProxyClient,
 			[]uint32{},

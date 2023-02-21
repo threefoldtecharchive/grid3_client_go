@@ -15,14 +15,10 @@ func TestDiskDeployment(t *testing.T) {
 	tfPluginClient, err := setup()
 	assert.NoError(t, err)
 
-	filter := deployer.NodeFilter{
-		Status: "up",
-		SRU:    1,
-	}
-	nodeIDs, err := deployer.FilterNodes(filter, deployer.RMBProxyURLs[tfPluginClient.Network])
+	nodes, err := deployer.FilterNodes(tfPluginClient.GridProxyClient, nodeFilter)
 	assert.NoError(t, err)
 
-	nodeID := nodeIDs[0]
+	nodeID := uint32(nodes[0].NodeID)
 
 	disk := workloads.Disk{
 		Name:        "testName",

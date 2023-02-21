@@ -29,7 +29,7 @@ func AssertNodesAreReady(t *testing.T, k8sCluster *workloads.K8sCluster, private
 
 	nodesNumber := reflect.ValueOf(k8sCluster.Workers).Len() + 1
 	numberOfReadyNodes := strings.Count(output, "Ready")
-	assert.True(t, numberOfReadyNodes == nodesNumber, "number of ready nodes is not equal to number of nodes only %s nodes are ready", numberOfReadyNodes)
+	assert.True(t, numberOfReadyNodes == nodesNumber, "number of ready nodes is not equal to number of nodes only %d nodes are ready", numberOfReadyNodes)
 }
 
 func TestK8sDeployment(t *testing.T) {
@@ -39,19 +39,11 @@ func TestK8sDeployment(t *testing.T) {
 	publicKey, privateKey, err := GenerateSSHKeyPair()
 	assert.NoError(t, err)
 
-	filter := deployer.NodeFilter{
-		CRU:    2,
-		SRU:    4,
-		MRU:    4,
-		Status: "up",
-	}
-	nodeIDs, err := deployer.FilterNodes(filter, deployer.RMBProxyURLs[tfPluginClient.Network])
-	assert.NoError(t, err)
-	nodeIDs, err = deployer.FilterNodesWithPublicConfigs(tfPluginClient.SubstrateConn, tfPluginClient.NcPool, nodeIDs)
+	nodes, err := deployer.FilterNodes(tfPluginClient.GridProxyClient, nodeFilter)
 	assert.NoError(t, err)
 
-	masterNodeID := nodeIDs[0]
-	workerNodeID := nodeIDs[1]
+	masterNodeID := uint32(nodes[0].NodeID)
+	workerNodeID := uint32(nodes[1].NodeID)
 
 	network := workloads.ZNet{
 		Name:        "k8sTestingNetwork",

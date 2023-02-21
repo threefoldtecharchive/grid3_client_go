@@ -21,19 +21,10 @@ func TestTwoVMsSameNetwork(t *testing.T) {
 	publicKey, privateKey, err := GenerateSSHKeyPair()
 	assert.NoError(t, err)
 
-	filter := deployer.NodeFilter{
-		CRU:       2,
-		SRU:       2,
-		MRU:       1,
-		Status:    "up",
-		PublicIPs: true,
-	}
-	nodeIDs, err := deployer.FilterNodes(filter, deployer.RMBProxyURLs[tfPluginClient.Network])
-	assert.NoError(t, err)
-	nodeIDs, err = deployer.FilterNodesWithPublicConfigs(tfPluginClient.SubstrateConn, tfPluginClient.NcPool, nodeIDs)
+	nodes, err := deployer.FilterNodes(tfPluginClient.GridProxyClient, nodeFilter)
 	assert.NoError(t, err)
 
-	nodeID := nodeIDs[0]
+	nodeID := uint32(nodes[0].NodeID)
 
 	network := workloads.ZNet{
 		Name:        "vmsTestingNetwork",
@@ -82,7 +73,7 @@ func TestTwoVMsSameNetwork(t *testing.T) {
 	err = tfPluginClient.NetworkDeployer.Deploy(ctx, &network)
 	assert.NoError(t, err)
 
-	t.Run("public ipv6, yggdrasil and public IPv4", func(t *testing.T) {
+	t.Run("public ipv6 and yggdrasil", func(t *testing.T) {
 		dl := workloads.NewDeployment("vm", nodeID, "", nil, network.Name, nil, nil, []workloads.VM{vm1, vm2}, nil)
 		err = tfPluginClient.DeploymentDeployer.Deploy(ctx, &dl)
 		assert.NoError(t, err)

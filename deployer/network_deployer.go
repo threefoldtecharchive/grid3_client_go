@@ -74,8 +74,8 @@ func (d *NetworkDeployer) GenerateVersionlessDeployments(ctx context.Context, zn
 			return nil, errors.Wrapf(err, "couldn't get node %d client", nodeID)
 		}
 
-		endpoint, err := workloads.GetNodeEndpoint(ctx, nodeClient)
-		if errors.Is(err, workloads.ErrNoAccessibleInterfaceFound) {
+		endpoint, err := nodeClient.GetNodeEndpoint(ctx)
+		if errors.Is(err, client.ErrNoAccessibleInterfaceFound) {
 			hiddenNodes = append(hiddenNodes, nodeID)
 		} else if err != nil {
 			return nil, errors.Wrapf(err, "failed to get node %d endpoint", nodeID)
@@ -99,7 +99,7 @@ func (d *NetworkDeployer) GenerateVersionlessDeployments(ctx context.Context, zn
 		} else if ipv4Node != 0 { // there's one in the network original nodes
 			znet.PublicNodeID = ipv4Node
 		} else {
-			publicNode, err := workloads.GetPublicNode(ctx, d.tfPluginClient.GridProxyClient, []uint32{})
+			publicNode, err := GetPublicNode(ctx, d.tfPluginClient.GridProxyClient, []uint32{})
 			if err != nil {
 				return nil, errors.Wrap(err, "public node needed because you requested adding wg access or a hidden node is added to the network")
 			}
@@ -112,7 +112,7 @@ func (d *NetworkDeployer) GenerateVersionlessDeployments(ctx context.Context, zn
 			if err != nil {
 				return nil, errors.Wrapf(err, "couldn't get node %d client", znet.PublicNodeID)
 			}
-			endpoint, err := workloads.GetNodeEndpoint(ctx, cl)
+			endpoint, err := cl.GetNodeEndpoint(ctx)
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to get node %d endpoint", znet.PublicNodeID)
 			}
@@ -410,7 +410,7 @@ func (d *NetworkDeployer) assignNodesWGPort(ctx context.Context, sub subi.Substr
 			if err != nil {
 				return errors.Wrap(err, "could not get node client")
 			}
-			port, err := workloads.GetNodeFreeWGPort(ctx, cl, nodeID)
+			port, err := cl.GetNodeFreeWGPort(ctx, nodeID)
 			if err != nil {
 				return errors.Wrap(err, "failed to get node free wg ports")
 			}

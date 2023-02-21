@@ -90,8 +90,8 @@ func NewTFPluginClient(
 	keyType string,
 	network string,
 	substrateURL string,
-	passedRelayURL string,
-	passedRmbProxyURL string,
+	relayURL string,
+	rmbProxyURL string,
 	verifyReply bool,
 	showLogs bool,
 ) (TFPluginClient, error) {
@@ -163,24 +163,24 @@ func NewTFPluginClient(
 	tfPluginClient.twinID = twinID
 
 	tfPluginClient.rmbProxyURL = RMBProxyURLs[network]
-	if len(strings.TrimSpace(passedRmbProxyURL)) != 0 {
-		if err := validateProxyURL(passedRmbProxyURL); err != nil {
-			return TFPluginClient{}, errors.Wrapf(err, "couldn't validate rmb proxy url %s", passedRmbProxyURL)
+	if len(strings.TrimSpace(rmbProxyURL)) != 0 {
+		if err := validateProxyURL(rmbProxyURL); err != nil {
+			return TFPluginClient{}, errors.Wrapf(err, "couldn't validate rmb proxy url %s", rmbProxyURL)
 		}
-		tfPluginClient.rmbProxyURL = passedRmbProxyURL
+		tfPluginClient.rmbProxyURL = rmbProxyURL
 	}
 
 	tfPluginClient.useRmbProxy = true
 	// if tfPluginClient.useRmbProxy
-	sessionID := generateSessionID(tfPluginClient.twinID)
+	sessionID := generateSessionID()
 	db := client.NewTwinDB(tfPluginClient.SubstrateConn)
 
 	tfPluginClient.relayURL = RelayURLS[network]
-	if len(strings.TrimSpace(passedRelayURL)) != 0 {
-		if err := validateWssURL(passedRelayURL); err != nil {
-			return TFPluginClient{}, errors.Wrapf(err, "couldn't validate relay url %s", passedRelayURL)
+	if len(strings.TrimSpace(relayURL)) != 0 {
+		if err := validateWssURL(relayURL); err != nil {
+			return TFPluginClient{}, errors.Wrapf(err, "couldn't validate relay url %s", relayURL)
 		}
-		tfPluginClient.relayURL = passedRelayURL
+		tfPluginClient.relayURL = relayURL
 	}
 
 	rmbClient, err := direct.NewClient(context.Background(), tfPluginClient.Identity, tfPluginClient.relayURL, sessionID, db)
@@ -217,6 +217,6 @@ func NewTFPluginClient(
 	return tfPluginClient, nil
 }
 
-func generateSessionID(twinID uint32) string {
+func generateSessionID() string {
 	return fmt.Sprintf("tf-%d", os.Getpid())
 }
