@@ -169,17 +169,17 @@ func (c *ContractsGetter) filterNameGatewaysWithinNodeContracts(nodeContracts []
 	for _, contract := range nodeContracts {
 		nodeClient, err := c.ncPool.GetNodeClient(c.substrateConn, contract.NodeID)
 		if err != nil {
-			return []gridtypes.Workload{}, errors.Wrapf(err, "couldn't get node client: %d", contract.NodeID)
+			return []gridtypes.Workload{}, errors.Wrapf(err, "could not get node client: %d", contract.NodeID)
 		}
 
 		contractID, err := strconv.Atoi(contract.ContractID)
 		if err != nil {
-			return []gridtypes.Workload{}, errors.Wrapf(err, "couldn't parse contract id: %s", contract.ContractID)
+			return []gridtypes.Workload{}, errors.Wrapf(err, "could not parse contract id: %s", contract.ContractID)
 		}
 
 		dl, err := nodeClient.DeploymentGet(context.Background(), uint64(contractID))
 		if err != nil {
-			return []gridtypes.Workload{}, errors.Wrapf(err, "couldn't get deployment %d from node %d", contractID, contract.NodeID)
+			return []gridtypes.Workload{}, errors.Wrapf(err, "could not get deployment %d from node %d", contractID, contract.NodeID)
 		}
 
 		for _, workload := range dl.Workloads {

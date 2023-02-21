@@ -64,7 +64,7 @@ func (d *GatewayFQDNDeployer) Deploy(ctx context.Context, gw *workloads.GatewayF
 
 	newDeployments, err := d.GenerateVersionlessDeployments(ctx, gw)
 	if err != nil {
-		return errors.Wrap(err, "couldn't generate deployments data")
+		return errors.Wrap(err, "could not generate deployments data")
 	}
 
 	// TODO: solution providers
@@ -119,12 +119,12 @@ func (d *GatewayFQDNDeployer) syncContracts(ctx context.Context, gw *workloads.G
 // Sync syncs the gateway deployments
 func (d *GatewayFQDNDeployer) Sync(ctx context.Context, gw *workloads.GatewayFQDNProxy) error {
 	if err := d.syncContracts(ctx, gw); err != nil {
-		return errors.Wrap(err, "couldn't sync contracts")
+		return errors.Wrap(err, "could not sync contracts")
 	}
 
 	dls, err := d.deployer.GetDeployments(ctx, gw.NodeDeploymentID)
 	if err != nil {
-		return errors.Wrap(err, "couldn't get deployment objects")
+		return errors.Wrap(err, "could not get deployment objects")
 	}
 
 	dl := dls[gw.NodeID]

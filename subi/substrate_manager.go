@@ -54,7 +54,6 @@ type SubstrateExt interface {
 	CreateNameContract(identity substrate.Identity, name string) (uint64, error)
 	GetAccount(identity substrate.Identity) (types.AccountInfo, error)
 	GetBalance(identity substrate.Identity) (balance substrate.Balance, err error)
-	GetTwinIP(twinID uint32) (string, error)
 	GetTwinPK(twinID uint32) ([]byte, error)
 	GetContractIDByNameRegistration(name string) (uint64, error)
 }
@@ -88,15 +87,6 @@ func (s *SubstrateImpl) GetNodeTwin(nodeID uint32) (uint32, error) {
 		return 0, normalizeNotFoundErrors(err)
 	}
 	return uint32(node.TwinID), nil
-}
-
-// GetTwinIP returns twin IP given its ID
-func (s *SubstrateImpl) GetTwinIP(id uint32) (string, error) {
-	twin, err := s.Substrate.GetTwin(id)
-	if err != nil {
-		return "", normalizeNotFoundErrors(err)
-	}
-	return twin.IP, nil
 }
 
 // GetTwinPK returns twin's public key
@@ -185,7 +175,7 @@ func (s *SubstrateImpl) IsValidContract(contractID uint64) (bool, error) {
 	if errors.Is(err, substrate.ErrNotFound) || (contract != nil && !contract.State.IsCreated) {
 		return false, nil
 	} else if err != nil {
-		return true, errors.Wrapf(err, "couldn't get contract %d info", contractID)
+		return true, errors.Wrapf(err, "could not get contract %d info", contractID)
 	}
 	return true, nil
 }
@@ -206,7 +196,7 @@ func (s *SubstrateImpl) InvalidateNameContract(
 		return 0, nil
 	}
 	if err != nil {
-		return 0, errors.Wrap(err, "couldn't get name contract info")
+		return 0, errors.Wrap(err, "could not get name contract info")
 	}
 	// TODO: paused?
 	if !contract.State.IsCreated {

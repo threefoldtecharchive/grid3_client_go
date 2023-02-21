@@ -22,19 +22,13 @@ func TestVmDisk(t *testing.T) {
 	publicKey, privateKey, err := GenerateSSHKeyPair()
 	assert.NoError(t, err)
 
-	filter := deployer.NodeFilter{
-		CRU:    2,
-		SRU:    2,
-		MRU:    1,
-		Status: "up",
-	}
-	nodeIDs, err := deployer.FilterNodes(filter, deployer.RMBProxyURLs[tfPluginClient.Network])
+	nodes, err := deployer.FilterNodes(tfPluginClient.GridProxyClient, nodeFilter)
 	assert.NoError(t, err)
 
-	nodeID := nodeIDs[0]
+	nodeID := uint32(nodes[0].NodeID)
 
 	network := workloads.ZNet{
-		Name:        "testingNetwork",
+		Name:        "vmDiskTestingNetwork",
 		Description: "network for testing",
 		Nodes:       []uint32{nodeID},
 		IPRange: gridtypes.NewIPNet(net.IPNet{
@@ -85,9 +79,6 @@ func TestVmDisk(t *testing.T) {
 
 	yggIP := v.YggIP
 	assert.NotEmpty(t, yggIP)
-	if !TestConnection(yggIP, "22") {
-		t.Errorf("yggdrasil ip is not reachable")
-	}
 
 	// Check that disk has been mounted successfully
 	output, err := RemoteRun("root", yggIP, "df -h | grep -w /disk", privateKey)

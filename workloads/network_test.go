@@ -2,14 +2,12 @@
 package workloads
 
 import (
-	"context"
 	"fmt"
 	"net"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	proxy "github.com/threefoldtech/grid_proxy_server/pkg/client"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 )
 
@@ -26,9 +24,6 @@ var Network = ZNet{
 }
 
 func TestNetwork(t *testing.T) {
-	gridProxyClient := proxy.NewRetryingClient(proxy.NewClient("https://gridproxy.dev.grid.tf/"))
-	publicNode := uint32(14)
-
 	t.Run("test_ip_net", func(t *testing.T) {
 		ip := IPNet(10, 20, 0, 0, 16)
 		assert.Equal(t, ip, Network.IPRange)
@@ -60,16 +55,5 @@ func TestNetwork(t *testing.T) {
 			Endpoint = %s
 			`, "", "", "", Network.IPRange.String(), ""), "\t", "")+"\t",
 		)
-	})
-
-	t.Run("test_get_public_node", func(t *testing.T) {
-		nodeID, err := GetPublicNode(
-			context.Background(),
-			gridProxyClient,
-			[]uint32{},
-		)
-		assert.NoError(t, err)
-		assert.Equal(t, nodeID, publicNode)
-
 	})
 }

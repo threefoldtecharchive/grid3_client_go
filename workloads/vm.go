@@ -284,7 +284,7 @@ func (vm *VM) Validate() error {
 		}
 		if vm.FlistChecksum != checksum {
 			return fmt.Errorf(
-				"passed checksum %s of %s doesn't match %s returned from %s",
+				"passed checksum %s of %s does not match %s returned from %s",
 				vm.FlistChecksum,
 				vm.Name,
 				checksum,

@@ -113,7 +113,7 @@ func (d *K8sDeployer) Deploy(ctx context.Context, k8sCluster *workloads.K8sClust
 
 	newDeployments, err := d.GenerateVersionlessDeployments(ctx, k8sCluster)
 	if err != nil {
-		return errors.Wrap(err, "couldn't generate k8s grid deployments")
+		return errors.Wrap(err, "could not generate k8s grid deployments")
 	}
 
 	newDeploymentsSolutionProvider := make(map[uint32]*uint64)
@@ -147,7 +147,7 @@ func (d *K8sDeployer) Cancel(ctx context.Context, k8sCluster *workloads.K8sClust
 		if k8sCluster.Master.Node == nodeID {
 			err = d.deployer.Cancel(ctx, contractID)
 			if err != nil {
-				return errors.Wrapf(err, "couldn't cancel master %s, contract %d", k8sCluster.Master.Name, contractID)
+				return errors.Wrapf(err, "could not cancel master %s, contract %d", k8sCluster.Master.Name, contractID)
 			}
 			d.tfPluginClient.State.currentNodeDeployments[nodeID] = workloads.Delete(d.tfPluginClient.State.currentNodeDeployments[nodeID], contractID)
 			delete(k8sCluster.NodeDeploymentID, nodeID)
@@ -157,7 +157,7 @@ func (d *K8sDeployer) Cancel(ctx context.Context, k8sCluster *workloads.K8sClust
 			if worker.Node == nodeID {
 				err = d.deployer.Cancel(ctx, contractID)
 				if err != nil {
-					return errors.Wrapf(err, "couldn't cancel worker %s, contract %d", worker.Name, contractID)
+					return errors.Wrapf(err, "could not cancel worker %s, contract %d", worker.Name, contractID)
 				}
 				d.tfPluginClient.State.currentNodeDeployments[nodeID] = workloads.Delete(d.tfPluginClient.State.currentNodeDeployments[nodeID], contractID)
 				delete(k8sCluster.NodeDeploymentID, nodeID)
@@ -181,7 +181,7 @@ func (d *K8sDeployer) UpdateFromRemote(ctx context.Context, k8sCluster *workload
 	log.Printf("calling updateFromRemote")
 	err = PrintDeployments(currentDeployments)
 	if err != nil {
-		return errors.Wrap(err, "couldn't print deployments data")
+		return errors.Wrap(err, "could not print deployments data")
 	}
 
 	keyUpdated, tokenUpdated, networkUpdated := false, false, false
@@ -384,12 +384,12 @@ func (d *K8sDeployer) assignNodeIPRange(k8sCluster *workloads.K8sCluster) (err e
 	nodesIPRange := make(map[uint32]gridtypes.IPNet)
 	nodesIPRange[k8sCluster.Master.Node], err = gridtypes.ParseIPNet(network.getNodeSubnet(k8sCluster.Master.Node))
 	if err != nil {
-		return errors.Wrap(err, "couldn't parse master node ip range")
+		return errors.Wrap(err, "could not parse master node ip range")
 	}
 	for _, worker := range k8sCluster.Workers {
 		nodesIPRange[worker.Node], err = gridtypes.ParseIPNet(network.getNodeSubnet(worker.Node))
 		if err != nil {
-			return errors.Wrapf(err, "couldn't parse worker node (%d) ip range", worker.Node)
+			return errors.Wrapf(err, "could not parse worker node (%d) ip range", worker.Node)
 		}
 	}
 	k8sCluster.NodesIPRange = nodesIPRange

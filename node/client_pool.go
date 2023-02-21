@@ -6,7 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/grid3-go/subi"
-	"github.com/threefoldtech/zos/pkg/rmb"
+	"github.com/threefoldtech/rmb-sdk-go"
 )
 
 // NodeClientGetter is an interface for node client

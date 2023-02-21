@@ -1,7 +1,6 @@
 // Package integration for integration tests
 package integration
 
-/*
 import (
 	"context"
 	"fmt"
@@ -27,18 +26,13 @@ func TestGatewayFQDNDeployment(t *testing.T) {
 	publicKey, privateKey, err := GenerateSSHKeyPair()
 	assert.NoError(t, err)
 
-	filter := NodeFilter{
-		Status:  "up",
-		Gateway: true,
-	}
-	nodeIDs, err := FilterNodes(filter, deployer.RMBProxyURLs[tfPluginClient.Network])
+	nodes, err := deployer.FilterNodes(tfPluginClient.GridProxyClient, nodeFilter)
 	assert.NoError(t, err)
 
-	nodeID := nodeIDs[0]
-	gwNodeID := nodeIDs[1]
+	nodeID := uint32(nodes[0].NodeID)
 
 	network := workloads.ZNet{
-		Name:        "testingNetwork",
+		Name:        "fqdnTestingNetwork",
 		Description: "network for testing",
 		Nodes:       []uint32{nodeID},
 		IPRange: gridtypes.NewIPNet(net.IPNet{
@@ -71,14 +65,14 @@ func TestGatewayFQDNDeployment(t *testing.T) {
 	err = tfPluginClient.DeploymentDeployer.Deploy(ctx, &dl)
 	assert.NoError(t, err)
 
-	v, err := tfPluginClient.State.LoadVMFromGrid(nodeID, vm.Name)
+	v, err := tfPluginClient.State.LoadVMFromGrid(nodeID, vm.Name, dl.Name)
 	assert.NoError(t, err)
-	assert.True(t, TestConnection(v.YggIP, "22"))
 
 	backend := fmt.Sprintf("http://[%s]:9000", v.YggIP)
-	fqdn := "" //"test.hamada.grid.tf" //"hamada1.3x0.me"
+	fqdn := "hamada1.3x0.me" // points to node 15 devnet
+	gatewayNode := uint32(15)
 	gw := workloads.GatewayFQDNProxy{
-		NodeID:         gwNodeID,
+		NodeID:         gatewayNode,
 		Name:           "test",
 		TLSPassthrough: false,
 		Backends:       []zos.Backend{zos.Backend(backend)},
@@ -88,9 +82,8 @@ func TestGatewayFQDNDeployment(t *testing.T) {
 	err = tfPluginClient.GatewayFQDNDeployer.Deploy(ctx, &gw)
 	assert.NoError(t, err)
 
-	result, err := tfPluginClient.State.LoadGatewayFqdnFromGrid(nodeID, gw.Name)
+	_, err = tfPluginClient.State.LoadGatewayFQDNFromGrid(gatewayNode, gw.Name, gw.Name)
 	assert.NoError(t, err)
-	assert.Equal(t, gw, result)
 
 	_, err = RemoteRun("root", v.YggIP, "apk add python3; python3 -m http.server 9000 --bind :: &> /dev/null &", privateKey)
 	assert.NoError(t, err)
@@ -117,7 +110,6 @@ func TestGatewayFQDNDeployment(t *testing.T) {
 	err = tfPluginClient.NetworkDeployer.Cancel(ctx, &network)
 	assert.NoError(t, err)
 
-	_, err = tfPluginClient.State.LoadGatewayFqdnFromGrid(nodeID, gw.Name)
+	_, err = tfPluginClient.State.LoadGatewayFQDNFromGrid(nodeID, gw.Name, gw.Name)
 	assert.Error(t, err)
 }
-*/

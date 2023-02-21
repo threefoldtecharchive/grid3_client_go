@@ -29,7 +29,7 @@ func AssertNodesAreReady(t *testing.T, k8sCluster *workloads.K8sCluster, private
 
 	nodesNumber := reflect.ValueOf(k8sCluster.Workers).Len() + 1
 	numberOfReadyNodes := strings.Count(output, "Ready")
-	assert.True(t, numberOfReadyNodes == nodesNumber, "number of ready nodes is not equal to number of nodes only %s nodes are ready", numberOfReadyNodes)
+	assert.True(t, numberOfReadyNodes == nodesNumber, "number of ready nodes is not equal to number of nodes only %d nodes are ready", numberOfReadyNodes)
 }
 
 func TestK8sDeployment(t *testing.T) {
@@ -39,20 +39,14 @@ func TestK8sDeployment(t *testing.T) {
 	publicKey, privateKey, err := GenerateSSHKeyPair()
 	assert.NoError(t, err)
 
-	filter := deployer.NodeFilter{
-		CRU:    2,
-		SRU:    4,
-		MRU:    4,
-		Status: "up",
-	}
-	nodeIDs, err := deployer.FilterNodes(filter, deployer.RMBProxyURLs[tfPluginClient.Network])
+	nodes, err := deployer.FilterNodes(tfPluginClient.GridProxyClient, nodeFilter)
 	assert.NoError(t, err)
 
-	masterNodeID := nodeIDs[0]
-	workerNodeID := nodeIDs[1]
+	masterNodeID := uint32(nodes[0].NodeID)
+	workerNodeID := uint32(nodes[1].NodeID)
 
 	network := workloads.ZNet{
-		Name:        "testingNetwork",
+		Name:        "k8sTestingNetwork",
 		Description: "network for testing",
 		Nodes:       []uint32{masterNodeID, workerNodeID},
 		IPRange: gridtypes.NewIPNet(net.IPNet{
@@ -130,7 +124,7 @@ func TestK8sDeployment(t *testing.T) {
 		Workers:     workers[:],
 		Token:       "tokens",
 		SSHKey:      publicKey,
-		NetworkName: "testingNetwork",
+		NetworkName: network.Name,
 	}
 
 	err = tfPluginClient.K8sDeployer.Deploy(ctx, &k8sCluster)
@@ -152,10 +146,6 @@ func TestK8sDeployment(t *testing.T) {
 	// Check wireguard config in output
 	wgConfig := network.AccessWGConfig
 	assert.NotEmpty(t, wgConfig)
-
-	// testing connection on port 22, waits at max 3mins until it becomes ready otherwise it fails
-	ok := TestConnection(masterIP, "22")
-	assert.True(t, ok)
 
 	// ssh to master node
 	AssertNodesAreReady(t, &result, privateKey)

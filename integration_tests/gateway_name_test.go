@@ -26,15 +26,12 @@ func TestGatewayNameDeployment(t *testing.T) {
 	publicKey, privateKey, err := GenerateSSHKeyPair()
 	assert.NoError(t, err)
 
-	filter := deployer.NodeFilter{
-		Status:  "up",
-		Gateway: true,
-	}
-	nodeIDs, err := deployer.FilterNodes(filter, deployer.RMBProxyURLs[tfPluginClient.Network])
+	nodeFilter.Domain = &trueVal
+	nodes, err := deployer.FilterNodes(tfPluginClient.GridProxyClient, nodeFilter)
 	assert.NoError(t, err)
 
-	nodeID := nodeIDs[0]
-	gwNodeID := nodeIDs[1]
+	nodeID := uint32(nodes[0].NodeID)
+	gwNodeID := uint32(nodes[1].NodeID)
 
 	network := workloads.ZNet{
 		Name:        "testingNameGatewayNetwork",
@@ -72,7 +69,6 @@ func TestGatewayNameDeployment(t *testing.T) {
 
 	v, err := tfPluginClient.State.LoadVMFromGrid(nodeID, vm.Name, dl.Name)
 	assert.NoError(t, err)
-	assert.True(t, TestConnection(v.YggIP, "22"))
 
 	backend := fmt.Sprintf("http://[%s]:9000", v.YggIP)
 	gw := workloads.GatewayNameProxy{

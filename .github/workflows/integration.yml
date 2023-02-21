@@ -24,8 +24,11 @@ jobs:
         run: |
           go mod download
 
+      - name: add curl for qsfs test
+        run: apk add curl
+
       - name: Test
         env:
           MNEMONICS: ${{ secrets.MNEMONICS }}
-          NETWORK: ${{ secrets.NETWORK }}
+          NETWORK: dev
         run: go test -v ./integration_tests -tags integration

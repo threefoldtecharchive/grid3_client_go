@@ -18,23 +18,22 @@ func TestVMDeployment(t *testing.T) {
 	tfPluginClient, err := setup()
 	assert.NoError(t, err)
 
-	publicKey, _, err := GenerateSSHKeyPair()
+	publicKey, privateKey, err := GenerateSSHKeyPair()
 	assert.NoError(t, err)
 
-	filter := deployer.NodeFilter{
-		CRU:       2,
-		SRU:       2,
-		MRU:       1,
-		Status:    "up",
-		PublicIPs: true,
+	nodeFilter.IPv4 = &trueVal
+	nodeFilter.FreeIPs = &value1
+	nodes, err := deployer.FilterNodes(tfPluginClient.GridProxyClient, nodeFilter)
+	assert.NoError(t, err)
+
+	if err != nil {
+		return
 	}
-	nodeIDs, err := deployer.FilterNodes(filter, deployer.RMBProxyURLs[tfPluginClient.Network])
-	assert.NoError(t, err)
 
-	nodeID := nodeIDs[0]
+	nodeID := uint32(nodes[0].NodeID)
 
 	network := workloads.ZNet{
-		Name:        "testingNetwork",
+		Name:        "vmTestingNetwork",
 		Description: "network for testing",
 		Nodes:       []uint32{nodeID},
 		IPRange: gridtypes.NewIPNet(net.IPNet{
@@ -76,15 +75,14 @@ func TestVMDeployment(t *testing.T) {
 
 		publicIP := strings.Split(v.ComputedIP, "/")[0]
 		assert.NotEmpty(t, publicIP)
-		if !TestConnection(publicIP, "22") {
-			t.Errorf("public ip is not reachable")
-		}
+		assert.True(t, TestConnection(publicIP, "22"))
 
 		yggIP := v.YggIP
 		assert.NotEmpty(t, yggIP)
-		if !TestConnection(yggIP, "22") {
-			t.Errorf("yggdrasil ip is not reachable")
-		}
+
+		output, err := RemoteRun("root", yggIP, "ls /", privateKey)
+		assert.NoError(t, err)
+		assert.Contains(t, string(output), "root")
 
 		// cancel all
 		err = tfPluginClient.DeploymentDeployer.Cancel(ctx, &dl)

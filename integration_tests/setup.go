@@ -13,8 +13,26 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/grid3-go/deployer"
+	"github.com/threefoldtech/grid_proxy_server/pkg/types"
 	"golang.org/x/crypto/ssh"
 )
+
+var (
+	trueVal  = true
+	statusUp = "up"
+	value1   = uint64(1)
+	value2   = uint64(2)
+	value10  = uint64(10)
+)
+
+var nodeFilter = types.NodeFilter{
+	Status:  &statusUp,
+	FreeSRU: &value10,
+	FreeHRU: &value2,
+	FreeMRU: &value2,
+	FarmIDs: []uint64{1},
+	IPv6:    &trueVal,
+}
 
 func setup() (deployer.TFPluginClient, error) {
 	mnemonics := os.Getenv("MNEMONICS")
@@ -23,12 +41,12 @@ func setup() (deployer.TFPluginClient, error) {
 	network := os.Getenv("NETWORK")
 	log.Printf("network: %s", network)
 
-	return deployer.NewTFPluginClient(mnemonics, "sr25519", network, "", "", true, true)
+	return deployer.NewTFPluginClient(mnemonics, "sr25519", network, "", "", "", true, true)
 }
 
 // TestConnection used to test connection
 func TestConnection(addr string, port string) bool {
-	for t := time.Now(); time.Since(t) < 3*time.Minute; {
+	for t := time.Now(); time.Since(t) < 3*time.Second; {
 		con, err := net.DialTimeout("tcp", net.JoinHostPort(addr, port), time.Second*12)
 		if err == nil {
 			con.Close()
@@ -87,7 +105,7 @@ func GenerateSSHKeyPair() (string, string, error) {
 
 	pub, err := ssh.NewPublicKey(&rsaKey.PublicKey)
 	if err != nil {
-		return "", "", errors.Wrapf(err, "Couldn't extract public key")
+		return "", "", errors.Wrapf(err, "could not extract public key")
 	}
 	authorizedKey := ssh.MarshalAuthorizedKey(pub)
 	return string(authorizedKey), string(privateKey), nil

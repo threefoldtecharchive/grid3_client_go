@@ -70,22 +70,28 @@
 //	}
 //
 // ```
-// Package client for node client
 package client
 
 import (
 	"context"
 	"fmt"
+	"log"
+	"math/rand"
 	"net"
 	"sync"
 	"time"
 
 	"github.com/hashicorp/go-multierror"
+	"github.com/pkg/errors"
 	"github.com/threefoldtech/grid3-go/subi"
+	"github.com/threefoldtech/grid3-go/workloads"
+	"github.com/threefoldtech/rmb-sdk-go"
 	"github.com/threefoldtech/zos/pkg/capacity/dmi"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
-	"github.com/threefoldtech/zos/pkg/rmb"
 )
+
+// ErrNoAccessibleInterfaceFound no accessible interface found
+var ErrNoAccessibleInterfaceFound = fmt.Errorf("could not find a publicly accessible ipv4 or ipv6")
 
 // IfaceType define the different public interface supported
 type IfaceType string
@@ -321,11 +327,11 @@ func AreNodesUp(ctx context.Context, sub subi.SubstrateExt, nodes []uint32, nc N
 			defer wg.Done()
 			cl, clientErr := nc.GetNodeClient(sub, node)
 			if clientErr != nil {
-				err = multierror.Append(err, fmt.Errorf("couldn't get node %d client: %w", node, clientErr))
+				err = multierror.Append(err, fmt.Errorf("could not get node %d client: %w", node, clientErr))
 				return
 			}
 			if clientErr := cl.IsNodeUp(ctx); clientErr != nil {
-				err = multierror.Append(err, fmt.Errorf("couldn't reach node %d: %w", node, clientErr))
+				err = multierror.Append(err, fmt.Errorf("could not reach node %d: %w", node, clientErr))
 			}
 
 		}(node)
@@ -333,4 +339,62 @@ func AreNodesUp(ctx context.Context, sub subi.SubstrateExt, nodes []uint32, nc N
 
 	wg.Wait()
 	return
+}
+
+// GetNodeFreeWGPort returns node free wireguard port
+func (n *NodeClient) GetNodeFreeWGPort(ctx context.Context, nodeID uint32) (int, error) {
+	rand.Seed(time.Now().UnixNano())
+	freePorts, err := n.NetworkListWGPorts(ctx)
+	if err != nil {
+		return 0, errors.Wrap(err, "failed to list wg ports")
+	}
+	log.Printf("reserved ports for node %d: %v\n", nodeID, freePorts)
+	p := uint(rand.Intn(6000) + 2000)
+
+	for workloads.Contains(freePorts, uint16(p)) {
+		p = uint(rand.Intn(6000) + 2000)
+	}
+	log.Printf("Selected port for node %d is %d\n", nodeID, p)
+	return int(p), nil
+}
+
+// GetNodeEndpoint gets node end point network ip
+func (n *NodeClient) GetNodeEndpoint(ctx context.Context) (net.IP, error) {
+	var ip net.IP
+
+	publicConfig, err := n.NetworkGetPublicConfig(ctx)
+	if err != nil {
+		return ip, err
+	}
+
+	if publicConfig.IPv4.IP != nil {
+		ip = publicConfig.IPv4.IP
+	} else if publicConfig.IPv6.IP != nil {
+		ip = publicConfig.IPv6.IP
+	}
+
+	log.Printf("ip: %s, global unicast: %t, privateIP: %t\n", ip.String(), ip.IsGlobalUnicast(), ip.IsPrivate())
+	if ip.IsGlobalUnicast() && !ip.IsPrivate() {
+		return ip, nil
+	}
+
+	ifs, err := n.NetworkListInterfaces(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not list node interfaces")
+	}
+	log.Printf("if: %v\n", ifs)
+
+	zosIf, ok := ifs["zos"]
+	if !ok {
+		return nil, errors.Wrap(ErrNoAccessibleInterfaceFound, "no zos interface")
+	}
+	for _, ip := range zosIf {
+		log.Printf("ip: %s, global unicast: %t, privateIP: %t\n", ip.String(), ip.IsGlobalUnicast(), ip.IsPrivate())
+		if !ip.IsGlobalUnicast() || ip.IsPrivate() {
+			continue
+		}
+
+		return ip, nil
+	}
+	return nil, errors.Wrap(ErrNoAccessibleInterfaceFound, "no public ipv4 or ipv6 on zos interface found")
 }
