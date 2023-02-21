@@ -103,8 +103,8 @@ func NewTFPluginClient(
 	var err error
 	tfPluginClient := TFPluginClient{}
 
-	if err := validateMnemonics(mnemonics); err != nil {
-		return TFPluginClient{}, errors.Wrapf(err, "couldn't validate mnemonics %s", mnemonics)
+	if valid := validateMnemonics(mnemonics); !valid {
+		return TFPluginClient{}, errors.Wrapf(err, "mnemonics %s is invalid", mnemonics)
 	}
 	tfPluginClient.mnemonics = mnemonics
 
@@ -136,7 +136,7 @@ func NewTFPluginClient(
 	tfPluginClient.substrateURL = SubstrateURLs[network]
 	if len(strings.TrimSpace(substrateURL)) != 0 {
 		if err := validateWssURL(substrateURL); err != nil {
-			return TFPluginClient{}, errors.Wrapf(err, "couldn't validate substrate url %s", substrateURL)
+			return TFPluginClient{}, errors.Wrapf(err, "could not validate substrate url %s", substrateURL)
 		}
 		tfPluginClient.substrateURL = substrateURL
 	}
@@ -144,11 +144,11 @@ func NewTFPluginClient(
 	manager := subi.NewManager(tfPluginClient.substrateURL)
 	sub, err := manager.SubstrateExt()
 	if err != nil {
-		return TFPluginClient{}, errors.Wrap(err, "couldn't get substrate client")
+		return TFPluginClient{}, errors.Wrap(err, "could not get substrate client")
 	}
 
 	if err := validateAccount(sub, tfPluginClient.Identity, tfPluginClient.mnemonics); err != nil {
-		return TFPluginClient{}, errors.Wrap(err, "couldn't validate substrate account")
+		return TFPluginClient{}, errors.Wrap(err, "could not validate substrate account")
 	}
 
 	tfPluginClient.SubstrateConn = sub
@@ -165,7 +165,7 @@ func NewTFPluginClient(
 	tfPluginClient.rmbProxyURL = RMBProxyURLs[network]
 	if len(strings.TrimSpace(rmbProxyURL)) != 0 {
 		if err := validateProxyURL(rmbProxyURL); err != nil {
-			return TFPluginClient{}, errors.Wrapf(err, "couldn't validate rmb proxy url %s", rmbProxyURL)
+			return TFPluginClient{}, errors.Wrapf(err, "could not validate rmb proxy url %s", rmbProxyURL)
 		}
 		tfPluginClient.rmbProxyURL = rmbProxyURL
 	}
@@ -178,20 +178,20 @@ func NewTFPluginClient(
 	tfPluginClient.relayURL = RelayURLS[network]
 	if len(strings.TrimSpace(relayURL)) != 0 {
 		if err := validateWssURL(relayURL); err != nil {
-			return TFPluginClient{}, errors.Wrapf(err, "couldn't validate relay url %s", relayURL)
+			return TFPluginClient{}, errors.Wrapf(err, "could not validate relay url %s", relayURL)
 		}
 		tfPluginClient.relayURL = relayURL
 	}
 
 	rmbClient, err := direct.NewClient(context.Background(), tfPluginClient.Identity, tfPluginClient.relayURL, sessionID, db)
 	if err != nil {
-		return TFPluginClient{}, errors.Wrap(err, "couldn't create rmb client")
+		return TFPluginClient{}, errors.Wrap(err, "could not create rmb client")
 	}
 	tfPluginClient.RMB = rmbClient
 
 	gridProxyClient := proxy.NewClient(tfPluginClient.rmbProxyURL)
 	if err := validateRMBProxyServer(gridProxyClient); err != nil {
-		return TFPluginClient{}, errors.Wrap(err, "couldn't validate rmb proxy server")
+		return TFPluginClient{}, errors.Wrap(err, "could not validate rmb proxy server")
 	}
 	tfPluginClient.GridProxyClient = proxy.NewRetryingClient(gridProxyClient)
 
@@ -209,7 +209,7 @@ func NewTFPluginClient(
 	graphqlURL := GraphQlURLs[network]
 	tfPluginClient.graphQl, err = graphql.NewGraphQl(graphqlURL)
 	if err != nil {
-		return TFPluginClient{}, errors.Wrapf(err, "couldn't create a new graphql with url: %s", graphqlURL)
+		return TFPluginClient{}, errors.Wrapf(err, "could not create a new graphql with url: %s", graphqlURL)
 	}
 
 	tfPluginClient.ContractsGetter = graphql.NewContractsGetter(tfPluginClient.twinID, tfPluginClient.graphQl, tfPluginClient.SubstrateConn, tfPluginClient.NcPool)

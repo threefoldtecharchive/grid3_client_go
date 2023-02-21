@@ -16,11 +16,11 @@ import (
 func FilterNodes(gridClient proxy.Client, options proxyTypes.NodeFilter) ([]proxyTypes.Node, error) {
 	nodes, _, err := gridClient.Nodes(options, proxyTypes.Limit{})
 	if err != nil {
-		return []proxyTypes.Node{}, errors.Wrap(err, "couldn't fetch nodes from the rmb proxy")
+		return []proxyTypes.Node{}, errors.Wrap(err, "could not fetch nodes from the rmb proxy")
 	}
 
 	if len(nodes) == 0 {
-		return nodes, fmt.Errorf("couldn't find any node with options: %+v", options)
+		return nodes, fmt.Errorf("could not find any node with options: %+v", options)
 	}
 
 	return nodes, nil
@@ -84,7 +84,7 @@ func GetPublicNode(ctx context.Context, gridClient proxy.Client, preferredNodes 
 		log.Printf("found a node with ipv4 public config: %d %s\n", node.NodeID, node.PublicConfig.Ipv4)
 		ip, _, err := net.ParseCIDR(node.PublicConfig.Ipv4)
 		if err != nil {
-			log.Printf("couldn't parse public ip %s of node %d: %s", node.PublicConfig.Ipv4, node.NodeID, err.Error())
+			log.Printf("could not parse public ip %s of node %d: %s", node.PublicConfig.Ipv4, node.NodeID, err.Error())
 			continue
 		}
 		if ip.IsPrivate() {

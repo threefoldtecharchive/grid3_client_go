@@ -175,7 +175,7 @@ func (s *SubstrateImpl) IsValidContract(contractID uint64) (bool, error) {
 	if errors.Is(err, substrate.ErrNotFound) || (contract != nil && !contract.State.IsCreated) {
 		return false, nil
 	} else if err != nil {
-		return true, errors.Wrapf(err, "couldn't get contract %d info", contractID)
+		return true, errors.Wrapf(err, "could not get contract %d info", contractID)
 	}
 	return true, nil
 }
@@ -196,7 +196,7 @@ func (s *SubstrateImpl) InvalidateNameContract(
 		return 0, nil
 	}
 	if err != nil {
-		return 0, errors.Wrap(err, "couldn't get name contract info")
+		return 0, errors.Wrap(err, "could not get name contract info")
 	}
 	// TODO: paused?
 	if !contract.State.IsCreated {

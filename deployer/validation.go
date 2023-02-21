@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/cosmos/go-bip39"
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/grid3-go/subi"
 	proxy "github.com/threefoldtech/grid_proxy_server/pkg/client"
@@ -26,7 +27,7 @@ func validateAccount(sub subi.SubstrateExt, identity substrate.Identity, mnemoni
 		for keyType, f := range funcs {
 			ident, err2 := f(mnemonics)
 			if err2 != nil { // shouldn't happen, return original error
-				log.Printf("couldn't convert the mnemonics to %s key: %s", keyType, err2.Error())
+				log.Printf("could not convert the mnemonics to %s key: %s", keyType, err2.Error())
 				return err
 			}
 			_, err2 = sub.GetAccount(ident)
@@ -44,17 +45,8 @@ func validateRMBProxyServer(gridProxyClient proxy.Client) error {
 	return gridProxyClient.Ping()
 }
 
-func validateMnemonics(mnemonics string) error {
-	if len(mnemonics) == 0 {
-		return errors.New("mnemonics required")
-	}
-
-	alphaOnly := regexp.MustCompile(`^[a-zA-Z\s]+$`)
-	if !alphaOnly.MatchString(mnemonics) {
-		return errors.New("mnemonics can only be composed of a non-alphanumeric character or a whitespace")
-	}
-
-	return nil
+func validateMnemonics(mnemonics string) bool {
+	return bip39.IsMnemonicValid(mnemonics)
 }
 
 func validateWssURL(url string) error {
@@ -64,20 +56,20 @@ func validateWssURL(url string) error {
 
 	alphaOnly := regexp.MustCompile(`^wss:\/\/[a-z0-9]+\.[a-z0-9]\/?([^\s<>\#%"\,\{\}\\|\\\^\[\]]+)?$`)
 	if !alphaOnly.MatchString(url) {
-		return fmt.Errorf("wss url '%s' is not valid", url)
+		return fmt.Errorf("wss url '%s' is invalid", url)
 	}
 
 	return nil
 }
 
 func validateProxyURL(url string) error {
-	if len(url) == 0 {
+	if len(strings.TrimSpace(url)) == 0 {
 		return errors.New("proxy url is required")
 	}
 
 	alphaOnly := regexp.MustCompile(`^https:\/\/[a-z0-9]+\.[a-z0-9]\/?([^\s<>\#%"\,\{\}\\|\\\^\[\]]+)?$`)
 	if !alphaOnly.MatchString(url) {
-		return errors.New("proxy url is not valid")
+		return errors.New("proxy url is invalid")
 	}
 
 	return nil

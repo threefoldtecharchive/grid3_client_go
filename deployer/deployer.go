@@ -186,7 +186,7 @@ func (d *Deployer) deploy(
 		if oldDeploymentID, ok := oldDeployments[node]; ok {
 			newDeploymentHash, err := HashDeployment(dl)
 			if err != nil {
-				return currentDeployments, errors.Wrap(err, "couldn't get deployment hash")
+				return currentDeployments, errors.Wrap(err, "could not get deployment hash")
 			}
 
 			client, err := d.ncPool.GetNodeClient(d.substrateConn, node)
@@ -201,7 +201,7 @@ func (d *Deployer) deploy(
 
 			oldDeploymentHash, err := HashDeployment(oldDl)
 			if err != nil {
-				return currentDeployments, errors.Wrap(err, "couldn't get deployment hash")
+				return currentDeployments, errors.Wrap(err, "could not get deployment hash")
 			}
 			if oldDeploymentHash == newDeploymentHash && SameWorkloadsNames(dl, oldDl) {
 				continue
@@ -209,12 +209,12 @@ func (d *Deployer) deploy(
 
 			oldHashes, err := GetWorkloadHashes(oldDl)
 			if err != nil {
-				return currentDeployments, errors.Wrap(err, "couldn't get old workloads hashes")
+				return currentDeployments, errors.Wrap(err, "could not get old workloads hashes")
 			}
 
 			newHashes, err := GetWorkloadHashes(dl)
 			if err != nil {
-				return currentDeployments, errors.Wrap(err, "couldn't get new workloads hashes")
+				return currentDeployments, errors.Wrap(err, "could not get new workloads hashes")
 			}
 
 			oldWorkloadsVersions := ConstructWorkloadVersions(oldDl)
@@ -421,7 +421,7 @@ func (d *Deployer) Validate(ctx context.Context, oldDeployments map[uint32]gridt
 	for node := range oldDeployments {
 		nodeInfo, err := d.gridProxyClient.Node(node)
 		if err != nil {
-			return errors.Wrapf(err, "couldn't get node %d data from the grid proxy", node)
+			return errors.Wrapf(err, "could not get node %d data from the grid proxy", node)
 		}
 		nodeMap[node] = nodeInfo
 		farmIPs[nodeInfo.FarmID] = 0
@@ -433,7 +433,7 @@ func (d *Deployer) Validate(ctx context.Context, oldDeployments map[uint32]gridt
 		}
 		nodeInfo, err := d.gridProxyClient.Node(node)
 		if err != nil {
-			return errors.Wrapf(err, "couldn't get node %d data from the grid proxy", node)
+			return errors.Wrapf(err, "could not get node %d data from the grid proxy", node)
 		}
 		nodeMap[node] = nodeInfo
 		farmIPs[nodeInfo.FarmID] = 0
@@ -448,7 +448,7 @@ func (d *Deployer) Validate(ctx context.Context, oldDeployments map[uint32]gridt
 			Size: 1,
 		})
 		if err != nil {
-			return errors.Wrapf(err, "couldn't get farm %d data from the grid proxy", farm)
+			return errors.Wrapf(err, "could not get farm %d data from the grid proxy", farm)
 		}
 		if len(farmInfo) == 0 {
 			return fmt.Errorf("farm %d not returned from the proxy", farm)
@@ -494,12 +494,12 @@ func (d *Deployer) Validate(ctx context.Context, oldDeployments map[uint32]gridt
 		if alreadyExists {
 			oldCap, err := Capacity(oldDl)
 			if err != nil {
-				return errors.Wrapf(err, "couldn't read old deployment %d of node %d capacity", oldDl.ContractID, node)
+				return errors.Wrapf(err, "could not read old deployment %d of node %d capacity", oldDl.ContractID, node)
 			}
 			addCapacity(&nodeInfo.Capacity.Total, &oldCap)
 			contract, err := d.substrateConn.GetContract(oldDl.ContractID)
 			if err != nil {
-				return errors.Wrapf(err, "couldn't get node contract %d", oldDl.ContractID)
+				return errors.Wrapf(err, "could not get node contract %d", oldDl.ContractID)
 			}
 			current := int(contract.PublicIPCount())
 			if requiredIPs > current {
@@ -514,13 +514,13 @@ func (d *Deployer) Validate(ctx context.Context, oldDeployments map[uint32]gridt
 
 		farmIPs[nodeInfo.FarmID] -= requiredIPs
 		if farmIPs[nodeInfo.FarmID] < 0 {
-			return fmt.Errorf("farm %d doesn't have enough public ips", nodeInfo.FarmID)
+			return fmt.Errorf("farm %d does not have enough public ips", nodeInfo.FarmID)
 		}
 		if HasWorkload(&dl, zos.GatewayFQDNProxyType) && nodeInfo.PublicConfig.Ipv4 == "" {
-			return fmt.Errorf("node %d can't deploy a fqdn workload as it doesn't have a public ipv4 configured", node)
+			return fmt.Errorf("node %d cannot deploy a fqdn workload as it does not have a public ipv4 configured", node)
 		}
 		if HasWorkload(&dl, zos.GatewayNameProxyType) && nodeInfo.PublicConfig.Domain == "" {
-			return fmt.Errorf("node %d can't deploy a gateway name workload as it doesn't have a domain configured", node)
+			return fmt.Errorf("node %d cannot deploy a gateway name workload as it does not have a domain configured", node)
 		}
 		mru := nodeInfo.Capacity.Total.MRU - nodeInfo.Capacity.Used.MRU
 		hru := nodeInfo.Capacity.Total.HRU - nodeInfo.Capacity.Used.HRU
@@ -533,7 +533,7 @@ func (d *Deployer) Validate(ctx context.Context, oldDeployments map[uint32]gridt
 				MRU: mru,
 				SRU: sru,
 			}
-			return fmt.Errorf("node %d doesn't have enough resources. needed: %v, free: %v", node, capacityPrettyPrint(needed), capacityPrettyPrint(free))
+			return fmt.Errorf("node %d does not have enough resources. needed: %v, free: %v", node, capacityPrettyPrint(needed), capacityPrettyPrint(free))
 		}
 	}
 	return nil

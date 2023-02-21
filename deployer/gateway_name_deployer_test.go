@@ -87,7 +87,7 @@ func TestNameValidateNodeNotReachable(t *testing.T) {
 			nil,
 			gomock.Any(),
 		).
-		Return(errors.New("couldn't reach node"))
+		Return(errors.New("could not reach node"))
 	ncPool.
 		EXPECT().
 		GetNodeClient(

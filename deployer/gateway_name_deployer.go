@@ -60,7 +60,7 @@ func (d *GatewayNameDeployer) Deploy(ctx context.Context, gw *workloads.GatewayN
 	}
 	newDeployments, err := d.GenerateVersionlessDeployments(ctx, gw)
 	if err != nil {
-		return errors.Wrap(err, "couldn't generate deployments data")
+		return errors.Wrap(err, "could not generate deployments data")
 	}
 
 	newDeploymentsSolutionProvider := make(map[uint32]*uint64)
@@ -152,11 +152,11 @@ func (d *GatewayNameDeployer) syncContracts(ctx context.Context, gw *workloads.G
 // Sync syncs the gateway deployments
 func (d *GatewayNameDeployer) Sync(ctx context.Context, gw *workloads.GatewayNameProxy) (err error) {
 	if err := d.syncContracts(ctx, gw); err != nil {
-		return errors.Wrap(err, "couldn't sync contracts")
+		return errors.Wrap(err, "could not sync contracts")
 	}
 	dls, err := d.deployer.GetDeployments(ctx, gw.NodeDeploymentID)
 	if err != nil {
-		return errors.Wrap(err, "couldn't get deployment objects")
+		return errors.Wrap(err, "could not get deployment objects")
 	}
 	dl := dls[gw.NodeID]
 	wl, _ := dl.Get(gridtypes.Name(gw.Name))

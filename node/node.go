@@ -91,7 +91,7 @@ import (
 )
 
 // ErrNoAccessibleInterfaceFound no accessible interface found
-var ErrNoAccessibleInterfaceFound = fmt.Errorf("couldn't find a publicly accessible ipv4 or ipv6")
+var ErrNoAccessibleInterfaceFound = fmt.Errorf("could not find a publicly accessible ipv4 or ipv6")
 
 // IfaceType define the different public interface supported
 type IfaceType string
@@ -327,11 +327,11 @@ func AreNodesUp(ctx context.Context, sub subi.SubstrateExt, nodes []uint32, nc N
 			defer wg.Done()
 			cl, clientErr := nc.GetNodeClient(sub, node)
 			if clientErr != nil {
-				err = multierror.Append(err, fmt.Errorf("couldn't get node %d client: %w", node, clientErr))
+				err = multierror.Append(err, fmt.Errorf("could not get node %d client: %w", node, clientErr))
 				return
 			}
 			if clientErr := cl.IsNodeUp(ctx); clientErr != nil {
-				err = multierror.Append(err, fmt.Errorf("couldn't reach node %d: %w", node, clientErr))
+				err = multierror.Append(err, fmt.Errorf("could not reach node %d: %w", node, clientErr))
 			}
 
 		}(node)
@@ -380,7 +380,7 @@ func (n *NodeClient) GetNodeEndpoint(ctx context.Context) (net.IP, error) {
 
 	ifs, err := n.NetworkListInterfaces(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "couldn't list node interfaces")
+		return nil, errors.Wrap(err, "could not list node interfaces")
 	}
 	log.Printf("if: %v\n", ifs)
 

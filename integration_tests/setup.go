@@ -105,7 +105,7 @@ func GenerateSSHKeyPair() (string, string, error) {
 
 	pub, err := ssh.NewPublicKey(&rsaKey.PublicKey)
 	if err != nil {
-		return "", "", errors.Wrapf(err, "Couldn't extract public key")
+		return "", "", errors.Wrapf(err, "could not extract public key")
 	}
 	authorizedKey := ssh.MarshalAuthorizedKey(pub)
 	return string(authorizedKey), string(privateKey), nil

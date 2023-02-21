@@ -190,11 +190,11 @@ func (k *K8sCluster) ValidateToken() error {
 // ValidateIPranges validates NodesIPRange of master && workers of k8s cluster
 func (k *K8sCluster) ValidateIPranges() error {
 	if _, ok := k.NodesIPRange[k.Master.Node]; !ok {
-		return fmt.Errorf("the master node %d doesn't exist in the network's ip ranges", k.Master.Node)
+		return fmt.Errorf("the master node %d does not exist in the network's ip ranges", k.Master.Node)
 	}
 	for _, w := range k.Workers {
 		if _, ok := k.NodesIPRange[w.Node]; !ok {
-			return fmt.Errorf("the node with id %d in worker %s doesn't exist in the network's ip ranges", w.Node, w.Name)
+			return fmt.Errorf("the node with id %d in worker %s does not exist in the network's ip ranges", w.Node, w.Name)
 		}
 	}
 	return nil
@@ -223,10 +223,10 @@ func (k *K8sCluster) ValidateChecksums() error {
 		}
 		checksum, err := GetFlistChecksum(vm.Flist)
 		if err != nil {
-			return errors.Wrapf(err, "couldn't get flist %s hash", vm.Flist)
+			return errors.Wrapf(err, "could not get flist %s hash", vm.Flist)
 		}
 		if vm.FlistChecksum != checksum {
-			return fmt.Errorf("passed checksum %s of %s doesn't match %s returned from %s",
+			return fmt.Errorf("passed checksum %s of %s does not match %s returned from %s",
 				vm.FlistChecksum,
 				vm.Name,
 				checksum,
@@ -251,7 +251,7 @@ func (k *K8sCluster) InvalidateBrokenAttributes(sub subi.SubstrateExt) error {
 			delete(k.NodeDeploymentID, node)
 			delete(k.NodesIPRange, node)
 		} else if err != nil {
-			return errors.Wrapf(err, "couldn't get node %d contract %d", node, contractID)
+			return errors.Wrapf(err, "could not get node %d contract %d", node, contractID)
 		} else {
 			validNodes[node] = struct{}{}
 		}

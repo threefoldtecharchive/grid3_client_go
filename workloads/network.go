@@ -148,7 +148,7 @@ func NextFreeIP(used []byte, start *byte) error {
 		*start++
 	}
 	if *start == 255 {
-		return errors.New("couldn't find a free ip to add node")
+		return errors.New("could not find a free ip to add node")
 	}
 	return nil
 }

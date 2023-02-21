@@ -71,7 +71,7 @@ func (d *NetworkDeployer) GenerateVersionlessDeployments(ctx context.Context, zn
 	for _, nodeID := range znet.Nodes {
 		nodeClient, err := d.tfPluginClient.NcPool.GetNodeClient(sub, nodeID)
 		if err != nil {
-			return nil, errors.Wrapf(err, "couldn't get node %d client", nodeID)
+			return nil, errors.Wrapf(err, "could not get node %d client", nodeID)
 		}
 
 		endpoint, err := nodeClient.GetNodeEndpoint(ctx)
@@ -110,7 +110,7 @@ func (d *NetworkDeployer) GenerateVersionlessDeployments(ctx context.Context, zn
 		if endpoints[znet.PublicNodeID] == "" { // old or new outsider
 			cl, err := d.tfPluginClient.NcPool.GetNodeClient(sub, znet.PublicNodeID)
 			if err != nil {
-				return nil, errors.Wrapf(err, "couldn't get node %d client", znet.PublicNodeID)
+				return nil, errors.Wrapf(err, "could not get node %d client", znet.PublicNodeID)
 			}
 			endpoint, err := cl.GetNodeEndpoint(ctx)
 			if err != nil {
@@ -122,13 +122,13 @@ func (d *NetworkDeployer) GenerateVersionlessDeployments(ctx context.Context, zn
 
 	allNodes := append(hiddenNodes, accessibleNodes...)
 	if err := d.assignNodesIPs(allNodes, znet); err != nil {
-		return nil, errors.Wrap(err, "couldn't assign node ips")
+		return nil, errors.Wrap(err, "could not assign node ips")
 	}
 	if err := d.assignNodesWGKey(allNodes); err != nil {
-		return nil, errors.Wrap(err, "couldn't assign node wg keys")
+		return nil, errors.Wrap(err, "could not assign node wg keys")
 	}
 	if err := d.assignNodesWGPort(ctx, sub, allNodes); err != nil {
-		return nil, errors.Wrap(err, "couldn't assign node wg ports")
+		return nil, errors.Wrap(err, "could not assign node wg ports")
 	}
 
 	nonAccessibleIPRanges := []gridtypes.IPNet{}
@@ -259,13 +259,13 @@ func (d *NetworkDeployer) Deploy(ctx context.Context, znet *workloads.ZNet) erro
 
 	newDeployments, err := d.GenerateVersionlessDeployments(ctx, znet)
 	if err != nil {
-		return errors.Wrap(err, "couldn't generate deployments data")
+		return errors.Wrap(err, "could not generate deployments data")
 	}
 
 	log.Println("new deployments")
 	err = PrintDeployments(newDeployments)
 	if err != nil {
-		return errors.Wrap(err, "couldn't print deployments data")
+		return errors.Wrap(err, "could not print deployments data")
 	}
 
 	newDeploymentsSolutionProvider := make(map[uint32]*uint64)
@@ -288,11 +288,11 @@ func (d *NetworkDeployer) Deploy(ctx context.Context, znet *workloads.ZNet) erro
 	}
 
 	if err != nil {
-		return errors.Wrapf(err, "couldn't deploy network %s", znet.Name)
+		return errors.Wrapf(err, "could not deploy network %s", znet.Name)
 	}
 
 	if err := d.readNodesConfig(ctx, znet); err != nil {
-		return errors.Wrap(err, "couldn't read node's data")
+		return errors.Wrap(err, "could not read node's data")
 	}
 
 	return nil
@@ -309,7 +309,7 @@ func (d *NetworkDeployer) Cancel(ctx context.Context, znet *workloads.ZNet) erro
 		if workloads.Contains(znet.Nodes, nodeID) {
 			err = d.deployer.Cancel(ctx, contractID)
 			if err != nil {
-				return errors.Wrapf(err, "couldn't cancel network %s, contract %d", znet.Name, contractID)
+				return errors.Wrapf(err, "could not cancel network %s, contract %d", znet.Name, contractID)
 			}
 			delete(znet.NodeDeploymentID, nodeID)
 			d.tfPluginClient.State.currentNodeDeployments[nodeID] = workloads.Delete(d.tfPluginClient.State.currentNodeDeployments[nodeID], contractID)
@@ -320,7 +320,7 @@ func (d *NetworkDeployer) Cancel(ctx context.Context, znet *workloads.ZNet) erro
 	d.tfPluginClient.State.networks.deleteNetwork(znet.Name)
 
 	if err := d.readNodesConfig(ctx, znet); err != nil {
-		return errors.Wrap(err, "couldn't read node's data")
+		return errors.Wrap(err, "could not read node's data")
 	}
 
 	return nil
@@ -336,7 +336,7 @@ func (d *NetworkDeployer) invalidateBrokenAttributes(znet *workloads.ZNet) error
 			delete(d.Keys, node)
 			delete(d.WGPort, node)
 		} else if err != nil {
-			return errors.Wrapf(err, "couldn't get node %d contract %d", node, contractID)
+			return errors.Wrapf(err, "could not get node %d contract %d", node, contractID)
 		}
 	}
 	if znet.ExternalIP != nil && !znet.IPRange.Contains(znet.ExternalIP.IP) {
@@ -458,14 +458,14 @@ func (d *NetworkDeployer) readNodesConfig(ctx context.Context, znet *workloads.Z
 			}
 			data, err := wl.WorkloadData()
 			if err != nil {
-				return errors.Wrap(err, "couldn't parse workload data")
+				return errors.Wrap(err, "could not parse workload data")
 			}
 
 			d := data.(*zos.Network)
 			WGPort[node] = int(d.WGListenPort)
 			keys[node], err = wgtypes.ParseKey(d.WGPrivateKey)
 			if err != nil {
-				return errors.Wrap(err, "couldn't parse wg private key from workload object")
+				return errors.Wrap(err, "could not parse wg private key from workload object")
 			}
 			nodesIPRange[node] = d.Subnet
 			// this will fail when hidden node is supported
