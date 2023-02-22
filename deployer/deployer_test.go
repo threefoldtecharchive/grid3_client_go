@@ -21,7 +21,7 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
-var backendURLWithTLSPassthrough = "//1.1.1.1:10"
+var backendURLWithTLSPassthrough = "1.1.1.1:10"
 var backendURLWithoutTLSPassthrough = "http://1.1.1.1:10"
 
 func setup() (TFPluginClient, error) {

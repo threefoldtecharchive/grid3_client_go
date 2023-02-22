@@ -8,7 +8,6 @@ import (
 	context "context"
 	reflect "reflect"
 
-	types "github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	gomock "github.com/golang/mock/gomock"
 	subi "github.com/threefoldtech/grid3-go/subi"
 	"github.com/threefoldtech/substrate-client"
@@ -285,10 +284,10 @@ func (mr *MockSubstrateExtMockRecorder) EnsureContractCanceled(identity, contrac
 }
 
 // GetAccount mocks base method.
-func (m *MockSubstrateExt) GetAccount(identity substrate.Identity) (types.AccountInfo, error) {
+func (m *MockSubstrateExt) GetAccount(identity substrate.Identity) (substrate.AccountInfo, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAccount", identity)
-	ret0, _ := ret[0].(types.AccountInfo)
+	ret0, _ := ret[0].(substrate.AccountInfo)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
