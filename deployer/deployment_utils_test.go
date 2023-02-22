@@ -35,7 +35,7 @@ func TestDeploymentUtils(t *testing.T) {
 	})
 
 	t.Run("deployments workloads hashes", func(t *testing.T) {
-		wlHash := "4\xbe\x8b\xc72\x06\xeeק\x16^\x1a\x94\xbe\xc9\xc2"
+		wlHash := "\xa9>\a\xaf\x04\x10\xca\xc1\xac\b\xe1\x177\xf9\xf6D"
 
 		hashes, err := GetWorkloadHashes(dlName)
 		assert.NoError(t, err)
