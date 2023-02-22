@@ -25,7 +25,7 @@ jobs:
           go mod download
 
       - name: add curl for qsfs test
-        run: apt install curl
+        run: sudo apt-get install curl
 
       - name: Test
         env:
