@@ -16,14 +16,10 @@ func TestZDBDeployment(t *testing.T) {
 	tfPluginClient, err := setup()
 	assert.NoError(t, err)
 
-	filter := NodeFilter{
-		Status: "up",
-		SRU:    10,
-	}
-	nodeIDs, err := FilterNodes(filter, deployer.RMBProxyURLs[tfPluginClient.Network])
+	nodes, err := deployer.FilterNodes(tfPluginClient.GridProxyClient, nodeFilter)
 	assert.NoError(t, err)
 
-	nodeID := nodeIDs[0]
+	nodeID := uint32(nodes[0].NodeID)
 
 	zdb := workloads.ZDB{
 		Name:        "testName",
@@ -41,7 +37,7 @@ func TestZDBDeployment(t *testing.T) {
 	err = tfPluginClient.DeploymentDeployer.Deploy(ctx, &dl)
 	assert.NoError(t, err)
 
-	z, err := tfPluginClient.StateLoader.LoadZdbFromGrid(nodeID, zdb.Name)
+	z, err := tfPluginClient.State.LoadZdbFromGrid(nodeID, zdb.Name, dl.Name)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, z.IPs)
 	assert.NotEmpty(t, z.Namespace)
@@ -56,6 +52,6 @@ func TestZDBDeployment(t *testing.T) {
 	err = tfPluginClient.DeploymentDeployer.Cancel(ctx, &dl)
 	assert.NoError(t, err)
 
-	_, err = tfPluginClient.StateLoader.LoadZdbFromGrid(nodeID, zdb.Name)
+	_, err = tfPluginClient.State.LoadZdbFromGrid(nodeID, zdb.Name, dl.Name)
 	assert.Error(t, err)
 }

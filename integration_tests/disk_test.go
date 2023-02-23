@@ -15,18 +15,14 @@ func TestDiskDeployment(t *testing.T) {
 	tfPluginClient, err := setup()
 	assert.NoError(t, err)
 
-	filter := NodeFilter{
-		Status: "up",
-		SRU:    10,
-	}
-	nodeIDs, err := FilterNodes(filter, deployer.RMBProxyURLs[tfPluginClient.Network])
+	nodes, err := deployer.FilterNodes(tfPluginClient.GridProxyClient, nodeFilter)
 	assert.NoError(t, err)
 
-	nodeID := nodeIDs[0]
+	nodeID := uint32(nodes[0].NodeID)
 
 	disk := workloads.Disk{
 		Name:        "testName",
-		Size:        10,
+		SizeGB:      1,
 		Description: "disk test",
 	}
 
@@ -37,7 +33,7 @@ func TestDiskDeployment(t *testing.T) {
 	err = tfPluginClient.DeploymentDeployer.Deploy(ctx, &dl)
 	assert.NoError(t, err)
 
-	resDisk, err := tfPluginClient.StateLoader.LoadDiskFromGrid(nodeID, disk.Name)
+	resDisk, err := tfPluginClient.State.LoadDiskFromGrid(nodeID, disk.Name, dl.Name)
 	assert.NoError(t, err)
 	assert.Equal(t, disk, resDisk)
 
@@ -45,6 +41,6 @@ func TestDiskDeployment(t *testing.T) {
 	err = tfPluginClient.DeploymentDeployer.Cancel(ctx, &dl)
 	assert.NoError(t, err)
 
-	_, err = tfPluginClient.StateLoader.LoadDiskFromGrid(nodeID, disk.Name)
+	_, err = tfPluginClient.State.LoadDiskFromGrid(nodeID, disk.Name, dl.Name)
 	assert.Error(t, err)
 }

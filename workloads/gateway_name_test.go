@@ -1,79 +1,54 @@
-// Package workloads includes workloads types (vm, zdb, qsfs, public IP, gateway name, gateway fqdn, disk)
+// Package workloads includes workloads types (vm, zdb, QSFS, public IP, gateway name, gateway fqdn, disk)
 package workloads
 
 import (
 	"encoding/json"
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
+// GatewayWorkload for tests
+var GatewayNameWorkload = GatewayNameProxy{
+	Name:           "test",
+	TLSPassthrough: false,
+	Backends:       []zos.Backend{zos.Backend("http://1.1.1.1")},
+}
+
 func TestGatewayNameProxyWorkload(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	gatewayName := "test"
-	gatewayZosBackend := zos.Backend("http://1.1.1.1")
-
-	var gateway GatewayNameProxy
-
-	res, err := json.Marshal(zos.GatewayNameProxy{
-		Name: "test",
-	})
-	assert.NoError(t, err)
-
-	gatewayWorkload := gridtypes.Workload{
-		Version: 0,
-		Type:    zos.GatewayNameProxyType,
-		Name:    gridtypes.Name(gatewayName),
-		Data: gridtypes.MustMarshal(zos.GatewayNameProxy{
-			Name:           gatewayName,
-			TLSPassthrough: true,
-			Backends:       []zos.Backend{gatewayZosBackend},
-		}),
-		Result: gridtypes.Result{
-			Created: 5000,
-			State:   gridtypes.StateOk,
-			Data:    res,
-		},
-	}
+	var gateway gridtypes.Workload
 
 	t.Run("test_gateway_from_zos_workload", func(t *testing.T) {
-		var err error
+		gateway = GatewayNameWorkload.ZosWorkload()
 
-		gateway, err = NewGatewayNameProxyFromZosWorkload(gatewayWorkload)
+		res, err := json.Marshal(zos.GatewayNameProxy{})
 		assert.NoError(t, err)
+		gateway.Result.Data = res
+
+		gatewayFromWorkload, err := NewGatewayNameProxyFromZosWorkload(gateway)
+		assert.NoError(t, err)
+
+		assert.Equal(t, gatewayFromWorkload, GatewayNameWorkload)
 	})
 
-	t.Run("test_gateway_functions", func(t *testing.T) {
-		gatewayWorkloadCp := gatewayWorkload
-		gatewayWorkloadCp.Result = gridtypes.Result{}
-
-		assert.Equal(t, gateway.ZosWorkload(), gatewayWorkloadCp)
+	t.Run("failed to get workload data", func(t *testing.T) {
+		gatewayCp := gateway
+		gatewayCp.Data = nil
+		_, err := NewGatewayNameProxyFromZosWorkload(gatewayCp)
+		assert.Contains(t, err.Error(), "failed to get workload data")
 	})
 
 	t.Run("test_workload_from_gateway_name", func(t *testing.T) {
-		gatewayWorkloadCp := gatewayWorkload
-		gatewayWorkloadCp.Result = gridtypes.Result{}
+		gateway.Result = gridtypes.Result{}
 
-		workloadFromName, err := gateway.GenerateWorkloads()
-		assert.NoError(t, err)
-		assert.Equal(t, workloadFromName[0], gatewayWorkloadCp)
+		workloadFromName := GatewayNameWorkload.ZosWorkload()
+		assert.Equal(t, workloadFromName, gateway)
 	})
 
-	t.Run("test_workloads_map", func(t *testing.T) {
-		gatewayWorkloadCp := gatewayWorkload
-		gatewayWorkloadCp.Result = gridtypes.Result{}
-
-		nodeID := uint32(1)
-		workloadsMap := map[uint32][]gridtypes.Workload{}
-		workloadsMap[nodeID] = append(workloadsMap[nodeID], gatewayWorkloadCp)
-
-		workloadsMap2, err := gateway.BindWorkloadsToNode(nodeID)
-		assert.NoError(t, err)
-		assert.Equal(t, workloadsMap, workloadsMap2)
+	t.Run("failed to get workload result data", func(t *testing.T) {
+		_, err := NewGatewayNameProxyFromZosWorkload(gateway)
+		assert.Contains(t, err.Error(), "error unmarshalling json")
 	})
 }

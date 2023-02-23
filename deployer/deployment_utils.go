@@ -32,7 +32,7 @@ func CountDeploymentPublicIPs(dl gridtypes.Deployment) (uint32, error) {
 		if wl.Type == zos.PublicIPType {
 			data, err := wl.WorkloadData()
 			if err != nil {
-				return res, errors.Wrapf(err, "couldn't parse workload data for workload %s", wl.Name)
+				return res, errors.Wrapf(err, "could not parse workload data for workload %s", wl.Name)
 			}
 			if data.(*zos.PublicIP).V4 {
 				res++
@@ -52,15 +52,15 @@ func HashDeployment(dl gridtypes.Deployment) (string, error) {
 	return hash, nil
 }
 
-// ConstructWorkloadHashes returns a mapping between workload name to the workload hash
-func ConstructWorkloadHashes(dl gridtypes.Deployment) (map[string]string, error) {
+// GetWorkloadHashes returns a mapping between workload name to the workload hash
+func GetWorkloadHashes(dl gridtypes.Deployment) (map[string]string, error) {
 	hashes := make(map[string]string)
 
 	for _, w := range dl.Workloads {
 		key := string(w.Name)
 		md5Hash := md5.New()
 		if err := w.Challenge(md5Hash); err != nil {
-			return nil, errors.Wrapf(err, "couldn't get a hash for a workload %s", key)
+			return nil, errors.Wrapf(err, "could not get a hash for a workload %s", key)
 		}
 		hash := string(md5Hash.Sum(nil))
 		hashes[key] = hash

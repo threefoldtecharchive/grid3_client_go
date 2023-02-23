@@ -2,15 +2,21 @@
 package deployer
 
 import (
+	"context"
+	"fmt"
+	"io"
 	"log"
+	"os"
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/threefoldtech/grid3-go/graphql"
 	client "github.com/threefoldtech/grid3-go/node"
 	"github.com/threefoldtech/grid3-go/subi"
 	proxy "github.com/threefoldtech/grid_proxy_server/pkg/client"
+	"github.com/threefoldtech/rmb-sdk-go"
+	"github.com/threefoldtech/rmb-sdk-go/direct"
 	"github.com/threefoldtech/substrate-client"
-	"github.com/threefoldtech/zos/pkg/rmb"
 )
 
 var (
@@ -28,63 +34,92 @@ var (
 		"qa":   "https://gridproxy.qa.grid.tf/",
 		"main": "https://gridproxy.grid.tf/",
 	}
+	// GraphQlURLs urls
+	GraphQlURLs = map[string]string{
+		"dev":  "https://graphql.dev.grid.tf/graphql",
+		"test": "https://graphql.test.grid.tf/graphql",
+		"qa":   "https://graphql.qa.grid.tf/graphql",
+		"main": "https://graphql.grid.tf/graphql",
+	}
+	// RelayURLS relay urls
+	RelayURLS = map[string]string{
+		"dev":  "wss://relay.dev.grid.tf",
+		"test": "wss://relay.test.grid.tf",
+		"qa":   "wss://relay.qa.grid.tf",
+		"main": "wss://relay.grid.tf",
+	}
 )
 
 // TFPluginClient is a Threefold plugin client
 type TFPluginClient struct {
+	twinID       uint32
+	mnemonics    string
+	Identity     substrate.Identity
+	substrateURL string
+	relayURL     string
+	rmbProxyURL  string
+	useRmbProxy  bool
+
+	// network
 	Network string
 
-	TwinID          uint32
-	Mnemonics       string
-	SubstrateURL    string
-	RMBRedisURL     string
-	UseRmbProxy     bool
+	// clients
 	GridProxyClient proxy.Client
 	RMB             rmb.Client
 	SubstrateConn   subi.SubstrateExt
 	NcPool          client.NodeClientGetter
-	Identity        substrate.Identity
 
+	// deployers
 	DeploymentDeployer  DeploymentDeployer
 	NetworkDeployer     NetworkDeployer
 	GatewayFQDNDeployer GatewayFQDNDeployer
-	//gatewayNameDeployer GatewayNameDeployer
-	//k8sDeployer k8sDeployer
+	GatewayNameDeployer GatewayNameDeployer
+	K8sDeployer         K8sDeployer
 
-	StateLoader *StateLoader
+	// state
+	State *State
+
+	// contracts
+	graphQl         graphql.GraphQl
+	ContractsGetter graphql.ContractsGetter
 }
 
 // NewTFPluginClient generates a new tf plugin client
-func NewTFPluginClient(mnemonics string,
+func NewTFPluginClient(
+	mnemonics string,
 	keyType string,
 	network string,
 	substrateURL string,
-	passedRmbProxyURL string,
-	useRmbProxy bool,
-	rmbRedisURL string,
+	relayURL string,
+	rmbProxyURL string,
 	verifyReply bool,
+	showLogs bool,
 ) (TFPluginClient, error) {
 
+	// disable logging
+	if !showLogs {
+		log.SetOutput(io.Discard)
+	}
 	var err error
 	tfPluginClient := TFPluginClient{}
 
-	if err := validateMnemonics(mnemonics); err != nil {
-		return TFPluginClient{}, errors.Wrap(err, "couldn't validate mnemonics")
+	if valid := validateMnemonics(mnemonics); !valid {
+		return TFPluginClient{}, errors.Wrapf(err, "mnemonics %s is invalid", mnemonics)
 	}
-	tfPluginClient.Mnemonics = mnemonics
+	tfPluginClient.mnemonics = mnemonics
 
 	var identity substrate.Identity
 	switch keyType {
 	case "ed25519":
-		identity, err = substrate.NewIdentityFromEd25519Phrase(string(tfPluginClient.Mnemonics))
+		identity, err = substrate.NewIdentityFromEd25519Phrase(string(tfPluginClient.mnemonics))
 	case "sr25519":
-		identity, err = substrate.NewIdentityFromSr25519Phrase(string(tfPluginClient.Mnemonics))
+		identity, err = substrate.NewIdentityFromSr25519Phrase(string(tfPluginClient.mnemonics))
 	default:
-		err = errors.New("key type must be one of ed25519 and sr25519")
+		err = fmt.Errorf("key type must be one of ed25519 and sr25519 not %s", keyType)
 	}
 
 	if err != nil {
-		return TFPluginClient{}, errors.Wrap(err, "error getting identity")
+		return TFPluginClient{}, errors.Wrapf(err, "error getting identity using mnemonics %s", mnemonics)
 	}
 	tfPluginClient.Identity = identity
 
@@ -94,28 +129,26 @@ func NewTFPluginClient(mnemonics string,
 	}
 
 	if network != "dev" && network != "qa" && network != "test" && network != "main" {
-		return TFPluginClient{}, errors.New("network must be one of dev, qa, test, and main")
+		return TFPluginClient{}, fmt.Errorf("network must be one of dev, qa, test, and main not %s", network)
 	}
 	tfPluginClient.Network = network
 
-	tfPluginClient.SubstrateURL = SubstrateURLs[network]
+	tfPluginClient.substrateURL = SubstrateURLs[network]
 	if len(strings.TrimSpace(substrateURL)) != 0 {
-		log.Printf("using a custom substrate url %s", substrateURL)
-		if err := validateSubstrateURL(substrateURL); err != nil {
-			return TFPluginClient{}, errors.Wrap(err, "couldn't validate substrate url")
+		if err := validateWssURL(substrateURL); err != nil {
+			return TFPluginClient{}, errors.Wrapf(err, "could not validate substrate url %s", substrateURL)
 		}
-		tfPluginClient.SubstrateURL = substrateURL
+		tfPluginClient.substrateURL = substrateURL
 	}
-	log.Printf("substrate url: %s %s\n", tfPluginClient.SubstrateURL, substrateURL)
 
-	manager := subi.NewManager(tfPluginClient.SubstrateURL)
+	manager := subi.NewManager(tfPluginClient.substrateURL)
 	sub, err := manager.SubstrateExt()
 	if err != nil {
-		return TFPluginClient{}, errors.Wrap(err, "couldn't get substrate client")
+		return TFPluginClient{}, errors.Wrap(err, "could not get substrate client")
 	}
 
-	if err := validateAccount(&tfPluginClient, sub); err != nil {
-		return TFPluginClient{}, errors.Wrap(err, "couldn't validate substrate account")
+	if err := validateAccount(sub, tfPluginClient.Identity, tfPluginClient.mnemonics); err != nil {
+		return TFPluginClient{}, errors.Wrap(err, "could not validate substrate account")
 	}
 
 	tfPluginClient.SubstrateConn = sub
@@ -125,44 +158,65 @@ func NewTFPluginClient(mnemonics string,
 		return TFPluginClient{}, errors.Wrap(err, "no twin associated with the account with the given mnemonics")
 	}
 	if err != nil {
-		return TFPluginClient{}, errors.Wrap(err, "failed to get twin for the given mnemonics")
+		return TFPluginClient{}, errors.Wrapf(err, "failed to get twin for the given mnemonics %s", mnemonics)
 	}
-	tfPluginClient.TwinID = twinID
+	tfPluginClient.twinID = twinID
 
-	rmbProxyURL := RMBProxyURLs[network]
-	if len(strings.TrimSpace(passedRmbProxyURL)) != 0 {
-		if err := validateProxyURL(passedRmbProxyURL); err != nil {
-			return TFPluginClient{}, errors.Wrap(err, "couldn't validate rmb proxy url")
+	tfPluginClient.rmbProxyURL = RMBProxyURLs[network]
+	if len(strings.TrimSpace(rmbProxyURL)) != 0 {
+		if err := validateProxyURL(rmbProxyURL); err != nil {
+			return TFPluginClient{}, errors.Wrapf(err, "could not validate rmb proxy url %s", rmbProxyURL)
 		}
-		rmbProxyURL = passedRmbProxyURL
+		tfPluginClient.rmbProxyURL = rmbProxyURL
 	}
 
-	tfPluginClient.UseRmbProxy = useRmbProxy
-	tfPluginClient.RMBRedisURL = rmbRedisURL
+	tfPluginClient.useRmbProxy = true
+	// if tfPluginClient.useRmbProxy
+	sessionID := generateSessionID()
+	db := client.NewTwinDB(tfPluginClient.SubstrateConn)
 
-	var rmbClient rmb.Client
-	if tfPluginClient.UseRmbProxy {
-		rmbClient, err = client.NewProxyBus(rmbProxyURL, tfPluginClient.TwinID, tfPluginClient.SubstrateConn, identity, verifyReply)
-	} else {
-		rmbClient, err = rmb.NewRMBClient(tfPluginClient.RMBRedisURL)
+	tfPluginClient.relayURL = RelayURLS[network]
+	if len(strings.TrimSpace(relayURL)) != 0 {
+		if err := validateWssURL(relayURL); err != nil {
+			return TFPluginClient{}, errors.Wrapf(err, "could not validate relay url %s", relayURL)
+		}
+		tfPluginClient.relayURL = relayURL
 	}
+
+	rmbClient, err := direct.NewClient(context.Background(), tfPluginClient.Identity, tfPluginClient.relayURL, sessionID, db)
 	if err != nil {
-		return TFPluginClient{}, errors.Wrap(err, "couldn't create rmb client")
+		return TFPluginClient{}, errors.Wrap(err, "could not create rmb client")
 	}
 	tfPluginClient.RMB = rmbClient
 
-	gridProxyClient := proxy.NewClient(rmbProxyURL)
-	tfPluginClient.GridProxyClient = proxy.NewRetryingClient(gridProxyClient)
-	if err := validateClientRMB(&tfPluginClient, sub); err != nil {
-		return TFPluginClient{}, errors.Wrap(err, "couldn't validate rmb proxy client")
+	gridProxyClient := proxy.NewClient(tfPluginClient.rmbProxyURL)
+	if err := validateRMBProxyServer(gridProxyClient); err != nil {
+		return TFPluginClient{}, errors.Wrap(err, "could not validate rmb proxy server")
 	}
+	tfPluginClient.GridProxyClient = proxy.NewRetryingClient(gridProxyClient)
 
 	ncPool := client.NewNodeClientPool(tfPluginClient.RMB)
 	tfPluginClient.NcPool = ncPool
 
 	tfPluginClient.DeploymentDeployer = NewDeploymentDeployer(&tfPluginClient)
 	tfPluginClient.NetworkDeployer = NewNetworkDeployer(&tfPluginClient)
+	tfPluginClient.GatewayFQDNDeployer = NewGatewayFqdnDeployer(&tfPluginClient)
+	tfPluginClient.K8sDeployer = NewK8sDeployer(&tfPluginClient)
+	tfPluginClient.GatewayNameDeployer = NewGatewayNameDeployer(&tfPluginClient)
 
-	tfPluginClient.StateLoader = NewStateLoader(tfPluginClient.NcPool, tfPluginClient.SubstrateConn)
+	tfPluginClient.State = NewState(tfPluginClient.NcPool, tfPluginClient.SubstrateConn)
+
+	graphqlURL := GraphQlURLs[network]
+	tfPluginClient.graphQl, err = graphql.NewGraphQl(graphqlURL)
+	if err != nil {
+		return TFPluginClient{}, errors.Wrapf(err, "could not create a new graphql with url: %s", graphqlURL)
+	}
+
+	tfPluginClient.ContractsGetter = graphql.NewContractsGetter(tfPluginClient.twinID, tfPluginClient.graphQl, tfPluginClient.SubstrateConn, tfPluginClient.NcPool)
+
 	return tfPluginClient, nil
+}
+
+func generateSessionID() string {
+	return fmt.Sprintf("tf-%d", os.Getpid())
 }

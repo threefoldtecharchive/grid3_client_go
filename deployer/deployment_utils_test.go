@@ -15,7 +15,7 @@ func TestDeploymentUtils(t *testing.T) {
 	assert.NoError(t, err)
 
 	identity := tfPluginClient.Identity
-	twinID := tfPluginClient.TwinID
+	twinID := tfPluginClient.twinID
 
 	dl := workloads.NewGridDeployment(twinID, []gridtypes.Workload{})
 
@@ -35,9 +35,9 @@ func TestDeploymentUtils(t *testing.T) {
 	})
 
 	t.Run("deployments workloads hashes", func(t *testing.T) {
-		wlHash := "4\xbe\x8b\xc72\x06\xeeק\x16^\x1a\x94\xbe\xc9\xc2"
+		wlHash := "\xa9>\a\xaf\x04\x10\xca\xc1\xac\b\xe1\x177\xf9\xf6D"
 
-		hashes, err := ConstructWorkloadHashes(dlName)
+		hashes, err := GetWorkloadHashes(dlName)
 		assert.NoError(t, err)
 		assert.Equal(t, hashes["name"], wlHash)
 		assert.Equal(t, len(hashes), 1)

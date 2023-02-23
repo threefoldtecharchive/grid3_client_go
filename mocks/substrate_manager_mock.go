@@ -8,7 +8,6 @@ import (
 	context "context"
 	reflect "reflect"
 
-	types "github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	gomock "github.com/golang/mock/gomock"
 	subi "github.com/threefoldtech/grid3-go/subi"
 	"github.com/threefoldtech/substrate-client"
@@ -285,10 +284,10 @@ func (mr *MockSubstrateExtMockRecorder) EnsureContractCanceled(identity, contrac
 }
 
 // GetAccount mocks base method.
-func (m *MockSubstrateExt) GetAccount(identity substrate.Identity) (types.AccountInfo, error) {
+func (m *MockSubstrateExt) GetAccount(identity substrate.Identity) (substrate.AccountInfo, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAccount", identity)
-	ret0, _ := ret[0].(types.AccountInfo)
+	ret0, _ := ret[0].(substrate.AccountInfo)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -372,21 +371,6 @@ func (m *MockSubstrateExt) GetTwinByPubKey(pk []byte) (uint32, error) {
 func (mr *MockSubstrateExtMockRecorder) GetTwinByPubKey(pk interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTwinByPubKey", reflect.TypeOf((*MockSubstrateExt)(nil).GetTwinByPubKey), pk)
-}
-
-// GetTwinIP mocks base method.
-func (m *MockSubstrateExt) GetTwinIP(twinID uint32) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetTwinIP", twinID)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetTwinIP indicates an expected call of GetTwinIP.
-func (mr *MockSubstrateExtMockRecorder) GetTwinIP(twinID interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTwinIP", reflect.TypeOf((*MockSubstrateExt)(nil).GetTwinIP), twinID)
 }
 
 // GetTwinPK mocks base method.

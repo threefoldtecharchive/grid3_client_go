@@ -22,19 +22,13 @@ func TestVMWithTwoDisk(t *testing.T) {
 	publicKey, privateKey, err := GenerateSSHKeyPair()
 	assert.NoError(t, err)
 
-	filter := NodeFilter{
-		CRU:    2,
-		SRU:    3,
-		MRU:    1,
-		Status: "up",
-	}
-	nodeIDs, err := FilterNodes(filter, deployer.RMBProxyURLs[tfPluginClient.Network])
+	nodes, err := deployer.FilterNodes(tfPluginClient.GridProxyClient, nodeFilter)
 	assert.NoError(t, err)
 
-	nodeID := nodeIDs[0]
+	nodeID := uint32(nodes[0].NodeID)
 
 	network := workloads.ZNet{
-		Name:        "testingNetwork",
+		Name:        "vmsDiskTestingNetwork",
 		Description: "network for testing",
 		Nodes:       []uint32{nodeID},
 		IPRange: gridtypes.NewIPNet(net.IPNet{
@@ -45,12 +39,12 @@ func TestVMWithTwoDisk(t *testing.T) {
 	}
 
 	disk1 := workloads.Disk{
-		Name: "diskTest1",
-		Size: 1,
+		Name:   "diskTest1",
+		SizeGB: 1,
 	}
 	disk2 := workloads.Disk{
-		Name: "diskTest2",
-		Size: 2,
+		Name:   "diskTest2",
+		SizeGB: 2,
 	}
 
 	vm := workloads.VM{
@@ -59,7 +53,6 @@ func TestVMWithTwoDisk(t *testing.T) {
 		CPU:        2,
 		Planetary:  true,
 		Memory:     1024,
-		RootfsSize: 20 * 1024,
 		Entrypoint: "/sbin/zinit init",
 		EnvVars: map[string]string{
 			"SSH_KEY": publicKey,
@@ -82,32 +75,29 @@ func TestVMWithTwoDisk(t *testing.T) {
 	err = tfPluginClient.DeploymentDeployer.Deploy(ctx, &dl)
 	assert.NoError(t, err)
 
-	v, err := tfPluginClient.StateLoader.LoadVMFromGrid(nodeID, vm.Name)
+	v, err := tfPluginClient.State.LoadVMFromGrid(nodeID, vm.Name, dl.Name)
 	assert.NoError(t, err)
 
-	resDisk1, err := tfPluginClient.StateLoader.LoadDiskFromGrid(nodeID, disk1.Name)
+	resDisk1, err := tfPluginClient.State.LoadDiskFromGrid(nodeID, disk1.Name, dl.Name)
 	assert.NoError(t, err)
 	assert.Equal(t, disk1, resDisk1)
 
-	resDisk2, err := tfPluginClient.StateLoader.LoadDiskFromGrid(nodeID, disk2.Name)
+	resDisk2, err := tfPluginClient.State.LoadDiskFromGrid(nodeID, disk2.Name, dl.Name)
 	assert.NoError(t, err)
 	assert.Equal(t, disk2, resDisk2)
 
 	yggIP := v.YggIP
 	assert.NotEmpty(t, yggIP)
-	if !TestConnection(yggIP, "22") {
-		t.Errorf("yggdrasil ip is not reachable")
-	}
 
 	// Check that disk has been mounted successfully
 
 	output, err := RemoteRun("root", yggIP, "df -h | grep -w /disk1", privateKey)
 	assert.NoError(t, err)
-	assert.Contains(t, string(output), fmt.Sprintf("%d.0G", disk1.Size))
+	assert.Contains(t, string(output), fmt.Sprintf("%d.0G", disk1.SizeGB))
 
 	output, err = RemoteRun("root", yggIP, "df -h | grep -w /disk2", privateKey)
 	assert.NoError(t, err)
-	assert.Contains(t, string(output), fmt.Sprintf("%d.0G", disk2.Size))
+	assert.Contains(t, string(output), fmt.Sprintf("%d.0G", disk2.SizeGB))
 
 	// create file -> d1, check file size, move file -> d2, check file size
 

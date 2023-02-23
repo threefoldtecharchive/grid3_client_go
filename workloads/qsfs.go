@@ -1,9 +1,9 @@
-// Package workloads includes workloads types (vm, zdb, qsfs, public IP, gateway name, gateway fqdn, disk)
+// Package workloads includes workloads types (vm, zdb, QSFS, public IP, gateway name, gateway fqdn, disk)
 package workloads
 
 import (
 	"encoding/hex"
-	"log"
+	"fmt"
 	"reflect"
 
 	"github.com/pkg/errors"
@@ -53,58 +53,50 @@ type Groups []Group
 // Backends is a list of backends
 type Backends []Backend
 
-func (g *Group) zosGroup() zos.ZdbGroup {
-	z := zos.ZdbGroup{
-		Backends: make([]zos.ZdbBackend, 0),
-	}
+func (g *Group) zosGroup() (zdbGroup zos.ZdbGroup) {
 	for _, b := range g.Backends {
-		z.Backends = append(z.Backends, b.zosBackend())
+		zdbGroup.Backends = append(zdbGroup.Backends, b.zosBackend())
 	}
-	return z
+	return zdbGroup
 }
 
-func (gs Groups) zosGroups() []zos.ZdbGroup {
-	z := make([]zos.ZdbGroup, 0)
+func (gs Groups) zosGroups() (zdbGroups []zos.ZdbGroup) {
 	for _, e := range gs {
-		z = append(z, e.zosGroup())
+		zdbGroups = append(zdbGroups, e.zosGroup())
 	}
-	return z
+	return zdbGroups
 }
 
 func (b *Backend) zosBackend() zos.ZdbBackend {
 	return zos.ZdbBackend(*b)
 }
 
-func (bs Backends) zosBackends() []zos.ZdbBackend {
-	z := make([]zos.ZdbBackend, 0)
+func (bs Backends) zosBackends() (zdbBackends []zos.ZdbBackend) {
 	for _, e := range bs {
-		z = append(z, e.zosBackend())
+		zdbBackends = append(zdbBackends, e.zosBackend())
 	}
-	return z
+	return zdbBackends
 }
 
 // BackendsFromZos gets backends from zos
-func BackendsFromZos(bs []zos.ZdbBackend) Backends {
-	z := make(Backends, 0)
+func BackendsFromZos(bs []zos.ZdbBackend) (backends Backends) {
 	for _, e := range bs {
-		z = append(z, Backend(e))
+		backends = append(backends, Backend(e))
 	}
-	return z
+	return backends
 }
 
 // GroupsFromZos gets groups from zos
-func GroupsFromZos(gs []zos.ZdbGroup) Groups {
-	z := make(Groups, 0)
+func GroupsFromZos(gs []zos.ZdbGroup) (groups Groups) {
 	for _, e := range gs {
-		z = append(z, Group{
+		groups = append(groups, Group{
 			Backends: BackendsFromZos(e.Backends),
 		})
 	}
-	return z
+	return groups
 }
 
-func getBackends(backendsIf []interface{}) Backends {
-	backends := make([]Backend, 0, len(backendsIf))
+func getBackends(backendsIf []interface{}) (backends Backends) {
 	for _, b := range backendsIf {
 		backendMap := b.(map[string]interface{})
 		backends = append(backends, Backend{
@@ -133,8 +125,7 @@ func (b *Backend) ToMap() map[string]interface{} {
 }
 
 // Listify lists the backends
-func (bs *Backends) Listify() []interface{} {
-	res := make([]interface{}, 0)
+func (bs *Backends) Listify() (res []interface{}) {
 	for _, b := range *bs {
 		res = append(res, b.ToMap())
 	}
@@ -142,8 +133,7 @@ func (bs *Backends) Listify() []interface{} {
 }
 
 // Listify lists the groups
-func (gs *Groups) Listify() []interface{} {
-	res := make([]interface{}, 0)
+func (gs *Groups) Listify() (res []interface{}) {
 	for _, g := range *gs {
 		res = append(res, g.ToMap())
 	}
@@ -161,9 +151,9 @@ func (m *Metadata) ToMap() map[string]interface{} {
 	return res
 }
 
-// NewQSFSFromSchema generates a new QSFS from a given map of its data
-func NewQSFSFromSchema(qsfs map[string]interface{}) QSFS {
-	metadataIf := qsfs["metadata"].([]interface{})
+// NewQSFSFromMap generates a new QSFS from a given map of its data
+func NewQSFSFromMap(qsfsMap map[string]interface{}) QSFS {
+	metadataIf := qsfsMap["metadata"].([]interface{})
 	metadataMap := metadataIf[0].(map[string]interface{})
 
 	metadata := Metadata{
@@ -173,7 +163,7 @@ func NewQSFSFromSchema(qsfs map[string]interface{}) QSFS {
 		EncryptionKey:       metadataMap["encryption_key"].(string),
 		Backends:            getBackends(metadataMap["backends"].([]interface{})),
 	}
-	groupsIf := qsfs["groups"].([]interface{})
+	groupsIf := qsfsMap["groups"].([]interface{})
 	groups := make([]Group, 0, len(groupsIf))
 	for _, gr := range groupsIf {
 		groupMap := gr.(map[string]interface{})
@@ -182,17 +172,17 @@ func NewQSFSFromSchema(qsfs map[string]interface{}) QSFS {
 		})
 	}
 	return QSFS{
-		Name:                 qsfs["name"].(string),
-		Description:          qsfs["description"].(string),
-		Cache:                qsfs["cache"].(int),
-		MinimalShards:        uint32(qsfs["minimal_shards"].(uint32)),
-		ExpectedShards:       uint32(qsfs["expected_shards"].(uint32)),
-		RedundantGroups:      uint32(qsfs["redundant_groups"].(uint32)),
-		RedundantNodes:       uint32(qsfs["redundant_nodes"].(uint32)),
-		MaxZDBDataDirSize:    uint32(qsfs["max_zdb_data_dir_size"].(uint32)),
-		EncryptionAlgorithm:  qsfs["encryption_algorithm"].(string),
-		EncryptionKey:        qsfs["encryption_key"].(string),
-		CompressionAlgorithm: qsfs["compression_algorithm"].(string),
+		Name:                 qsfsMap["name"].(string),
+		Description:          qsfsMap["description"].(string),
+		Cache:                qsfsMap["cache"].(int),
+		MinimalShards:        uint32(qsfsMap["minimal_shards"].(uint32)),
+		ExpectedShards:       uint32(qsfsMap["expected_shards"].(uint32)),
+		RedundantGroups:      uint32(qsfsMap["redundant_groups"].(uint32)),
+		RedundantNodes:       uint32(qsfsMap["redundant_nodes"].(uint32)),
+		MaxZDBDataDirSize:    uint32(qsfsMap["max_zdb_data_dir_size"].(uint32)),
+		EncryptionAlgorithm:  qsfsMap["encryption_algorithm"].(string),
+		EncryptionKey:        qsfsMap["encryption_key"].(string),
+		CompressionAlgorithm: qsfsMap["compression_algorithm"].(string),
 		Metadata:             metadata,
 		Groups:               groups,
 	}
@@ -214,10 +204,9 @@ func NewQSFSFromWorkload(wl *gridtypes.Workload) (QSFS, error) {
 		}
 	}
 
-	log.Printf("wl.Result.unm: %s %s\n", res.MetricsEndpoint, res.Path)
 	data, ok := dataI.(*zos.QuantumSafeFS)
 	if !ok {
-		return QSFS{}, errors.New("could not create qsfs workload")
+		return QSFS{}, fmt.Errorf("could not create qsfs workload from data %v", dataI)
 	}
 
 	return QSFS{
@@ -331,67 +320,4 @@ func (q *QSFS) ToMap() map[string]interface{} {
 	res["metadata"] = []interface{}{q.Metadata.ToMap()}
 	res["groups"] = q.Groups.Listify()
 	return res
-}
-
-// GenerateWorkloads generates a workload from a qsfs
-func (q *QSFS) GenerateWorkloads() ([]gridtypes.Workload, error) {
-	k, err := hex.DecodeString(q.EncryptionKey)
-	if err != nil {
-		return []gridtypes.Workload{}, err
-	}
-	mk, err := hex.DecodeString(q.EncryptionKey)
-	if err != nil {
-		// return gridtypes.Workload{}, err
-		return []gridtypes.Workload{}, err
-	}
-	return []gridtypes.Workload{
-		{
-			Version:     0,
-			Name:        gridtypes.Name(q.Name),
-			Type:        zos.QuantumSafeFSType,
-			Description: q.Description,
-			Data: gridtypes.MustMarshal(zos.QuantumSafeFS{
-				Cache: gridtypes.Unit(uint64(q.Cache) * uint64(gridtypes.Megabyte)),
-				Config: zos.QuantumSafeFSConfig{
-					MinimalShards:     q.MinimalShards,
-					ExpectedShards:    q.ExpectedShards,
-					RedundantGroups:   q.RedundantGroups,
-					RedundantNodes:    q.RedundantNodes,
-					MaxZDBDataDirSize: q.MaxZDBDataDirSize,
-					Encryption: zos.Encryption{
-						Algorithm: zos.EncryptionAlgorithm(q.EncryptionAlgorithm),
-						Key:       zos.EncryptionKey(k),
-					},
-					Meta: zos.QuantumSafeMeta{
-						Type: q.Metadata.Type,
-						Config: zos.QuantumSafeConfig{
-							Prefix: q.Metadata.Prefix,
-							Encryption: zos.Encryption{
-								Algorithm: zos.EncryptionAlgorithm(q.EncryptionAlgorithm),
-								Key:       zos.EncryptionKey(mk),
-							},
-							Backends: q.Metadata.Backends.zosBackends(),
-						},
-					},
-					Groups: q.Groups.zosGroups(),
-					Compression: zos.QuantumCompression{
-						Algorithm: q.CompressionAlgorithm,
-					},
-				},
-			}),
-		},
-	}, nil
-}
-
-// BindWorkloadsToNode for staging workloads to node IDs
-func (q *QSFS) BindWorkloadsToNode(nodeID uint32) (map[uint32][]gridtypes.Workload, error) {
-	workloadsMap := map[uint32][]gridtypes.Workload{}
-
-	workloads, err := q.GenerateWorkloads()
-	if err != nil {
-		return workloadsMap, err
-	}
-
-	workloadsMap[nodeID] = workloads
-	return workloadsMap, nil
 }

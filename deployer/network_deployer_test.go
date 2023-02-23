@@ -44,11 +44,15 @@ func constructTestNetworkDeployer(t *testing.T, mock bool) (NetworkDeployer, *mo
 		tfPluginClient.NcPool = ncPool
 		tfPluginClient.RMB = cl
 
-		tfPluginClient.StateLoader.ncPool = ncPool
-		tfPluginClient.StateLoader.substrate = sub
+		tfPluginClient.State.ncPool = ncPool
+		tfPluginClient.State.substrate = sub
+
+		tfPluginClient.twinID = twinID
+
+		tfPluginClient.NetworkDeployer.tfPluginClient = &tfPluginClient
 	}
 
-	return NewNetworkDeployer(&tfPluginClient), cl, sub, ncPool
+	return tfPluginClient.NetworkDeployer, cl, sub, ncPool
 }
 
 func TestNetworkValidate(t *testing.T) {
@@ -64,10 +68,10 @@ func TestNetworkValidate(t *testing.T) {
 }
 
 func TestNetworkGenerateDeployment(t *testing.T) {
-	net := constructTestNetwork()
 	d, cl, sub, ncPool := constructTestNetworkDeployer(t, true)
 
-	d.tfPluginClient.StateLoader.currentNodeNetwork[nodeID] = contractID
+	net := constructTestNetwork()
+	net.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
 
 	cl.EXPECT().
 		Call(gomock.Any(), twinID, "zos.network.public_config_get", gomock.Any(), gomock.Any()).
@@ -92,9 +96,14 @@ func TestNetworkGenerateDeployment(t *testing.T) {
 	dls, err := d.GenerateVersionlessDeployments(context.Background(), &net)
 	assert.NoError(t, err)
 
-	workload := net.GenerateWorkload(net.NodesIPRange[nodeID], d.Keys[nodeID].String(), uint16(d.WGPort[nodeID]), []zos.Peer{})
+	workload := net.ZosWorkload(net.NodesIPRange[nodeID], d.Keys[nodeID].String(), uint16(d.WGPort[nodeID]), []zos.Peer{})
 	networkDl := workloads.NewGridDeployment(twinID, []gridtypes.Workload{workload})
+
+	networkDl.Metadata = "{\"type\":\"network\",\"name\":\"network\",\"projectName\":\"Network\"}"
 
 	assert.Equal(t, len(networkDl.Workloads), len(dls[net.Nodes[0]].Workloads))
 	assert.Equal(t, networkDl.Workloads, dls[net.Nodes[0]].Workloads)
+	assert.Equal(t, dls, map[uint32]gridtypes.Deployment{
+		nodeID: networkDl,
+	})
 }

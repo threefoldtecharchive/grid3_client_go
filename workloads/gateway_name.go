@@ -1,8 +1,9 @@
-// Package workloads includes workloads types (vm, zdb, qsfs, public IP, gateway name, gateway fqdn, disk)
+// Package workloads includes workloads types (vm, zdb, QSFS, public IP, gateway name, gateway fqdn, disk)
 package workloads
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
@@ -11,17 +12,25 @@ import (
 
 // GatewayNameProxy struct for gateway name proxy
 type GatewayNameProxy struct {
+	// Required
+	NodeID uint32
 	// Name the fully qualified domain name to use (cannot be present with Name)
 	Name string
-
-	// Passthrough whether to pass tls traffic or not
-	TLSPassthrough bool
-
 	// Backends are list of backend ips
 	Backends []zos.Backend
 
+	// Optional
+	// Passthrough whether to pass tls traffic or not
+	TLSPassthrough bool
+	Description    string
+	SolutionType   string
+
+	// computed
 	// FQDN deployed on the node
-	FQDN string
+	NodeDeploymentID map[uint32]uint64
+	FQDN             string
+	NameContractID   uint64
+	ContractID       uint64
 }
 
 // NewGatewayNameProxyFromZosWorkload generates a gateway name proxy from a zos workload
@@ -39,7 +48,7 @@ func NewGatewayNameProxyFromZosWorkload(wl gridtypes.Workload) (GatewayNameProxy
 
 	data, ok := dataI.(*zos.GatewayNameProxy)
 	if !ok {
-		return GatewayNameProxy{}, errors.New("could not create gateway name proxy workload")
+		return GatewayNameProxy{}, fmt.Errorf("could not create gateway name proxy workload from data %v", dataI)
 	}
 
 	return GatewayNameProxy{
@@ -65,32 +74,22 @@ func (g *GatewayNameProxy) ZosWorkload() gridtypes.Workload {
 	}
 }
 
-// GenerateWorkloads generates a workload from a name gateway
-func (g *GatewayNameProxy) GenerateWorkloads() ([]gridtypes.Workload, error) {
-	return []gridtypes.Workload{
-		{
-			Version: 0,
-			Type:    zos.GatewayNameProxyType,
-			Name:    gridtypes.Name(g.Name),
-			// REVISE: whether description should be set here
-			Data: gridtypes.MustMarshal(zos.GatewayNameProxy{
-				Name:           g.Name,
-				TLSPassthrough: g.TLSPassthrough,
-				Backends:       g.Backends,
-			}),
-		},
-	}, nil
-}
-
-// BindWorkloadsToNode for staging workloads with node ID
-func (g *GatewayNameProxy) BindWorkloadsToNode(nodeID uint32) (map[uint32][]gridtypes.Workload, error) {
-	workloadsMap := map[uint32][]gridtypes.Workload{}
-
-	workloads, err := g.GenerateWorkloads()
-	if err != nil {
-		return workloadsMap, err
+// GenerateMetadata generates gateway deployment metadata
+func (g *GatewayNameProxy) GenerateMetadata() (string, error) {
+	if len(g.SolutionType) == 0 {
+		g.SolutionType = "Gateway"
 	}
 
-	workloadsMap[nodeID] = workloads
-	return workloadsMap, nil
+	deploymentData := DeploymentData{
+		Name:        g.Name,
+		Type:        "Gateway Name",
+		ProjectName: g.SolutionType,
+	}
+
+	deploymentDataBytes, err := json.Marshal(deploymentData)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to parse deployment data %v", deploymentData)
+	}
+
+	return string(deploymentDataBytes), nil
 }

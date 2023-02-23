@@ -1,7 +1,8 @@
-// Package workloads includes workloads types (vm, zdb, qsfs, public IP, gateway name, gateway fqdn, disk)
+// Package workloads includes workloads types (vm, zdb, QSFS, public IP, gateway name, gateway fqdn, disk)
 package workloads
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -9,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/threefoldtech/substrate-client"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
@@ -31,19 +31,21 @@ type Deployment struct {
 	Disks            []Disk
 	Zdbs             []ZDB
 	Vms              []VM
-	Qsfs             []QSFS
+	QSFS             []QSFS
 
 	// computed
-	ContractID uint64
+	NodeDeploymentID map[uint32]uint64
+	ContractID       uint64
 }
 
+// NewDeployment generates a new deployment
 func NewDeployment(name string, nodeID uint32,
 	solutionType string, solutionProvider *uint64,
 	NetworkName string,
 	disks []Disk,
 	zdbs []ZDB,
 	vms []VM,
-	qsfs []QSFS,
+	QSFS []QSFS,
 ) Deployment {
 	return Deployment{
 		Name:             name,
@@ -54,13 +56,11 @@ func NewDeployment(name string, nodeID uint32,
 		Disks:            disks,
 		Zdbs:             zdbs,
 		Vms:              vms,
-		Qsfs:             qsfs,
-		ContractID:       0,
+		QSFS:             QSFS,
 	}
 }
 
 // Validate validates a deployment
-// TODO: are there any more validations on workloads needed other than vm and network name relation?
 func (d *Deployment) Validate() error {
 	if len(d.Vms) != 0 && len(strings.TrimSpace(d.NetworkName)) == 0 {
 		return errors.New("if you pass a vm, network name must be non-empty")
@@ -74,24 +74,44 @@ func (d *Deployment) Validate() error {
 	return nil
 }
 
+// GenerateMetadata generates deployment metadata
+func (d *Deployment) GenerateMetadata() (string, error) {
+	if len(d.SolutionType) == 0 {
+		d.SolutionType = "Virtual Machine"
+	}
+
+	deploymentData := DeploymentData{
+		Name:        d.Name,
+		Type:        "vm",
+		ProjectName: d.SolutionType,
+	}
+
+	deploymentDataBytes, err := json.Marshal(deploymentData)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to parse deployment data %v", deploymentData)
+	}
+
+	return string(deploymentDataBytes), nil
+}
+
 // Nullify resets deployment
 func (d *Deployment) Nullify() {
 	d.Vms = nil
-	d.Qsfs = nil
+	d.QSFS = nil
 	d.Disks = nil
 	d.Zdbs = nil
 	d.ContractID = 0
 }
 
 // Match objects to match the input
-func (d *Deployment) Match(disks []Disk, qsfs []QSFS, zdbs []ZDB, vms []VM) {
+func (d *Deployment) Match(disks []Disk, QSFS []QSFS, zdbs []ZDB, vms []VM) {
 	vmMap := make(map[string]*VM)
-	l := len(d.Disks) + len(d.Qsfs) + len(d.Zdbs) + len(d.Vms)
+	l := len(d.Disks) + len(d.QSFS) + len(d.Zdbs) + len(d.Vms)
 	names := make(map[string]int)
 	for idx, o := range d.Disks {
 		names[o.Name] = idx - l
 	}
-	for idx, o := range d.Qsfs {
+	for idx, o := range d.QSFS {
 		names[o.Name] = idx - l
 	}
 	for idx, o := range d.Zdbs {
@@ -104,8 +124,8 @@ func (d *Deployment) Match(disks []Disk, qsfs []QSFS, zdbs []ZDB, vms []VM) {
 	sort.Slice(disks, func(i, j int) bool {
 		return names[disks[i].Name] < names[disks[j].Name]
 	})
-	sort.Slice(qsfs, func(i, j int) bool {
-		return names[qsfs[i].Name] < names[qsfs[j].Name]
+	sort.Slice(QSFS, func(i, j int) bool {
+		return names[QSFS[i].Name] < names[QSFS[j].Name]
 	})
 	sort.Slice(zdbs, func(i, j int) bool {
 		return names[zdbs[i].Name] < names[zdbs[j].Name]
@@ -116,39 +136,36 @@ func (d *Deployment) Match(disks []Disk, qsfs []QSFS, zdbs []ZDB, vms []VM) {
 	for idx := range vms {
 		vm, ok := vmMap[vms[idx].Name]
 		if ok {
-			vms[idx].Match(vm)
-			log.Printf("orig: %+v\n", vm)
+			vms[idx].LoadFromVM(vm)
+			log.Printf("original: %+v\n", vm)
 			log.Printf("new: %+v\n", vms[idx])
 		}
 	}
 }
 
-// ConstructGridDeployment generates a new grid deployment from a deployment
-func (d *Deployment) ConstructGridDeployment(twin uint32) (gridtypes.Deployment, error) {
+// ZosDeployment generates a new zos deployment from a deployment
+func (d *Deployment) ZosDeployment(twin uint32) (gridtypes.Deployment, error) {
 	wls := []gridtypes.Workload{}
 
 	for _, d := range d.Disks {
-		wls = append(wls, d.GenerateWorkload())
+		wls = append(wls, d.ZosWorkload())
 	}
 
 	for _, z := range d.Zdbs {
-		wls = append(wls, z.GenerateWorkload())
+		wls = append(wls, z.ZosWorkload())
 	}
 
 	for _, v := range d.Vms {
-		vmWls, err := v.GenerateWorkloads()
-		if err != nil {
-			return gridtypes.Deployment{}, err
-		}
+		vmWls := v.ZosWorkload()
 		wls = append(wls, vmWls...)
 	}
 
-	for _, q := range d.Qsfs {
-		qWls, err := q.GenerateWorkloads()
+	for _, q := range d.QSFS {
+		qWls, err := q.ZosWorkload()
 		if err != nil {
 			return gridtypes.Deployment{}, err
 		}
-		wls = append(wls, qWls...)
+		wls = append(wls, qWls)
 	}
 
 	return gridtypes.Deployment{
@@ -169,7 +186,7 @@ func (d *Deployment) ConstructGridDeployment(twin uint32) (gridtypes.Deployment,
 	}, nil
 }
 
-// NewDeployment generates a new deployment
+// NewGridDeployment generates a new grid deployment
 func NewGridDeployment(twin uint32, workloads []gridtypes.Workload) gridtypes.Deployment {
 	return gridtypes.Deployment{
 		Version: 0,
@@ -196,7 +213,7 @@ func GetUsedIPs(dl gridtypes.Deployment) ([]byte, error) {
 			return usedIPs, fmt.Errorf("workload %s state failed", w.Name)
 		}
 		if w.Type == zos.ZMachineType {
-			vm, err := NewVMFromWorkloads(&w, &dl)
+			vm, err := NewVMFromWorkload(&w, &dl)
 			if err != nil {
 				return usedIPs, errors.Wrapf(err, "error parsing vm: %s", vm.Name)
 			}
@@ -208,23 +225,13 @@ func GetUsedIPs(dl gridtypes.Deployment) ([]byte, error) {
 	return usedIPs, nil
 }
 
-// GatewayWorkloadGenerator is an interface for a gateway workload generator
-type GatewayWorkloadGenerator interface {
-	ZosWorkload() gridtypes.Workload
-}
-
-// NewDeploymentWithGateway generates a new deployment with a gateway workload
-func NewDeploymentWithGateway(identity substrate.Identity, twinID uint32, version uint32, gw GatewayWorkloadGenerator) (gridtypes.Deployment, error) {
-	dl := NewGridDeployment(twinID, []gridtypes.Workload{})
-	dl.Version = version
-
-	dl.Workloads = append(dl.Workloads, gw.ZosWorkload())
-	dl.Workloads[0].Version = version
-
-	err := dl.Sign(twinID, identity)
+// ParseDeploymentDate parses the deployment meta date
+func ParseDeploymentDate(deploymentMetaData string) (DeploymentData, error) {
+	var deploymentData DeploymentData
+	err := json.Unmarshal([]byte(deploymentMetaData), &deploymentData)
 	if err != nil {
-		return gridtypes.Deployment{}, err
+		return DeploymentData{}, err
 	}
 
-	return dl, nil
+	return deploymentData, nil
 }

@@ -1,3 +1,4 @@
+// Package deployer for grid deployer
 package deployer
 
 import (
@@ -6,423 +7,181 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"regexp"
 
 	"github.com/pkg/errors"
 	client "github.com/threefoldtech/grid3-go/node"
-	"github.com/threefoldtech/grid3-go/subi"
 	"github.com/threefoldtech/grid3-go/workloads"
-	wl "github.com/threefoldtech/grid3-go/workloads"
-	"github.com/threefoldtech/substrate-client"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
+// K8sDeployer for deploying k8s
 type K8sDeployer struct {
-	Master           *wl.K8sNodeData
-	Workers          []wl.K8sNodeData
-	NodesIPRange     map[uint32]gridtypes.IPNet
-	Token            string
-	SSHKey           string
-	NetworkName      string
-	NodeDeploymentID map[uint32]uint64
-
-	TFPluginClient *TFPluginClient
 	NodeUsedIPs    map[uint32][]byte
-	ncPool         *client.NodeClientPool
-	deployer       Deployer
+	tfPluginClient *TFPluginClient
+	deployer       MockDeployer
 }
 
+// NewK8sDeployer generates new K8s Deployer
 func NewK8sDeployer(tfPluginClient *TFPluginClient) K8sDeployer {
+	deployer := NewDeployer(*tfPluginClient, true)
 	k8sDeployer := K8sDeployer{
-		ncPool:         client.NewNodeClientPool(tfPluginClient.RMB),
-		TFPluginClient: tfPluginClient,
-		deployer:       Deployer{},
+		NodeUsedIPs:    map[uint32][]byte{},
+		tfPluginClient: tfPluginClient,
+		deployer:       &deployer,
 	}
-
-	k8sDeployer.TFPluginClient = tfPluginClient
-	k8sDeployer.deployer = NewDeployer(*tfPluginClient, true)
 
 	return k8sDeployer
 }
 
-func (k *K8sDeployer) invalidateBrokenAttributes(sub subi.SubstrateExt) error {
-	newWorkers := make([]wl.K8sNodeData, 0)
-	validNodes := make(map[uint32]struct{})
-	for node, contractID := range k.NodeDeploymentID {
-		contract, err := sub.GetContract(contractID)
-		if (err == nil && !contract.IsCreated()) || errors.Is(err, substrate.ErrNotFound) {
-			delete(k.NodeDeploymentID, node)
-			delete(k.NodesIPRange, node)
-		} else if err != nil {
-			return errors.Wrapf(err, "couldn't get node %d contract %d", node, contractID)
-		} else {
-			validNodes[node] = struct{}{}
-		}
+// Validate validates K8s deployer
+func (d *K8sDeployer) Validate(ctx context.Context, k8sCluster *workloads.K8sCluster) error {
+	sub := d.tfPluginClient.SubstrateConn
+	if err := validateAccountBalanceForExtrinsics(sub, d.tfPluginClient.Identity); err != nil {
+		return err
+	}
 
+	if err := k8sCluster.ValidateToken(); err != nil {
+		return err
 	}
-	if _, ok := validNodes[k.Master.Node]; !ok {
-		k.Master = &wl.K8sNodeData{}
+
+	if err := k8sCluster.ValidateNames(); err != nil {
+		return err
 	}
-	for _, worker := range k.Workers {
-		if _, ok := validNodes[worker.Node]; ok {
-			newWorkers = append(newWorkers, worker)
+
+	if err := k8sCluster.ValidateIPranges(); err != nil {
+		return err
+	}
+
+	if err := k8sCluster.ValidateChecksums(); err != nil {
+		return err
+	}
+
+	// validate cluster nodes
+	var nodes []uint32
+	nodes = append(nodes, k8sCluster.Master.Node)
+	for _, worker := range k8sCluster.Workers {
+		if !workloads.Contains(nodes, worker.Node) {
+			nodes = append(nodes, worker.Node)
 		}
 	}
-	k.Workers = newWorkers
-	return nil
+	return client.AreNodesUp(ctx, sub, nodes, d.tfPluginClient.NcPool)
 }
 
-func (d *K8sDeployer) retainChecksums(workers []interface{}, master interface{}) {
-	checksumMap := make(map[string]string)
-	checksumMap[d.Master.Name] = d.Master.FlistChecksum
-	for _, w := range d.Workers {
-		checksumMap[w.Name] = w.FlistChecksum
-	}
-	typed := master.(map[string]interface{})
-	typed["flist_checksum"] = checksumMap[typed["name"].(string)]
-	for _, w := range workers {
-		typed := w.(map[string]interface{})
-		typed["flist_checksum"] = checksumMap[typed["name"].(string)]
-	}
-}
-
-func (k *K8sDeployer) assignNodesIPs() error {
-	masterNodeRange := k.NodesIPRange[k.Master.Node]
-	if k.Master.IP == "" || !masterNodeRange.Contains(net.ParseIP(k.Master.IP)) {
-		ip, err := k.getK8sFreeIP(masterNodeRange, k.Master.Node)
-		if err != nil {
-			return errors.Wrap(err, "failed to find free ip for master")
-		}
-		k.Master.IP = ip
-	}
-	for idx, w := range k.Workers {
-		workerNodeRange := k.NodesIPRange[w.Node]
-		if w.IP != "" && workerNodeRange.Contains(net.ParseIP(w.IP)) {
-			continue
-		}
-		ip, err := k.getK8sFreeIP(workerNodeRange, w.Node)
-		if err != nil {
-			return errors.Wrap(err, "failed to find free ip for worker")
-		}
-		k.Workers[idx].IP = ip
-	}
-	return nil
-}
-
-func (k *K8sDeployer) getK8sFreeIP(ipRange gridtypes.IPNet, nodeID uint32) (string, error) {
-	ip := ipRange.IP.To4()
-	if ip == nil {
-		return "", fmt.Errorf("the provided ip range (%s) is not a valid ipv4", ipRange.String())
-	}
-
-	for i := 2; i < 255; i++ {
-		hostID := byte(i)
-		if !Contains(k.NodeUsedIPs[nodeID], hostID) {
-			k.NodeUsedIPs[nodeID] = append(k.NodeUsedIPs[nodeID], hostID)
-			ip[3] = hostID
-			return ip.String(), nil
-		}
-	}
-	return "", errors.New("all ips are used")
-}
-
-func Contains[T comparable](elements []T, element T) bool {
-	for _, e := range elements {
-		if element == e {
-			return true
-		}
-	}
-	return false
-}
-
-func (k *K8sDeployer) GenerateVersionlessDeployments(ctx context.Context) (map[uint32]gridtypes.Deployment, error) {
-	err := k.assignNodesIPs()
+// GenerateVersionlessDeployments generates a new deployment without a version
+func (d *K8sDeployer) GenerateVersionlessDeployments(ctx context.Context, k8sCluster *workloads.K8sCluster) (map[uint32]gridtypes.Deployment, error) {
+	err := d.assignNodesIPs(k8sCluster)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to assign node ips")
 	}
 	deployments := make(map[uint32]gridtypes.Deployment)
 	nodeWorkloads := make(map[uint32][]gridtypes.Workload)
-	k8sCluster := wl.K8sCluster{
-		Master:      k.Master,
-		Workers:     k.Workers,
-		Token:       k.Token,
-		SSHKey:      k.SSHKey,
-		NetworkName: k.NetworkName,
-	}
-	masterWorkloads := k.Master.GenerateK8sWorkload(&k8sCluster, true)
-	nodeWorkloads[k.Master.Node] = append(nodeWorkloads[k.Master.Node], masterWorkloads...)
-	for _, w := range k.Workers {
-		workerWorkloads := w.GenerateK8sWorkload(&k8sCluster, true)
+
+	masterWorkloads := k8sCluster.Master.MasterZosWorkload(k8sCluster)
+	nodeWorkloads[k8sCluster.Master.Node] = append(nodeWorkloads[k8sCluster.Master.Node], masterWorkloads...)
+	for _, w := range k8sCluster.Workers {
+		workerWorkloads := w.WorkerZosWorkload(k8sCluster)
 		nodeWorkloads[w.Node] = append(nodeWorkloads[w.Node], workerWorkloads...)
 	}
 
 	for node, ws := range nodeWorkloads {
-		dl := gridtypes.Deployment{
-			Version: 0,
-			TwinID:  uint32(k.TFPluginClient.TwinID), //LocalTwin,
-			// this contract id must match the one on substrate
-			Workloads: ws,
-			SignatureRequirement: gridtypes.SignatureRequirement{
-				WeightRequired: 1,
-				Requests: []gridtypes.SignatureRequest{
-					{
-						TwinID: k.TFPluginClient.TwinID,
-						Weight: 1,
-					},
-				},
-			},
+		dl := workloads.NewGridDeployment(d.tfPluginClient.twinID, ws)
+		dl.Metadata, err = k8sCluster.GenerateMetadata()
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to generate deployment %s metadata", k8sCluster.Master.Name)
 		}
+
 		deployments[node] = dl
 	}
 	return deployments, nil
 }
 
-func (d *K8sDeployer) validateChecksums() error {
-	nodes := append(d.Workers, *d.Master)
-	for _, vm := range nodes {
-		if vm.FlistChecksum == "" {
-			continue
-		}
-		checksum, err := workloads.GetFlistChecksum(vm.Flist)
-		if err != nil {
-			return errors.Wrapf(err, "couldn't get flist %s hash", vm.Flist)
-		}
-		if vm.FlistChecksum != checksum {
-			return fmt.Errorf("passed checksum %s of %s doesn't match %s returned from %s",
-				vm.FlistChecksum,
-				vm.Name,
-				checksum,
-				workloads.FlistChecksumURL(vm.Flist),
-			)
-		}
-	}
-	return nil
-}
-
-func (k *K8sDeployer) ValidateNames(ctx context.Context) error {
-
-	names := make(map[string]bool)
-	names[k.Master.Name] = true
-	for _, w := range k.Workers {
-		if _, ok := names[w.Name]; ok {
-			return fmt.Errorf("k8s workers and master must have unique names: %s occurred more than once", w.Name)
-		}
-		names[w.Name] = true
-	}
-	return nil
-}
-
-func (k *K8sDeployer) ValidateIPranges(ctx context.Context) error {
-
-	if _, ok := k.NodesIPRange[k.Master.Node]; !ok {
-		return fmt.Errorf("the master node %d doesn't exist in the network's ip ranges", k.Master.Node)
-	}
-	for _, w := range k.Workers {
-		if _, ok := k.NodesIPRange[w.Node]; !ok {
-			return fmt.Errorf("the node with id %d in worker %s doesn't exist in the network's ip ranges", w.Node, w.Name)
-		}
-	}
-	return nil
-}
-
-func (k *K8sDeployer) validateToken(ctx context.Context) error {
-	if k.Token == "" {
-		return errors.New("empty token is now allowed")
-	}
-
-	is_alphanumeric := regexp.MustCompile(`^[a-zA-Z0-9]*$`).MatchString(k.Token)
-	if !is_alphanumeric {
-		return errors.New("token should be alphanumeric")
-	}
-
-	return nil
-}
-
-func (k *K8sDeployer) Validate(ctx context.Context, sub subi.SubstrateExt) error {
-	if err := k.validateToken(ctx); err != nil {
+// Deploy deploys a k8s cluster deployment
+func (d *K8sDeployer) Deploy(ctx context.Context, k8sCluster *workloads.K8sCluster) error {
+	if err := d.assignNodeIPRange(k8sCluster); err != nil {
 		return err
 	}
-	if err := k.ValidateNames(ctx); err != nil {
-		return err
-	}
-	if err := k.ValidateIPranges(ctx); err != nil {
-		return err
-	}
-	nodes := make([]uint32, 0)
-	nodes = append(nodes, k.Master.Node)
-	for _, w := range k.Workers {
-		nodes = append(nodes, w.Node)
 
-	}
-	return client.AreNodesUp(ctx, sub, nodes, k.ncPool)
-}
-
-func (k *K8sDeployer) Deploy(ctx context.Context, sub subi.SubstrateExt) error {
-	if err := k.validateChecksums(); err != nil {
-		return err
-	}
-	newDeployments, err := k.GenerateVersionlessDeployments(ctx)
+	err := k8sCluster.InvalidateBrokenAttributes(d.tfPluginClient.SubstrateConn)
 	if err != nil {
-		return errors.Wrap(err, "couldn't generate deployments data")
+		return err
 	}
-	deploymentData := workloads.DeploymentData{
-		Name: k.Master.Name,
-		Type: "k8s",
+
+	if err := d.Validate(ctx, k8sCluster); err != nil {
+		return err
 	}
-	newDeploymentsData := make(map[uint32]workloads.DeploymentData)	///////todo
-	newDeploymentsData[k.Master.Node] = deploymentData
+
+	newDeployments, err := d.GenerateVersionlessDeployments(ctx, k8sCluster)
+	if err != nil {
+		return errors.Wrap(err, "could not generate k8s grid deployments")
+	}
+
 	newDeploymentsSolutionProvider := make(map[uint32]*uint64)
-	newDeploymentsSolutionProvider[k.Master.Node] = nil
-	currentDeployments, err := k.deployer.Deploy(ctx, k.NodeDeploymentID, newDeployments, newDeploymentsData, newDeploymentsSolutionProvider)
-	if err := k.updateState(ctx, sub, currentDeployments); err != nil {
-		log.Printf("error updating state: %s\n", err)
-	}
-	return err
-}
+	newDeploymentsSolutionProvider[k8sCluster.Master.Node] = nil
 
-func (k *K8sDeployer) updateState(ctx context.Context, sub subi.SubstrateExt, currentDeploymentIDs map[uint32]uint64) error {
-	log.Printf("current deployments\n")
-	k.NodeDeploymentID = currentDeploymentIDs
-	currentDeployments, err := k.deployer.GetDeployments(ctx, currentDeploymentIDs)
-	if err != nil {
-		return errors.Wrap(err, "failed to get deployments to update local state")
-	}
+	k8sCluster.NodeDeploymentID, err = d.deployer.Deploy(ctx, k8sCluster.NodeDeploymentID, newDeployments, newDeploymentsSolutionProvider)
 
-	err = printDeployments(currentDeployments)
-	if err != nil {
-		return errors.Wrap(err, "couldn't print deployments data")
-	}
-
-	publicIPs := make(map[string]string)
-	publicIP6s := make(map[string]string)
-	yggIPs := make(map[string]string)
-	privateIPs := make(map[string]string)
-	for _, dl := range currentDeployments {
-		for _, w := range dl.Workloads {
-			if w.Type == zos.PublicIPType {
-				d := zos.PublicIPResult{}
-				if err := json.Unmarshal(w.Result.Data, &d); err != nil {
-					log.Printf("error unmarshalling json: %s\n", err)
-					continue
-				}
-				publicIPs[string(w.Name)] = d.IP.String()
-				publicIP6s[string(w.Name)] = d.IPv6.String()
-			} else if w.Type == zos.ZMachineType {
-				d, err := w.WorkloadData()
-				if err != nil {
-					log.Printf("error loading machine data: %s\n", err)
-					continue
-				}
-				privateIPs[string(w.Name)] = d.(*zos.ZMachine).Network.Interfaces[0].IP.String()
-
-				var result zos.ZMachineResult
-				if err := w.Result.Unmarshal(&result); err != nil {
-					log.Printf("error loading machine result: %s\n", err)
-				}
-				yggIPs[string(w.Name)] = result.YggIP
+	// update deployments state
+	// error is not returned immediately before updating state because of untracked failed deployments
+	if contractID, ok := k8sCluster.NodeDeploymentID[k8sCluster.Master.Node]; ok && contractID != 0 {
+		if !workloads.Contains(d.tfPluginClient.State.currentNodeDeployments[k8sCluster.Master.Node], contractID) {
+			d.tfPluginClient.State.currentNodeDeployments[k8sCluster.Master.Node] = append(d.tfPluginClient.State.currentNodeDeployments[k8sCluster.Master.Node], contractID)
+		}
+		for _, w := range k8sCluster.Workers {
+			if !workloads.Contains(d.tfPluginClient.State.currentNodeDeployments[w.Node], k8sCluster.NodeDeploymentID[w.Node]) {
+				d.tfPluginClient.State.currentNodeDeployments[w.Node] = append(d.tfPluginClient.State.currentNodeDeployments[w.Node], k8sCluster.NodeDeploymentID[w.Node])
 			}
 		}
 	}
-	masterIPName := fmt.Sprintf("%sip", k.Master.Name)
-	k.Master.ComputedIP = publicIPs[masterIPName]
-	k.Master.ComputedIP6 = publicIP6s[masterIPName]
-	k.Master.IP = privateIPs[string(k.Master.Name)]
-	k.Master.YggIP = yggIPs[string(k.Master.Name)]
 
-	for idx, w := range k.Workers {
-		workerIPName := fmt.Sprintf("%sip", w.Name)
-		k.Workers[idx].ComputedIP = publicIPs[workerIPName]
-		k.Workers[idx].ComputedIP = publicIP6s[workerIPName]
-		k.Workers[idx].IP = privateIPs[string(w.Name)]
-		k.Workers[idx].YggIP = yggIPs[string(w.Name)]
+	return err
+}
+
+// Cancel cancels a k8s cluster deployment
+func (d *K8sDeployer) Cancel(ctx context.Context, k8sCluster *workloads.K8sCluster) (err error) {
+	if err := d.Validate(ctx, k8sCluster); err != nil {
+		return err
 	}
-	// k.updateNetworkState(d, k.TFP)
-	log.Printf("Current state after updatestate %v\n", k)
+
+	for nodeID, contractID := range k8sCluster.NodeDeploymentID {
+		if k8sCluster.Master.Node == nodeID {
+			err = d.deployer.Cancel(ctx, contractID)
+			if err != nil {
+				return errors.Wrapf(err, "could not cancel master %s, contract %d", k8sCluster.Master.Name, contractID)
+			}
+			d.tfPluginClient.State.currentNodeDeployments[nodeID] = workloads.Delete(d.tfPluginClient.State.currentNodeDeployments[nodeID], contractID)
+			delete(k8sCluster.NodeDeploymentID, nodeID)
+			continue
+		}
+		for _, worker := range k8sCluster.Workers {
+			if worker.Node == nodeID {
+				err = d.deployer.Cancel(ctx, contractID)
+				if err != nil {
+					return errors.Wrapf(err, "could not cancel worker %s, contract %d", worker.Name, contractID)
+				}
+				d.tfPluginClient.State.currentNodeDeployments[nodeID] = workloads.Delete(d.tfPluginClient.State.currentNodeDeployments[nodeID], contractID)
+				delete(k8sCluster.NodeDeploymentID, nodeID)
+				break
+			}
+		}
+	}
+
 	return nil
 }
 
-// func (k *K8sDeployer) updateNetworkState(state state.StateI) {
-// 	ns := state.GetNetworkState()
-// 	network := ns.GetNetwork(k.NetworkName)
-// 	before, _ := d.GetChange("node_deployment_id")
-// 	for node, deploymentID := range before.(map[string]interface{}) {
-// 		nodeID, err := strconv.Atoi(node)
-// 		if err != nil {
-// 			log.Printf("error converting node id string to int: %+v", err)
-// 			continue
-// 		}
-// 		deploymentIDStr := fmt.Sprint(deploymentID.(int))
-// 		network.DeleteDeployment(uint32(nodeID), deploymentIDStr)
-// 	}
-// 	// remove old ips
-// 	network.DeleteDeployment(k.Master.Node, fmt.Sprint(k.NodeDeploymentID[k.Master.Node]))
-// 	for _, worker := range k.Workers {
-// 		network.DeleteDeployment(worker.Node, fmt.Sprint(k.NodeDeploymentID[worker.Node]))
-// 	}
-
-// 	// append new ips
-// 	masterNodeIPs := network.GetDeploymentIPs(k.Master.Node, fmt.Sprint(k.NodeDeploymentID[k.Master.Node]))
-// 	masterIP := net.ParseIP(k.Master.IP)
-// 	if masterIP == nil {
-// 		log.Printf("couldn't parse master ip")
-// 	} else {
-// 		masterNodeIPs = append(masterNodeIPs, masterIP.To4()[3])
-// 	}
-// 	network.SetDeploymentIPs(k.Master.Node, fmt.Sprint(k.NodeDeploymentID[k.Master.Node]), masterNodeIPs)
-// 	for _, worker := range k.Workers {
-// 		workerNodeIPs := network.GetDeploymentIPs(worker.Node, fmt.Sprint(k.NodeDeploymentID[worker.Node]))
-// 		workerIP := net.ParseIP(worker.IP)
-// 		if workerIP == nil {
-// 			log.Printf("couldn't parse worker ip at node (%d)", worker.Node)
-// 		} else {
-// 			workerNodeIPs = append(workerNodeIPs, workerIP.To4()[3])
-// 		}
-// 		network.SetDeploymentIPs(worker.Node, fmt.Sprint(k.NodeDeploymentID[worker.Node]), workerNodeIPs)
-// 	}
-// }
-
-func printDeployments(dls map[uint32]gridtypes.Deployment) (err error) {
-	for node, dl := range dls {
-		log.Printf("node id: %d\n", node)
-		enc := json.NewEncoder(log.Writer())
-		enc.SetIndent("", "  ")
-		err := enc.Encode(dl)
-		if err != nil {
-			return err
-		}
-	}
-
-	return
-}
-
-func (k *K8sDeployer) removeDeletedContracts(ctx context.Context, sub subi.SubstrateExt) error {
-	nodeDeploymentID := make(map[uint32]uint64)
-	for nodeID, deploymentID := range k.NodeDeploymentID {
-		cont, err := sub.GetContract(deploymentID)
-		if err != nil {
-			return errors.Wrap(err, "failed to get deployments")
-		}
-		if !cont.IsDeleted() {
-			nodeDeploymentID[nodeID] = deploymentID
-		}
-	}
-	k.NodeDeploymentID = nodeDeploymentID
-	return nil
-}
-
-func (k *K8sDeployer) updateFromRemote(ctx context.Context, sub subi.SubstrateExt) error {
-	if err := k.removeDeletedContracts(ctx, sub); err != nil {
+// UpdateFromRemote update a k8s cluster
+func (d *K8sDeployer) UpdateFromRemote(ctx context.Context, k8sCluster *workloads.K8sCluster) error {
+	if err := d.removeDeletedContracts(ctx, k8sCluster); err != nil {
 		return errors.Wrap(err, "failed to remove deleted contracts")
 	}
-	currentDeployments, err := k.deployer.GetDeployments(ctx, k.NodeDeploymentID)
+	currentDeployments, err := d.deployer.GetDeployments(ctx, k8sCluster.NodeDeploymentID)
 	if err != nil {
 		return errors.Wrap(err, "failed to fetch remote deployments")
 	}
 	log.Printf("calling updateFromRemote")
-	err = printDeployments(currentDeployments)
+	err = PrintDeployments(currentDeployments)
 	if err != nil {
-		return errors.Wrap(err, "couldn't print deployments data")
+		return errors.Wrap(err, "could not print deployments data")
 	}
 
 	keyUpdated, tokenUpdated, networkUpdated := false, false, false
@@ -437,16 +196,16 @@ func (k *K8sDeployer) updateFromRemote(ctx context.Context, sub subi.SubstrateEx
 				SSHKey := d.(*zos.ZMachine).Env["SSH_KEY"]
 				token := d.(*zos.ZMachine).Env["K3S_TOKEN"]
 				networkName := string(d.(*zos.ZMachine).Network.Interfaces[0].Network)
-				if !keyUpdated && SSHKey != k.SSHKey {
-					k.SSHKey = SSHKey
+				if !keyUpdated && SSHKey != k8sCluster.SSHKey {
+					k8sCluster.SSHKey = SSHKey
 					keyUpdated = true
 				}
-				if !tokenUpdated && token != k.Token {
-					k.Token = token
+				if !tokenUpdated && token != k8sCluster.Token {
+					k8sCluster.Token = token
 					tokenUpdated = true
 				}
-				if !networkUpdated && networkName != k.NetworkName {
-					k.NetworkName = networkName
+				if !networkUpdated && networkName != k8sCluster.NetworkName {
+					k8sCluster.NetworkName = networkName
 					networkUpdated = true
 				}
 			}
@@ -457,7 +216,7 @@ func (k *K8sDeployer) updateFromRemote(ctx context.Context, sub subi.SubstrateEx
 	for node, dl := range currentDeployments {
 		nodeDeploymentID[node] = dl.ContractID
 	}
-	k.NodeDeploymentID = nodeDeploymentID
+	k8sCluster.NodeDeploymentID = nodeDeploymentID
 	// maps from workload name to (public ip, node id, disk size, actual workload)
 	workloadNodeID := make(map[string]uint32)
 	workloadDiskSize := make(map[string]int)
@@ -477,16 +236,14 @@ func (k *K8sDeployer) updateFromRemote(ctx context.Context, sub subi.SubstrateEx
 			} else if w.Type == zos.PublicIPType {
 				d := zos.PublicIPResult{}
 				if err := json.Unmarshal(w.Result.Data, &d); err != nil {
-					log.Printf("failed to load pubip data %s", err)
-					continue
+					return errors.Wrap(err, "failed to load public ip data")
 				}
 				publicIPs[string(w.Name)] = d.IP.String()
 				publicIP6s[string(w.Name)] = d.IPv6.String()
 			} else if w.Type == zos.ZMountType {
 				d, err := w.WorkloadData()
 				if err != nil {
-					log.Printf("failed to load disk data %s", err)
-					continue
+					return errors.Wrap(err, "failed to load disk data")
 				}
 				diskSize[string(w.Name)] = int(d.(*zos.ZMount).Size / gridtypes.Gigabyte)
 			}
@@ -504,24 +261,24 @@ func (k *K8sDeployer) updateFromRemote(ctx context.Context, sub subi.SubstrateEx
 		}
 	}
 	// update master
-	masterNodeID, ok := workloadNodeID[k.Master.Name]
+	masterNodeID, ok := workloadNodeID[k8sCluster.Master.Name]
 	if !ok {
-		k.Master = nil
+		k8sCluster.Master = nil
 	} else {
-		masterWorkload := workloadObj[k.Master.Name]
-		masterIP := workloadComputedIP[k.Master.Name]
-		masterIP6 := workloadComputedIP6[k.Master.Name]
-		masterDiskSize := workloadDiskSize[k.Master.Name]
+		masterWorkload := workloadObj[k8sCluster.Master.Name]
+		masterIP := workloadComputedIP[k8sCluster.Master.Name]
+		masterIP6 := workloadComputedIP6[k8sCluster.Master.Name]
+		masterDiskSize := workloadDiskSize[k8sCluster.Master.Name]
 
-		m, err := wl.NewK8sNodeDataFromWorkload(masterWorkload, masterNodeID, masterDiskSize, masterIP, masterIP6)
+		m, err := workloads.NewK8sNodeFromWorkload(masterWorkload, masterNodeID, masterDiskSize, masterIP, masterIP6)
 		if err != nil {
-			return errors.Wrap(err, "failed to get master data from workload")
+			return errors.Wrap(err, "failed to get master node from workload")
 		}
-		k.Master = &m
+		k8sCluster.Master = &m
 	}
 	// update workers
-	workers := make([]wl.K8sNodeData, 0)
-	for _, w := range k.Workers {
+	workers := make([]workloads.K8sNode, 0)
+	for _, w := range k8sCluster.Workers {
 		workerNodeID, ok := workloadNodeID[w.Name]
 		if !ok {
 			// worker doesn't exist in any deployment, skip it
@@ -533,7 +290,7 @@ func (k *K8sDeployer) updateFromRemote(ctx context.Context, sub subi.SubstrateEx
 		workerIP6 := workloadComputedIP6[w.Name]
 
 		workerDiskSize := workloadDiskSize[w.Name]
-		w, err := wl.NewK8sNodeDataFromWorkload(workerWorkload, workerNodeID, workerDiskSize, workerIP, workerIP6)
+		w, err := workloads.NewK8sNodeFromWorkload(workerWorkload, workerNodeID, workerDiskSize, workerIP, workerIP6)
 		if err != nil {
 			return errors.Wrap(err, "failed to get worker data from workload")
 		}
@@ -541,24 +298,24 @@ func (k *K8sDeployer) updateFromRemote(ctx context.Context, sub subi.SubstrateEx
 	}
 	// add missing workers (in case of failed deletions)
 	for name, workerNodeID := range workloadNodeID {
-		if name == k.Master.Name {
+		if name == k8sCluster.Master.Name {
 			continue
 		}
 		workerWorkload := workloadObj[name]
 		workerIP := workloadComputedIP[name]
 		workerIP6 := workloadComputedIP6[name]
 		workerDiskSize := workloadDiskSize[name]
-		w, err := wl.NewK8sNodeDataFromWorkload(workerWorkload, workerNodeID, workerDiskSize, workerIP, workerIP6)
+		w, err := workloads.NewK8sNodeFromWorkload(workerWorkload, workerNodeID, workerDiskSize, workerIP, workerIP6)
 		if err != nil {
 			return errors.Wrap(err, "failed to get worker data from workload")
 		}
 		workers = append(workers, w)
 	}
-	k.Workers = workers
+	k8sCluster.Workers = workers
 	log.Printf("after updateFromRemote\n")
 	enc := json.NewEncoder(log.Writer())
 	enc.SetIndent("", "  ")
-	err = enc.Encode(k)
+	err = enc.Encode(d)
 	if err != nil {
 		return errors.Wrap(err, "failed to encode k8s deployer")
 	}
@@ -566,3 +323,76 @@ func (k *K8sDeployer) updateFromRemote(ctx context.Context, sub subi.SubstrateEx
 	return nil
 }
 
+func (d *K8sDeployer) removeDeletedContracts(ctx context.Context, k8sCluster *workloads.K8sCluster) error {
+	sub := d.tfPluginClient.SubstrateConn
+	nodeDeploymentID := make(map[uint32]uint64)
+	for nodeID, deploymentID := range k8sCluster.NodeDeploymentID {
+		cont, err := sub.GetContract(deploymentID)
+		if err != nil {
+			return errors.Wrap(err, "failed to get deployments")
+		}
+		if !cont.IsDeleted() {
+			nodeDeploymentID[nodeID] = deploymentID
+		}
+	}
+	k8sCluster.NodeDeploymentID = nodeDeploymentID
+	return nil
+}
+
+func (d *K8sDeployer) getK8sFreeIP(ipRange gridtypes.IPNet, nodeID uint32) (string, error) {
+	ip := ipRange.IP.To4()
+	if ip == nil {
+		return "", fmt.Errorf("the provided ip range (%s) is not a valid ipv4", ipRange.String())
+	}
+
+	for i := 2; i < 255; i++ {
+		hostID := byte(i)
+		if !workloads.Contains(d.NodeUsedIPs[nodeID], hostID) {
+			d.NodeUsedIPs[nodeID] = append(d.NodeUsedIPs[nodeID], hostID)
+			ip[3] = hostID
+			return ip.String(), nil
+		}
+	}
+	return "", errors.New("all ips are used")
+}
+
+func (d *K8sDeployer) assignNodesIPs(k8sCluster *workloads.K8sCluster) error {
+	masterNodeRange := k8sCluster.NodesIPRange[k8sCluster.Master.Node]
+	if k8sCluster.Master.IP == "" || !masterNodeRange.Contains(net.ParseIP(k8sCluster.Master.IP)) {
+		ip, err := d.getK8sFreeIP(masterNodeRange, k8sCluster.Master.Node)
+		if err != nil {
+			return errors.Wrap(err, "failed to find free ip for master")
+		}
+		k8sCluster.Master.IP = ip
+	}
+	for idx, w := range k8sCluster.Workers {
+		workerNodeRange := k8sCluster.NodesIPRange[w.Node]
+		if w.IP != "" && workerNodeRange.Contains(net.ParseIP(w.IP)) {
+			continue
+		}
+		ip, err := d.getK8sFreeIP(workerNodeRange, w.Node)
+		if err != nil {
+			return errors.Wrap(err, "failed to find free ip for worker")
+		}
+		k8sCluster.Workers[idx].IP = ip
+	}
+	return nil
+}
+
+func (d *K8sDeployer) assignNodeIPRange(k8sCluster *workloads.K8sCluster) (err error) {
+	network := d.tfPluginClient.State.networks.getNetwork(k8sCluster.NetworkName)
+	nodesIPRange := make(map[uint32]gridtypes.IPNet)
+	nodesIPRange[k8sCluster.Master.Node], err = gridtypes.ParseIPNet(network.getNodeSubnet(k8sCluster.Master.Node))
+	if err != nil {
+		return errors.Wrap(err, "could not parse master node ip range")
+	}
+	for _, worker := range k8sCluster.Workers {
+		nodesIPRange[worker.Node], err = gridtypes.ParseIPNet(network.getNodeSubnet(worker.Node))
+		if err != nil {
+			return errors.Wrapf(err, "could not parse worker node (%d) ip range", worker.Node)
+		}
+	}
+	k8sCluster.NodesIPRange = nodesIPRange
+
+	return nil
+}
