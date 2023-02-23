@@ -21,17 +21,16 @@ func TestPresearchDeployment(t *testing.T) {
 	publicKey, privateKey, err := GenerateSSHKeyPair()
 	assert.NoError(t, err)
 
-	filter := NodeFilter{
-		CRU:       2,
-		SRU:       2,
-		MRU:       1,
-		Status:    "up",
-		PublicIPs: true,
-	}
-	nodeIDs, err := FilterNodes(filter, deployer.RMBProxyURLs[tfPluginClient.Network])
+	nodeFilter.IPv4 = &trueVal
+	nodeFilter.FreeIPs = &value1
+	nodes, err := deployer.FilterNodes(tfPluginClient.GridProxyClient, nodeFilter)
 	assert.NoError(t, err)
 
-	nodeID := nodeIDs[0]
+	if err != nil {
+		return
+	}
+
+	nodeID := uint32(nodes[0].NodeID)
 
 	network := workloads.ZNet{
 		Name:        "presearchNetworkTest",
@@ -44,8 +43,8 @@ func TestPresearchDeployment(t *testing.T) {
 		AddWGAccess: false,
 	}
 	disk := workloads.Disk{
-		Name: "diskTest",
-		Size: 1,
+		Name:   "diskTest",
+		SizeGB: 1,
 	}
 
 	vm := workloads.VM{
@@ -77,7 +76,7 @@ func TestPresearchDeployment(t *testing.T) {
 	err = tfPluginClient.DeploymentDeployer.Deploy(ctx, &dl)
 	assert.NoError(t, err)
 
-	v, err := tfPluginClient.StateLoader.LoadVMFromGrid(nodeID, vm.Name)
+	v, err := tfPluginClient.State.LoadVMFromGrid(nodeID, vm.Name, dl.Name)
 	assert.NoError(t, err)
 
 	publicIP := strings.Split(v.ComputedIP, "/")[0]
@@ -88,9 +87,6 @@ func TestPresearchDeployment(t *testing.T) {
 
 	yggIP := v.YggIP
 	assert.NotEmpty(t, yggIP)
-	if !TestConnection(yggIP, "22") {
-		t.Errorf("yggdrasil ip is not reachable")
-	}
 
 	output, err := RemoteRun("root", yggIP, "cat /proc/1/environ", privateKey)
 	assert.NoError(t, err)
