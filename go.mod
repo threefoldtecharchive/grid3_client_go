@@ -11,7 +11,7 @@ require (
 	github.com/threefoldtech/grid_proxy_server v1.6.12
 	github.com/threefoldtech/rmb-sdk-go v0.0.0-20230222091305-4c05c096b592
 	github.com/threefoldtech/substrate-client v0.1.2
-	github.com/threefoldtech/zos v0.5.6-0.20220823125932-7df5043ab018
+	github.com/threefoldtech/zos v0.5.6-0.20230224113017-e887a6ca3fc5
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20200609130330-bd2cb7843e1b
 )
 
