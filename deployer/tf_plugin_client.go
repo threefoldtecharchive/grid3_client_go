@@ -2,7 +2,6 @@
 package deployer
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"log"
@@ -173,7 +172,6 @@ func NewTFPluginClient(
 	tfPluginClient.useRmbProxy = true
 	// if tfPluginClient.useRmbProxy
 	sessionID := generateSessionID()
-	db := client.NewTwinDB(tfPluginClient.SubstrateConn)
 
 	tfPluginClient.relayURL = RelayURLS[network]
 	if len(strings.TrimSpace(relayURL)) != 0 {
@@ -183,7 +181,7 @@ func NewTFPluginClient(
 		tfPluginClient.relayURL = relayURL
 	}
 
-	rmbClient, err := direct.NewClient(context.Background(), tfPluginClient.Identity, tfPluginClient.relayURL, sessionID, db)
+	rmbClient, err := direct.NewClient(keyType, tfPluginClient.mnemonics, tfPluginClient.relayURL, sessionID, sub.Substrate)
 	if err != nil {
 		return TFPluginClient{}, errors.Wrap(err, "could not create rmb client")
 	}
