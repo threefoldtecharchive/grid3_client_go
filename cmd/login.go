@@ -7,13 +7,12 @@ import (
 	command "github.com/threefoldtech/grid3-go/internal/cmd"
 )
 
-// cancelCmd represents the cancel command
-var cancelCmd = &cobra.Command{
-	Use:   "cancel",
-	Short: "Cancel resources on Threefold grid",
-	Args:  cobra.ExactArgs(1),
+// loginCmd represents the login command
+var loginCmd = &cobra.Command{
+	Use:   "login",
+	Short: "Login with mnemonics to a grid network",
 	Run: func(cmd *cobra.Command, args []string) {
-		err := command.Cancel(args[0])
+		err := command.Login()
 		if err != nil {
 			log.Fatal().Err(err).Send()
 		}
@@ -21,6 +20,5 @@ var cancelCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(cancelCmd)
-
+	rootCmd.AddCommand(loginCmd)
 }
