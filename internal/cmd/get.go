@@ -30,6 +30,9 @@ func GetVM(name string) (workloads.VM, error) {
 		return workloads.VM{}, err
 	}
 	contracts, err := tfclient.ContractsGetter.ListContractsOfProjectName(name)
+	if err != nil {
+		return workloads.VM{}, errors.Wrapf(err, "could not load contracts for project %s", name)
+	}
 	var contractID uint64
 	var nodeID uint32
 
