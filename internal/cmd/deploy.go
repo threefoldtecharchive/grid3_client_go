@@ -72,6 +72,71 @@ func DeployVM(vm workloads.VM, mount workloads.Disk) (workloads.VM, error) {
 	return resVM, nil
 }
 
+func DeployKubernetesCluster(master workloads.K8sNode, workers []workloads.K8sNode, sshKey string) (workloads.K8sCluster, error) {
+	path, err := config.GetConfigPath()
+	if err != nil {
+		return workloads.K8sCluster{}, errors.Wrap(err, "failed to get configuration file")
+	}
+
+	var cfg config.Config
+	err = cfg.Load(path)
+	if err != nil {
+		return workloads.K8sCluster{}, errors.Wrap(err, "failed to load configuration try to login again using gridify login")
+	}
+	tfclient, err := deployer.NewTFPluginClient(cfg.Mnemonics, "sr25519", cfg.Network, "", "", "", true, false)
+	if err != nil {
+		return workloads.K8sCluster{}, err
+	}
+	networkName := fmt.Sprintf("%snetwork", master.Name)
+	networkNodes := []uint32{master.Node}
+	if len(workers) > 0 && workers[0].Node != master.Node {
+		networkNodes = append(networkNodes, workers[0].Node)
+	}
+	network := workloads.ZNet{
+		Name:  networkName,
+		Nodes: networkNodes,
+		IPRange: gridtypes.NewIPNet(net.IPNet{
+			IP:   net.IPv4(10, 20, 0, 0),
+			Mask: net.CIDRMask(16, 32),
+		}),
+		SolutionType: master.Name,
+	}
+
+	cluster := workloads.K8sCluster{
+		Master:  &master,
+		Workers: workers,
+		// TODO: should be randomized
+		Token:        "securetoken",
+		SolutionType: master.Name,
+		SSHKey:       sshKey,
+		NetworkName:  networkName,
+	}
+	log.Info().Msg("deploying network")
+	err = tfclient.NetworkDeployer.Deploy(context.Background(), &network)
+	if err != nil {
+		return workloads.K8sCluster{}, errors.Wrapf(err, "failed to deploy network on nodes %v", network.Nodes)
+	}
+	log.Info().Msg("deploying cluster")
+	err = tfclient.K8sDeployer.Deploy(context.Background(), &cluster)
+	if err != nil {
+		return workloads.K8sCluster{}, errors.Wrap(err, "failed to deploy kubernetes cluster")
+	}
+	var workersNames []string
+	for _, worker := range workers {
+		workersNames = append(workersNames, worker.Name)
+	}
+	workersNodes := make(map[uint32][]string)
+	if len(workersNames) > 0 {
+		workersNodes[workers[0].Node] = workersNames
+	}
+	return tfclient.State.LoadK8sFromGrid(
+		map[uint32]string{master.Node: master.Name},
+		workersNodes,
+		master.Name,
+	)
+}
+
+// DeployGatewayName deploys a gateway name
 func DeployGatewayName(gateway workloads.GatewayNameProxy) (workloads.GatewayNameProxy, error) {
 	path, err := config.GetConfigPath()
 	if err != nil {
@@ -95,6 +160,7 @@ func DeployGatewayName(gateway workloads.GatewayNameProxy) (workloads.GatewayNam
 	return tfclient.State.LoadGatewayNameFromGrid(gateway.NodeID, gateway.Name, gateway.Name)
 }
 
+// DeployGatewayFQDN deploys a gateway fqdn
 func DeployGatewayFQDN(gateway workloads.GatewayFQDNProxy) error {
 	path, err := config.GetConfigPath()
 	if err != nil {
