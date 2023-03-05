@@ -1,4 +1,4 @@
-// package cmd for handling commands
+// Package cmd for handling commands
 package cmd
 
 import (

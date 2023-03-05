@@ -1,4 +1,4 @@
-// package cmd for handling commands
+// Package cmd for handling commands
 package cmd
 
 import (
@@ -70,6 +70,52 @@ func DeployVM(vm workloads.VM, mount workloads.Disk) (workloads.VM, error) {
 		return workloads.VM{}, errors.Wrapf(err, "failed to load vm from node %d", node)
 	}
 	return resVM, nil
+}
+
+func DeployGatewayName(gateway workloads.GatewayNameProxy) (workloads.GatewayNameProxy, error) {
+	path, err := config.GetConfigPath()
+	if err != nil {
+		return workloads.GatewayNameProxy{}, errors.Wrap(err, "failed to get configuration file")
+	}
+
+	var cfg config.Config
+	err = cfg.Load(path)
+	if err != nil {
+		return workloads.GatewayNameProxy{}, errors.Wrap(err, "failed to load configuration try to login again using gridify login")
+	}
+	tfclient, err := deployer.NewTFPluginClient(cfg.Mnemonics, "sr25519", cfg.Network, "", "", "", true, false)
+	if err != nil {
+		return workloads.GatewayNameProxy{}, err
+	}
+	log.Info().Msg("deploying gateway name")
+	err = tfclient.GatewayNameDeployer.Deploy(context.Background(), &gateway)
+	if err != nil {
+		return workloads.GatewayNameProxy{}, errors.Wrapf(err, "failed to deploy gateway on node %d", gateway.NodeID)
+	}
+	return tfclient.State.LoadGatewayNameFromGrid(gateway.NodeID, gateway.Name, gateway.Name)
+}
+
+func DeployGatewayFQDN(gateway workloads.GatewayFQDNProxy) error {
+	path, err := config.GetConfigPath()
+	if err != nil {
+		return errors.Wrap(err, "failed to get configuration file")
+	}
+
+	var cfg config.Config
+	err = cfg.Load(path)
+	if err != nil {
+		return errors.Wrap(err, "failed to load configuration try to login again using gridify login")
+	}
+	tfclient, err := deployer.NewTFPluginClient(cfg.Mnemonics, "sr25519", cfg.Network, "", "", "", true, false)
+	if err != nil {
+		return err
+	}
+	log.Info().Msg("deploying gateway fqdn")
+	err = tfclient.GatewayFQDNDeployer.Deploy(context.Background(), &gateway)
+	if err != nil {
+		return errors.Wrapf(err, "failed to deploy gateway on node %d", gateway.NodeID)
+	}
+	return nil
 }
 
 func getAvailableNode(client client.Client, vm workloads.VM, diskSize int) (uint32, error) {

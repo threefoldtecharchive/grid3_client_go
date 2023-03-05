@@ -106,7 +106,7 @@ var deployVMCmd = &cobra.Command{
 func init() {
 	deployCmd.AddCommand(deployVMCmd)
 
-	deployVMCmd.Flags().StringP("name", "n", "", "name of ther virutal machine")
+	deployVMCmd.Flags().StringP("name", "n", "", "name of the virutal machine")
 	err := deployVMCmd.MarkFlagRequired("name")
 	if err != nil {
 		log.Fatal().Err(err).Send()

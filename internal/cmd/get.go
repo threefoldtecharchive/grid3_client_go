@@ -1,9 +1,10 @@
-// package cmd for handling commands
+// Package cmd for handling commands
 package cmd
 
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strconv"
 
 	"github.com/pkg/errors"
@@ -13,63 +14,89 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 )
 
-// GetVM gets deployed vm
+// GetVM returns deployed vm
 func GetVM(name string) (workloads.VM, error) {
+
+	workloadVM, dl, err := getProjectWorkload(name, "vm")
+	if err != nil {
+		return workloads.VM{}, errors.Wrapf(err, "failed to get vm %s", name)
+	}
+	return workloads.NewVMFromWorkload(&workloadVM, &dl)
+}
+
+// GetGatewayName returns deployed gateway name
+func GetGatewayName(name string) (workloads.GatewayNameProxy, error) {
+	workloadGateway, _, err := getProjectWorkload(name, "Gateway Name")
+	if err != nil {
+		return workloads.GatewayNameProxy{}, errors.Wrapf(err, "failed to get gateway name %s", name)
+	}
+	return workloads.NewGatewayNameProxyFromZosWorkload(workloadGateway)
+}
+
+// GetGatewayFQDN returns deployed gateway fqdn
+func GetGatewayFQDN(name string) (workloads.GatewayFQDNProxy, error) {
+	workloadGateway, _, err := getProjectWorkload(name, "Gateway Fqdn")
+	if err != nil {
+		return workloads.GatewayFQDNProxy{}, errors.Wrapf(err, "failed to get gateway fqdn %s", name)
+	}
+	return workloads.NewGatewayFQDNProxyFromZosWorkload(workloadGateway)
+}
+
+func getProjectWorkload(name, workload string) (gridtypes.Workload, gridtypes.Deployment, error) {
 	path, err := config.GetConfigPath()
 	if err != nil {
-		return workloads.VM{}, errors.Wrap(err, "failed to get configuration file")
+		return gridtypes.Workload{}, gridtypes.Deployment{}, errors.Wrap(err, "failed to get configuration file")
 	}
 
 	var cfg config.Config
 	err = cfg.Load(path)
 	if err != nil {
-		return workloads.VM{}, errors.Wrap(err, "failed to load configuration try to login again using gridify login")
+		return gridtypes.Workload{}, gridtypes.Deployment{}, errors.Wrap(err, "failed to load configuration try to login again using gridify login")
 	}
+
 	tfclient, err := deployer.NewTFPluginClient(cfg.Mnemonics, "sr25519", cfg.Network, "", "", "", true, false)
 	if err != nil {
-		return workloads.VM{}, err
+		return gridtypes.Workload{}, gridtypes.Deployment{}, err
 	}
 	contracts, err := tfclient.ContractsGetter.ListContractsOfProjectName(name)
 	if err != nil {
-		return workloads.VM{}, errors.Wrapf(err, "could not load contracts for project %s", name)
+		return gridtypes.Workload{}, gridtypes.Deployment{}, errors.Wrapf(err, "could not load contracts for project %s", name)
 	}
 	var contractID uint64
 	var nodeID uint32
 
-	contractsSlice := append(contracts.NameContracts, contracts.NodeContracts...)
-	for _, contract := range contractsSlice {
+	for _, contract := range contracts.NodeContracts {
 		var deploymentData workloads.DeploymentData
 		err := json.Unmarshal([]byte(contract.DeploymentData), &deploymentData)
 		if err != nil {
-			return workloads.VM{}, errors.Wrapf(err, "failed to unmarshal deployment data %s", contract.DeploymentData)
+			return gridtypes.Workload{}, gridtypes.Deployment{}, errors.Wrapf(err, "failed to unmarshal deployment data %s", contract.DeploymentData)
 		}
-		if deploymentData.Type == "vm" && deploymentData.ProjectName == name {
+		if deploymentData.Type == workload && deploymentData.ProjectName == name {
 			contractID, err = strconv.ParseUint(contract.ContractID, 0, 64)
 			if err != nil {
-				return workloads.VM{}, errors.Wrapf(err, "could not parse contract %s into uint64", contract.ContractID)
+				return gridtypes.Workload{}, gridtypes.Deployment{}, errors.Wrapf(err, "could not parse contract %s into uint64", contract.ContractID)
 			}
 			nodeID = contract.NodeID
 			break
 		}
 	}
+	if nodeID == 0 {
+		return gridtypes.Workload{}, gridtypes.Deployment{}, fmt.Errorf("failed to get workload of type %s and name %s", workload, name)
+	}
 	nodeClient, err := tfclient.NcPool.GetNodeClient(tfclient.SubstrateConn, nodeID)
 	if err != nil {
-		return workloads.VM{}, errors.Wrapf(err, "failed to get node client for node %d", nodeID)
+		return gridtypes.Workload{}, gridtypes.Deployment{}, errors.Wrapf(err, "failed to get node client for node %d", nodeID)
 	}
 	dl, err := nodeClient.DeploymentGet(context.Background(), contractID)
 	if err != nil {
-		return workloads.VM{}, errors.Wrapf(err, "failed to get deployment %d from node %d", contractID, nodeID)
+		return gridtypes.Workload{}, gridtypes.Deployment{}, errors.Wrapf(err, "failed to get deployment %d from node %d", contractID, nodeID)
 	}
-	var workloadVM gridtypes.Workload
+	var workloadRes gridtypes.Workload
 	for _, workload := range dl.Workloads {
 		if workload.Name == gridtypes.Name(name) {
-			workloadVM = workload
+			workloadRes = workload
 			break
 		}
 	}
-	vm, err := workloads.NewVMFromWorkload(&workloadVM, &dl)
-	if err != nil {
-		return workloads.VM{}, err
-	}
-	return vm, nil
+	return workloadRes, dl, nil
 }
