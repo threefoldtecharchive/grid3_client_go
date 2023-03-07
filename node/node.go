@@ -78,10 +78,8 @@ import (
 	"log"
 	"math/rand"
 	"net"
-	"sync"
 	"time"
 
-	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/grid3-go/subi"
 	"github.com/threefoldtech/grid3-go/workloads"
@@ -316,29 +314,17 @@ func (n *NodeClient) IsNodeUp(ctx context.Context) error {
 }
 
 // AreNodesUp checks if nodes are up
-func AreNodesUp(ctx context.Context, sub subi.SubstrateExt, nodes []uint32, nc NodeClientGetter) (err error) {
-	var wg sync.WaitGroup
-
+func AreNodesUp(ctx context.Context, sub subi.SubstrateExt, nodes []uint32, nc NodeClientGetter) error {
 	for _, node := range nodes {
-
-		wg.Add(1)
-		go func(node uint32) {
-
-			defer wg.Done()
-			cl, clientErr := nc.GetNodeClient(sub, node)
-			if clientErr != nil {
-				err = multierror.Append(err, fmt.Errorf("could not get node %d client: %w", node, clientErr))
-				return
-			}
-			if clientErr := cl.IsNodeUp(ctx); clientErr != nil {
-				err = multierror.Append(err, fmt.Errorf("could not reach node %d: %w", node, clientErr))
-			}
-
-		}(node)
+		cl, err := nc.GetNodeClient(sub, node)
+		if err != nil {
+			return errors.Wrapf(err, "could not get node %d client", node)
+		}
+		if err := cl.IsNodeUp(ctx); err != nil {
+			return errors.Wrapf(err, "could not reach node %d", node)
+		}
 	}
-
-	wg.Wait()
-	return
+	return nil
 }
 
 // GetNodeFreeWGPort returns node free wireguard port

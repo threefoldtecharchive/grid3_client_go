@@ -6,11 +6,9 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
-	"sync"
 	"time"
 
 	"github.com/cenkalti/backoff"
-	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 	client "github.com/threefoldtech/grid3-go/node"
 	"github.com/threefoldtech/grid3-go/subi"
@@ -290,42 +288,23 @@ func (d *Deployer) Cancel(ctx context.Context,
 func (d *Deployer) GetDeployments(ctx context.Context, dls map[uint32]uint64) (map[uint32]gridtypes.Deployment, error) {
 	res := make(map[uint32]gridtypes.Deployment)
 
-	var wg sync.WaitGroup
-	var mux = &sync.RWMutex{}
-	var resErrors error
-
 	for nodeID, dlID := range dls {
+		nc, err := d.ncPool.GetNodeClient(d.substrateConn, nodeID)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to get a client for node %d", nodeID)
+		}
 
-		wg.Add(1)
-		go func(nodeID uint32, dlID uint64) {
+		sub, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
 
-			defer wg.Done()
-			nc, err := d.ncPool.GetNodeClient(d.substrateConn, nodeID)
-			if err != nil {
-				resErrors = multierror.Append(resErrors, errors.Wrapf(err, "failed to get a client for node %d", nodeID))
-				return
-			}
+		dl, err := nc.DeploymentGet(sub, dlID)
+		if err != nil {
 
-			sub, cancel := context.WithTimeout(ctx, 10*time.Second)
-			defer cancel()
-
-			dl, err := nc.DeploymentGet(sub, dlID)
-			if err != nil {
-				resErrors = multierror.Append(resErrors, errors.Wrapf(err, "failed to get deployment %d of node %d", dlID, nodeID))
-				return
-			}
-
-			mux.Lock()
-			res[nodeID] = dl
-			mux.Unlock()
-
-		}(nodeID, dlID)
+			return nil, errors.Wrapf(err, "failed to get deployment %d of node %d", dlID, nodeID)
+		}
+		res[nodeID] = dl
 	}
 
-	wg.Wait()
-	if resErrors != nil {
-		return nil, resErrors
-	}
 	return res, nil
 }
 
