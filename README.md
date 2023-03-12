@@ -146,7 +146,6 @@ For detailed description of tf-grid commands check out:
 - [gateway-fqdn](docs/cli/gateway-fqdn.md)
 - [gateway-name](docs/cli/gateway-name.md)
 - [kubernetes](docs/cli/kubernetes.md)
-- [cancel](docs/cli/cancel.md)
 
 ### Configuration
 

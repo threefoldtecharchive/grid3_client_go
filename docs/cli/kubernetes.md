@@ -41,3 +41,24 @@ You should see an output like this:
 4:22PM INF deploying cluster
 4:22PM INF master yggdrasil ip: 300:e9c4:9048:57cf:504f:c86c:9014:d02d
 ```
+
+## Cancel
+
+```bash
+tf-grid cancel <deployment-name>
+```
+
+deployment-name is the name of the deployment specified in while deploying using tf-grid.
+
+Example:
+
+```bash
+tf-grid cancel kube
+```
+
+You should see an output like this:
+
+```bash
+3:37PM INF canceling contracts for project kube
+3:37PM INF kube canceled
+```

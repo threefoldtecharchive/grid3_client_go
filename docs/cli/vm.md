@@ -58,3 +58,24 @@ You should see an output like this:
 ```bash
 12:08PM INF vm yggdrasil ip: 300:e9c4:9048:57cf:7da2:ac99:99db:8821
 ```
+
+## Cancel
+
+```bash
+tf-grid cancel <deployment-name>
+```
+
+deployment-name is the name of the deployment specified in while deploying using tf-grid.
+
+Example:
+
+```bash
+tf-grid cancel examplevm
+```
+
+You should see an output like this:
+
+```bash
+3:37PM INF canceling contracts for project examplevm
+3:37PM INF examplevm canceled
+```
