@@ -105,3 +105,85 @@ make test
 ```bash
 make integration
 ```
+
+## CLI
+
+Threefold CLI to manage deployments on Threefold Grid.
+
+### Usage
+
+First [build](#build) tf-grid binaries and move the binary to any `$PATH` directories, for eample:
+
+```bash
+mv tf-grid /usr/local/bin
+```
+
+Login using your [mnemonics](https://threefoldtech.github.io/info_grid/dashboard/portal/dashboard_portal_polkadot_create_account.html) and specify which grid network (mainnet/testnet) to deploy on by running:
+
+```bash
+tf-grid login
+```
+
+Deploy a VM:
+
+```bash
+tf-grid deploy vm --name exmplevm --ssh ~/.ssh/id_rsa.pub --cpu 2 --ram 4 --disk 10
+```
+
+You should get an output like this if VM name is unique:
+
+```bash
+12:06PM INF deploying network
+12:06PM INF deploying vm
+12:07PM INF vm yggdrasil ip: 300:e9c4:9048:57cf:7da2:ac99:99db:8821
+```
+
+Get deployed VM:
+
+```bash
+tf-grid get vm examplevm
+```
+
+You should see an output like this:
+
+```bash
+12:08PM INF vm yggdrasil ip: 300:e9c4:9048:57cf:7da2:ac99:99db:8821
+```
+
+Cancel deployed VM:
+
+```bash
+tf-grid cancel examplevm
+```
+
+You should see an output like this:
+
+```bash
+12:10PM INF canceling contracts for project examplevm
+12:10PM INF examplevm canceled
+```
+
+Check help for workloads deployment options:
+
+```bash
+tf-grid help deploy <workload>
+```
+
+Currnet supported workloads:
+
+- vm
+- gateway-fqdn
+- gateway-name
+- kubernete
+
+## Configuration
+
+tf-grid saves user configuration in `.tfgridconfig` under default configuration directory for your system see: [UserConfigDir()](https://pkg.go.dev/os#UserConfigDir)
+
+### Build
+
+Clone the repo and run the following command inside the repo directory:
+
+```bash
+make build
+```

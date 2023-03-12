@@ -1,6 +1,4 @@
-/*
-Copyright © 2023 NAME HERE <EMAIL ADDRESS>
-*/
+// Package cmd for parsing command line arguments
 package cmd
 
 import (
@@ -11,7 +9,7 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
-// gatewayNameCmd represents the deploy gateway-name command
+// deployGatewayNameCmd represents the deploy gateway-name command
 var deployGatewayNameCmd = &cobra.Command{
 	Use:   "gateway-name",
 	Short: "Deploy a gateway name proxy",

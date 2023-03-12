@@ -1,6 +1,4 @@
-/*
-Copyright © 2023 NAME HERE <EMAIL ADDRESS>
-*/
+// Package cmd for parsing command line arguments
 package cmd
 
 import (

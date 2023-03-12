@@ -72,6 +72,7 @@ func DeployVM(vm workloads.VM, mount workloads.Disk) (workloads.VM, error) {
 	return resVM, nil
 }
 
+// DeployKubernetesCluster deploys a kubernetes cluster
 func DeployKubernetesCluster(master workloads.K8sNode, workers []workloads.K8sNode, sshKey string) (workloads.K8sCluster, error) {
 	path, err := config.GetConfigPath()
 	if err != nil {

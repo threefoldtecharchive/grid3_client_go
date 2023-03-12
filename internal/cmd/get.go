@@ -71,32 +71,28 @@ func getProjectWorkload(name, workload string) (gridtypes.Workload, gridtypes.De
 		if err != nil {
 			return gridtypes.Workload{}, gridtypes.Deployment{}, errors.Wrapf(err, "failed to unmarshal deployment data %s", contract.DeploymentData)
 		}
-		if deploymentData.Type == workload && deploymentData.ProjectName == name {
-			contractID, err = strconv.ParseUint(contract.ContractID, 0, 64)
-			if err != nil {
-				return gridtypes.Workload{}, gridtypes.Deployment{}, errors.Wrapf(err, "could not parse contract %s into uint64", contract.ContractID)
+		if deploymentData.Type != workload || deploymentData.ProjectName != name {
+			continue
+		}
+		contractID, err = strconv.ParseUint(contract.ContractID, 0, 64)
+		if err != nil {
+			return gridtypes.Workload{}, gridtypes.Deployment{}, errors.Wrapf(err, "could not parse contract %s into uint64", contract.ContractID)
+		}
+		nodeID = contract.NodeID
+		nodeClient, err := tfclient.NcPool.GetNodeClient(tfclient.SubstrateConn, nodeID)
+		if err != nil {
+			return gridtypes.Workload{}, gridtypes.Deployment{}, errors.Wrapf(err, "failed to get node client for node %d", nodeID)
+		}
+		dl, err := nodeClient.DeploymentGet(context.Background(), contractID)
+		if err != nil {
+			return gridtypes.Workload{}, gridtypes.Deployment{}, errors.Wrapf(err, "failed to get deployment %d from node %d", contractID, nodeID)
+		}
+		for _, workload := range dl.Workloads {
+			if workload.Name == gridtypes.Name(name) {
+				return workload, dl, nil
 			}
-			nodeID = contract.NodeID
-			break
 		}
+
 	}
-	if nodeID == 0 {
-		return gridtypes.Workload{}, gridtypes.Deployment{}, fmt.Errorf("failed to get workload of type %s and name %s", workload, name)
-	}
-	nodeClient, err := tfclient.NcPool.GetNodeClient(tfclient.SubstrateConn, nodeID)
-	if err != nil {
-		return gridtypes.Workload{}, gridtypes.Deployment{}, errors.Wrapf(err, "failed to get node client for node %d", nodeID)
-	}
-	dl, err := nodeClient.DeploymentGet(context.Background(), contractID)
-	if err != nil {
-		return gridtypes.Workload{}, gridtypes.Deployment{}, errors.Wrapf(err, "failed to get deployment %d from node %d", contractID, nodeID)
-	}
-	var workloadRes gridtypes.Workload
-	for _, workload := range dl.Workloads {
-		if workload.Name == gridtypes.Name(name) {
-			workloadRes = workload
-			break
-		}
-	}
-	return workloadRes, dl, nil
+	return gridtypes.Workload{}, gridtypes.Deployment{}, fmt.Errorf("failed to get workload of type %s and name %s", workload, name)
 }
