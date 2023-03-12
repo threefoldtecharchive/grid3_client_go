@@ -51,7 +51,7 @@ func getProjectWorkload(name, workload string) (gridtypes.Workload, gridtypes.De
 	var cfg config.Config
 	err = cfg.Load(path)
 	if err != nil {
-		return gridtypes.Workload{}, gridtypes.Deployment{}, errors.Wrap(err, "failed to load configuration try to login again using gridify login")
+		return gridtypes.Workload{}, gridtypes.Deployment{}, errors.Wrap(err, "failed to load configuration try to login again using tf-grid login")
 	}
 
 	tfclient, err := deployer.NewTFPluginClient(cfg.Mnemonics, "sr25519", cfg.Network, "", "", "", true, false)

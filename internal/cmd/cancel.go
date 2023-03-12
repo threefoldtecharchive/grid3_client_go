@@ -21,7 +21,7 @@ func Cancel(projectName string) error {
 	var cfg config.Config
 	err = cfg.Load(path)
 	if err != nil {
-		return errors.Wrap(err, "failed to load configuration try to login again using gridify login")
+		return errors.Wrap(err, "failed to load configuration try to login again using tf-grid login")
 	}
 	tfclient, err := deployer.NewTFPluginClient(cfg.Mnemonics, "sr25519", cfg.Network, "", "", "", true, false)
 	if err != nil {

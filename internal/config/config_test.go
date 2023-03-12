@@ -11,7 +11,7 @@ import (
 
 func TestSave(t *testing.T) {
 	testDir := t.TempDir()
-	path := filepath.Join(testDir, ".gridifyconfig")
+	path := filepath.Join(testDir, ".tfgridconfig")
 	t.Run("create new config file and write to it", func(t *testing.T) {
 		c := Config{
 			Mnemonics: "test",
@@ -56,7 +56,7 @@ func TestSave(t *testing.T) {
 
 func TestLoad(t *testing.T) {
 	testDir := t.TempDir()
-	path := filepath.Join(testDir, ".gridifyconfig")
+	path := filepath.Join(testDir, ".tfgridconfig")
 
 	f, err := os.Create(path)
 	assert.NoError(t, err)

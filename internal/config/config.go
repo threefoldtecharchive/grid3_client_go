@@ -17,7 +17,7 @@ type Config struct {
 	Network   string `json:"network"`
 }
 
-// Save saves user configuration to gridify configuration file
+// Save saves user configuration to tf-grid configuration file
 func (c *Config) Save(path string) error {
 
 	configFile, err := os.Create(path)
@@ -40,7 +40,7 @@ func (c *Config) Save(path string) error {
 	return nil
 }
 
-// Load loads user configuration from gridify configuration file
+// Load loads user configuration from tf-grid configuration file
 func (c *Config) Load(path string) error {
 	configJSON, err := os.ReadFile(path)
 	if err != nil {
@@ -53,7 +53,7 @@ func (c *Config) Load(path string) error {
 	return nil
 }
 
-// GetConfigPath returns the path of gridify configuration file
+// GetConfigPath returns the path of tf-grid configuration file
 func GetConfigPath() (string, error) {
 	configDir, err := os.UserConfigDir()
 	if err != nil {

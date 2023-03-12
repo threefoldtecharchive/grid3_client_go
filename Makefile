@@ -57,4 +57,4 @@ staticcheck:
 
 build:
 	@echo "Running $@"
-	go build -o tf-grid main.go
+	go build -o bin/tf-grid main.go

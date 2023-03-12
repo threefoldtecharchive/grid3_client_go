@@ -26,7 +26,7 @@ func DeployVM(vm workloads.VM, mount workloads.Disk) (workloads.VM, error) {
 	var cfg config.Config
 	err = cfg.Load(path)
 	if err != nil {
-		return workloads.VM{}, errors.Wrap(err, "failed to load configuration try to login again using gridify login")
+		return workloads.VM{}, errors.Wrap(err, "failed to load configuration try to login again using tf-grid login")
 	}
 	tfclient, err := deployer.NewTFPluginClient(cfg.Mnemonics, "sr25519", cfg.Network, "", "", "", true, false)
 	if err != nil {
@@ -82,7 +82,7 @@ func DeployKubernetesCluster(master workloads.K8sNode, workers []workloads.K8sNo
 	var cfg config.Config
 	err = cfg.Load(path)
 	if err != nil {
-		return workloads.K8sCluster{}, errors.Wrap(err, "failed to load configuration try to login again using gridify login")
+		return workloads.K8sCluster{}, errors.Wrap(err, "failed to load configuration try to login again using tf-grid login")
 	}
 	tfclient, err := deployer.NewTFPluginClient(cfg.Mnemonics, "sr25519", cfg.Network, "", "", "", true, false)
 	if err != nil {
@@ -147,7 +147,7 @@ func DeployGatewayName(gateway workloads.GatewayNameProxy) (workloads.GatewayNam
 	var cfg config.Config
 	err = cfg.Load(path)
 	if err != nil {
-		return workloads.GatewayNameProxy{}, errors.Wrap(err, "failed to load configuration try to login again using gridify login")
+		return workloads.GatewayNameProxy{}, errors.Wrap(err, "failed to load configuration try to login again using tf-grid login")
 	}
 	tfclient, err := deployer.NewTFPluginClient(cfg.Mnemonics, "sr25519", cfg.Network, "", "", "", true, false)
 	if err != nil {
@@ -171,7 +171,7 @@ func DeployGatewayFQDN(gateway workloads.GatewayFQDNProxy) error {
 	var cfg config.Config
 	err = cfg.Load(path)
 	if err != nil {
-		return errors.Wrap(err, "failed to load configuration try to login again using gridify login")
+		return errors.Wrap(err, "failed to load configuration try to login again using tf-grid login")
 	}
 	tfclient, err := deployer.NewTFPluginClient(cfg.Mnemonics, "sr25519", cfg.Network, "", "", "", true, false)
 	if err != nil {

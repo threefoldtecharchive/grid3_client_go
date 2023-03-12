@@ -74,7 +74,7 @@ func init() {
 		log.Fatal().Err(err).Send()
 	}
 
-	deployGatewayFQDNCmd.Flags().String("fqdn", "", "use fqdn if exists")
+	deployGatewayFQDNCmd.Flags().String("fqdn", "", "fqdn pointing to the specified node")
 	err = deployGatewayFQDNCmd.MarkFlagRequired("fqdn")
 	if err != nil {
 		log.Fatal().Err(err).Send()

@@ -39,11 +39,11 @@ var deployVMCmd = &cobra.Command{
 			return err
 		}
 		vm.CPU = cpu
-		ram, err := cmd.Flags().GetInt("ram")
+		memory, err := cmd.Flags().GetInt("memory")
 		if err != nil {
 			return err
 		}
-		vm.Memory = ram * 1024
+		vm.Memory = memory * 1024
 		rootfs, err := cmd.Flags().GetInt("rootfs")
 		if err != nil {
 			return err
@@ -106,7 +106,7 @@ var deployVMCmd = &cobra.Command{
 func init() {
 	deployCmd.AddCommand(deployVMCmd)
 
-	deployVMCmd.Flags().StringP("name", "n", "", "name of the virutal machine")
+	deployVMCmd.Flags().StringP("name", "n", "", "name of the virtual machine")
 	err := deployVMCmd.MarkFlagRequired("name")
 	if err != nil {
 		log.Fatal().Err(err).Send()
@@ -118,7 +118,7 @@ func init() {
 		log.Fatal().Err(err).Send()
 	}
 	deployVMCmd.Flags().Int("cpu", 1, "number of cpu units")
-	deployVMCmd.Flags().Int("ram", 1, "memory size in gb")
+	deployVMCmd.Flags().Int("memory", 1, "memory size in gb")
 	deployVMCmd.Flags().Int("rootfs", 2, "root filesystem size in gb")
 	deployVMCmd.Flags().Int("disk", 0, "disk size in gb mounted on /data")
 	deployVMCmd.Flags().String("flist", ubuntuFlist, "flist for vm")

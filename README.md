@@ -83,39 +83,16 @@ err = tfPluginClient.NetworkDeployer.Cancel(ctx, &network)
 
 Refer to [integration examples](https://github.com/threefoldtech/grid3-go/tree/development/integration_tests) directory for more examples.
 
-## Run tests
-
-To run the tests, export MNEMONICS and NETWORK
-
-```bash
-export MNEMONICS="<mnemonics words>"
-export NETWORK="<network>" # dev, qa or test
-```
-
-Run the following command
-
-### running unit tests
-
-```bash
-make test
-```
-
-### running integration tests
-
-```bash
-make integration
-```
-
 ## CLI
 
 Threefold CLI to manage deployments on Threefold Grid.
 
 ### Usage
 
-First [build](#build) tf-grid binaries and move the binary to any `$PATH` directories, for eample:
+First [build](#build) tf-grid binaries and move the binary to any `$PATH` directories, for example:
 
 ```bash
-mv tf-grid /usr/local/bin
+mv bin/tf-grid /usr/local/bin
 ```
 
 Login using your [mnemonics](https://threefoldtech.github.io/info_grid/dashboard/portal/dashboard_portal_polkadot_create_account.html) and specify which grid network (mainnet/testnet) to deploy on by running:
@@ -127,7 +104,7 @@ tf-grid login
 Deploy a VM:
 
 ```bash
-tf-grid deploy vm --name exmplevm --ssh ~/.ssh/id_rsa.pub --cpu 2 --ram 4 --disk 10
+tf-grid deploy vm --name examplevm --ssh ~/.ssh/id_rsa.pub --cpu 2 --memory 4 --disk 10
 ```
 
 You should get an output like this if VM name is unique:
@@ -163,20 +140,15 @@ You should see an output like this:
 12:10PM INF examplevm canceled
 ```
 
-Check help for workloads deployment options:
+For detailed description of tf-grid commands check out:
 
-```bash
-tf-grid help deploy <workload>
-```
+- [vm](docs/cli/vm.md)
+- [gateway-fqdn](docs/cli/gateway-fqdn.md)
+- [gateway-name](docs/cli/gateway-name.md)
+- [kubernetes](docs/cli/kubernetes.md)
+- [cancel](docs/cli/cancel.md)
 
-Currnet supported workloads:
-
-- vm
-- gateway-fqdn
-- gateway-name
-- kubernete
-
-## Configuration
+### Configuration
 
 tf-grid saves user configuration in `.tfgridconfig` under default configuration directory for your system see: [UserConfigDir()](https://pkg.go.dev/os#UserConfigDir)
 
@@ -186,4 +158,27 @@ Clone the repo and run the following command inside the repo directory:
 
 ```bash
 make build
+```
+
+## Run tests
+
+To run the tests, export MNEMONICS and NETWORK
+
+```bash
+export MNEMONICS="<mnemonics words>"
+export NETWORK="<network>" # dev, qa or test
+```
+
+Run the following command
+
+### running unit tests
+
+```bash
+make test
+```
+
+### running integration tests
+
+```bash
+make integration
 ```

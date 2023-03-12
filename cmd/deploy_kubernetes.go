@@ -38,7 +38,7 @@ var deployKubernetesCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		masterRAM, err := cmd.Flags().GetInt("master-ram")
+		masterMemory, err := cmd.Flags().GetInt("master-memory")
 		if err != nil {
 			return err
 		}
@@ -62,7 +62,7 @@ var deployKubernetesCmd = &cobra.Command{
 			Name:      name,
 			Node:      masterNode,
 			CPU:       masterCPU,
-			Memory:    masterRAM * 1024,
+			Memory:    masterMemory * 1024,
 			DiskSize:  masterDisk,
 			Flist:     k8sFlist,
 			PublicIP:  ipv4,
@@ -86,7 +86,7 @@ var deployKubernetesCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		workersRAM, err := cmd.Flags().GetInt("workers-ram")
+		workersMemory, err := cmd.Flags().GetInt("workers-memory")
 		if err != nil {
 			return err
 		}
@@ -102,7 +102,7 @@ var deployKubernetesCmd = &cobra.Command{
 				Node:     workersNode,
 				Flist:    k8sFlist,
 				CPU:      workersCPU,
-				Memory:   workersRAM * 1024,
+				Memory:   workersMemory * 1024,
 				DiskSize: workersDisk,
 			}
 			workers = append(workers, worker)
@@ -128,7 +128,7 @@ var deployKubernetesCmd = &cobra.Command{
 func init() {
 	deployCmd.AddCommand(deployKubernetesCmd)
 
-	deployKubernetesCmd.Flags().StringP("name", "n", "", "name of the kuberentes cluster")
+	deployKubernetesCmd.Flags().StringP("name", "n", "", "name of the kubernetes cluster")
 	err := deployKubernetesCmd.MarkFlagRequired("name")
 	if err != nil {
 		log.Fatal().Err(err).Send()
@@ -139,13 +139,17 @@ func init() {
 		log.Fatal().Err(err).Send()
 	}
 	deployKubernetesCmd.Flags().Int("master-cpu", 1, "master number of cpu units")
-	deployKubernetesCmd.Flags().Int("master-ram", 1, "master memory size in gb")
+	deployKubernetesCmd.Flags().Int("master-memory", 1, "master memory size in gb")
 	deployKubernetesCmd.Flags().Int("master-disk", 2, "master disk size in gb")
 	deployKubernetesCmd.Flags().Uint32("master-node", 0, "master node id")
+	err = deployKubernetesCmd.MarkFlagRequired("master-node")
+	if err != nil {
+		log.Fatal().Err(err).Send()
+	}
 
 	deployKubernetesCmd.Flags().Int("workers-number", 0, "number of workers")
 	deployKubernetesCmd.Flags().Int("workers-cpu", 1, "workers number of cpu units")
-	deployKubernetesCmd.Flags().Int("workers-ram", 1, "workers memory size in gb")
+	deployKubernetesCmd.Flags().Int("workers-memory", 1, "workers memory size in gb")
 	deployKubernetesCmd.Flags().Int("workers-disk", 2, "workers disk size in gb")
 	deployKubernetesCmd.Flags().Uint32("workers-node", 0, "workers node id")
 
