@@ -48,7 +48,7 @@ func getProjectWorkload(name, workload string) (gridtypes.Workload, gridtypes.De
 		return gridtypes.Workload{}, gridtypes.Deployment{}, errors.Wrap(err, "failed to get configuration file")
 	}
 
-	var cfg config.Config
+	cfg := config.Config{}
 	err = cfg.Load(path)
 	if err != nil {
 		return gridtypes.Workload{}, gridtypes.Deployment{}, errors.Wrap(err, "failed to load configuration try to login again using tf-grid login")

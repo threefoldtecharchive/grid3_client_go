@@ -42,7 +42,7 @@ func Login() error {
 		return errors.Wrap(err, "failed to get configuration file")
 	}
 
-	var cfg config.Config
+	cfg := config.Config{}
 	cfg.Mnemonics = mnemonics
 	cfg.Network = network
 

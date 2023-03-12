@@ -18,7 +18,7 @@ func Cancel(projectName string) error {
 		return errors.Wrap(err, "failed to get configuration file")
 	}
 
-	var cfg config.Config
+	cfg := config.Config{}
 	err = cfg.Load(path)
 	if err != nil {
 		return errors.Wrap(err, "failed to load configuration try to login again using tf-grid login")

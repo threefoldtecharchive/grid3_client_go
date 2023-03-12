@@ -23,7 +23,7 @@ func DeployVM(vm workloads.VM, mount workloads.Disk) (workloads.VM, error) {
 		return workloads.VM{}, errors.Wrap(err, "failed to get configuration file")
 	}
 
-	var cfg config.Config
+	cfg := config.Config{}
 	err = cfg.Load(path)
 	if err != nil {
 		return workloads.VM{}, errors.Wrap(err, "failed to load configuration try to login again using tf-grid login")
@@ -38,15 +38,7 @@ func DeployVM(vm workloads.VM, mount workloads.Disk) (workloads.VM, error) {
 	}
 
 	networkName := fmt.Sprintf("%snetwork", vm.Name)
-	network := workloads.ZNet{
-		Name:  networkName,
-		Nodes: []uint32{node},
-		IPRange: gridtypes.NewIPNet(net.IPNet{
-			IP:   net.IPv4(10, 20, 0, 0),
-			Mask: net.CIDRMask(16, 32),
-		}),
-		SolutionType: vm.Name,
-	}
+	network := buildNetwork(networkName, vm.Name, []uint32{node})
 
 	mounts := []workloads.Disk{}
 	if mount.SizeGB != 0 {
@@ -79,7 +71,7 @@ func DeployKubernetesCluster(master workloads.K8sNode, workers []workloads.K8sNo
 		return workloads.K8sCluster{}, errors.Wrap(err, "failed to get configuration file")
 	}
 
-	var cfg config.Config
+	cfg := config.Config{}
 	err = cfg.Load(path)
 	if err != nil {
 		return workloads.K8sCluster{}, errors.Wrap(err, "failed to load configuration try to login again using tf-grid login")
@@ -93,15 +85,7 @@ func DeployKubernetesCluster(master workloads.K8sNode, workers []workloads.K8sNo
 	if len(workers) > 0 && workers[0].Node != master.Node {
 		networkNodes = append(networkNodes, workers[0].Node)
 	}
-	network := workloads.ZNet{
-		Name:  networkName,
-		Nodes: networkNodes,
-		IPRange: gridtypes.NewIPNet(net.IPNet{
-			IP:   net.IPv4(10, 20, 0, 0),
-			Mask: net.CIDRMask(16, 32),
-		}),
-		SolutionType: master.Name,
-	}
+	network := buildNetwork(networkName, master.Name, networkNodes)
 
 	cluster := workloads.K8sCluster{
 		Master:  &master,
@@ -144,7 +128,7 @@ func DeployGatewayName(gateway workloads.GatewayNameProxy) (workloads.GatewayNam
 		return workloads.GatewayNameProxy{}, errors.Wrap(err, "failed to get configuration file")
 	}
 
-	var cfg config.Config
+	cfg := config.Config{}
 	err = cfg.Load(path)
 	if err != nil {
 		return workloads.GatewayNameProxy{}, errors.Wrap(err, "failed to load configuration try to login again using tf-grid login")
@@ -168,7 +152,7 @@ func DeployGatewayFQDN(gateway workloads.GatewayFQDNProxy) error {
 		return errors.Wrap(err, "failed to get configuration file")
 	}
 
-	var cfg config.Config
+	cfg := config.Config{}
 	err = cfg.Load(path)
 	if err != nil {
 		return errors.Wrap(err, "failed to load configuration try to login again using tf-grid login")
@@ -220,4 +204,16 @@ func getAvailableNode(client client.Client, vm workloads.VM, diskSize int) (uint
 
 	node := uint32(nodes[0].NodeID)
 	return node, nil
+}
+
+func buildNetwork(name, projectName string, nodes []uint32) workloads.ZNet {
+	return workloads.ZNet{
+		Name:  name,
+		Nodes: nodes,
+		IPRange: gridtypes.NewIPNet(net.IPNet{
+			IP:   net.IPv4(10, 20, 0, 0),
+			Mask: net.CIDRMask(16, 32),
+		}),
+		SolutionType: projectName,
+	}
 }
