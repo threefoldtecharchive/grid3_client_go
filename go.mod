@@ -6,7 +6,7 @@ require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/centrifuge/go-substrate-rpc-client/v4 v4.0.5
 	github.com/pkg/errors v0.9.1
-	github.com/stretchr/testify v1.8.1
+	github.com/stretchr/testify v1.8.2
 	github.com/threefoldtech/grid_proxy_server v1.6.12
 	github.com/threefoldtech/rmb-sdk-go v1.0.1-0.20230308130815-83a645307186
 	github.com/threefoldtech/substrate-client v0.1.2
