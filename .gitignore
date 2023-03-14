@@ -18,5 +18,4 @@ cmds/
 # coverage
 coverage/
 
-tf-grid
-bin
+bin/

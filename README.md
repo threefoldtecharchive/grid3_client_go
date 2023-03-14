@@ -101,46 +101,7 @@ Login using your [mnemonics](https://threefoldtech.github.io/info_grid/dashboard
 tf-grid login
 ```
 
-Deploy a VM:
-
-```bash
-tf-grid deploy vm --name examplevm --ssh ~/.ssh/id_rsa.pub --cpu 2 --memory 4 --disk 10
-```
-
-You should get an output like this if VM name is unique:
-
-```bash
-12:06PM INF deploying network
-12:06PM INF deploying vm
-12:07PM INF vm yggdrasil ip: 300:e9c4:9048:57cf:7da2:ac99:99db:8821
-```
-
-Get deployed VM:
-
-```bash
-tf-grid get vm examplevm
-```
-
-You should see an output like this:
-
-```bash
-12:08PM INF vm yggdrasil ip: 300:e9c4:9048:57cf:7da2:ac99:99db:8821
-```
-
-Cancel deployed VM:
-
-```bash
-tf-grid cancel examplevm
-```
-
-You should see an output like this:
-
-```bash
-12:10PM INF canceling contracts for project examplevm
-12:10PM INF examplevm canceled
-```
-
-For detailed description of tf-grid commands check out:
+For examples and description of tf-grid commands check out:
 
 - [vm](docs/cli/vm.md)
 - [gateway-fqdn](docs/cli/gateway-fqdn.md)
