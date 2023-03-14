@@ -83,6 +83,43 @@ err = tfPluginClient.NetworkDeployer.Cancel(ctx, &network)
 
 Refer to [integration examples](https://github.com/threefoldtech/grid3-go/tree/development/integration_tests) directory for more examples.
 
+## CLI
+
+Threefold CLI to manage deployments on Threefold Grid.
+
+### Usage
+
+First [build](#build) tf-grid binaries and move the binary to any `$PATH` directories, for example:
+
+```bash
+mv bin/tf-grid /usr/local/bin
+```
+
+Login using your [mnemonics](https://threefoldtech.github.io/info_grid/dashboard/portal/dashboard_portal_polkadot_create_account.html) and specify which grid network (mainnet/testnet) to deploy on by running:
+
+```bash
+tf-grid login
+```
+
+For examples and description of tf-grid commands check out:
+
+-  [vm](docs/cli/vm.md)
+-  [gateway-fqdn](docs/cli/gateway-fqdn.md)
+-  [gateway-name](docs/cli/gateway-name.md)
+-  [kubernetes](docs/cli/kubernetes.md)
+
+### Configuration
+
+tf-grid saves user configuration in `.tfgridconfig` under default configuration directory for your system see: [UserConfigDir()](https://pkg.go.dev/os#UserConfigDir)
+
+### Build
+
+Clone the repo and run the following command inside the repo directory:
+
+```bash
+make build
+```
+
 ## Run tests
 
 To run the tests, export MNEMONICS and NETWORK
