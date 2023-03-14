@@ -63,6 +63,7 @@ func GetConfigPath() (string, error) {
 	return path, nil
 }
 
+// GetUserConfig returns user configuration
 func GetUserConfig() (Config, error) {
 
 	path, err := GetConfigPath()
