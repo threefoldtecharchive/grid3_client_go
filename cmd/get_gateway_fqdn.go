@@ -6,7 +6,8 @@ import (
 
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
-	command "github.com/threefoldtech/grid3-go/internal/cmd"
+	"github.com/threefoldtech/grid3-go/deployer"
+	"github.com/threefoldtech/grid3-go/internal/config"
 )
 
 // getGatewayFQDNCmd represents the get gateway fqdn command
@@ -14,7 +15,15 @@ var getGatewayFQDNCmd = &cobra.Command{
 	Use:   "fqdn",
 	Short: "Get deployed gateway FQDN",
 	Run: func(cmd *cobra.Command, args []string) {
-		gateway, err := command.GetGatewayFQDN(args[0])
+		cfg, err := config.GetUserConfig()
+		if err != nil {
+			log.Fatal().Err(err).Send()
+		}
+		t, err := deployer.NewTFPluginClient(cfg.Mnemonics, "sr25519", cfg.Network, "", "", "", true, false)
+		if err != nil {
+			log.Fatal().Err(err).Send()
+		}
+		gateway, err := t.GetGatewayFQDN(args[0])
 		if err != nil {
 			log.Fatal().Err(err).Send()
 		}

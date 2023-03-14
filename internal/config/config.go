@@ -62,3 +62,18 @@ func GetConfigPath() (string, error) {
 	path := filepath.Join(configDir, configFile)
 	return path, nil
 }
+
+func GetUserConfig() (Config, error) {
+
+	path, err := GetConfigPath()
+	if err != nil {
+		return Config{}, errors.Wrap(err, "failed to get configuration file")
+	}
+
+	cfg := Config{}
+	err = cfg.Load(path)
+	if err != nil {
+		return Config{}, errors.Wrap(err, "failed to load configuration try to login again using tf-grid login")
+	}
+	return cfg, nil
+}

@@ -6,7 +6,8 @@ import (
 
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
-	command "github.com/threefoldtech/grid3-go/internal/cmd"
+	"github.com/threefoldtech/grid3-go/deployer"
+	"github.com/threefoldtech/grid3-go/internal/config"
 )
 
 // getVMCmd represents the get vm command
@@ -15,8 +16,15 @@ var getVMCmd = &cobra.Command{
 	Short: "Get deployed vm",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-
-		vm, err := command.GetVM(args[0])
+		cfg, err := config.GetUserConfig()
+		if err != nil {
+			log.Fatal().Err(err).Send()
+		}
+		t, err := deployer.NewTFPluginClient(cfg.Mnemonics, "sr25519", cfg.Network, "", "", "", true, false)
+		if err != nil {
+			log.Fatal().Err(err).Send()
+		}
+		vm, err := t.GetVM(args[0])
 		if err != nil {
 			log.Fatal().Err(err).Send()
 		}
