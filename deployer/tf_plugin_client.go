@@ -2,6 +2,7 @@
 package deployer
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log"
@@ -181,7 +182,7 @@ func NewTFPluginClient(
 		tfPluginClient.relayURL = relayURL
 	}
 
-	rmbClient, err := direct.NewClient(keyType, tfPluginClient.mnemonics, tfPluginClient.relayURL, sessionID, sub.Substrate)
+	rmbClient, err := direct.NewClient(context.Background(), keyType, tfPluginClient.mnemonics, tfPluginClient.relayURL, sessionID, sub.Substrate, false)
 	if err != nil {
 		return TFPluginClient{}, errors.Wrap(err, "could not create rmb client")
 	}
