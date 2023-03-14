@@ -7,9 +7,9 @@ import (
 	command "github.com/threefoldtech/grid3-go/internal/cmd"
 )
 
-// getGatewayFQDNCmd represents the get gateway-fqdn command
+// getGatewayFQDNCmd represents the get gateway fqdn command
 var getGatewayFQDNCmd = &cobra.Command{
-	Use:   "gateway-fqdn",
+	Use:   "fqdn",
 	Short: "Get deployed gateway FQDN",
 	Run: func(cmd *cobra.Command, args []string) {
 		gateway, err := command.GetGatewayFQDN(args[0])
@@ -21,5 +21,5 @@ var getGatewayFQDNCmd = &cobra.Command{
 }
 
 func init() {
-	getCmd.AddCommand(getGatewayFQDNCmd)
+	getGatewayCmd.AddCommand(getGatewayFQDNCmd)
 }

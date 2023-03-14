@@ -7,9 +7,9 @@ import (
 	command "github.com/threefoldtech/grid3-go/internal/cmd"
 )
 
-// getGatewayNameCmd represents the get gateway-name command
+// getGatewayNameCmd represents the get gateway name command
 var getGatewayNameCmd = &cobra.Command{
-	Use:   "gateway-name",
+	Use:   "name",
 	Short: "Get deployed gateway name",
 	Run: func(cmd *cobra.Command, args []string) {
 		gateway, err := command.GetGatewayName(args[0])
@@ -21,5 +21,5 @@ var getGatewayNameCmd = &cobra.Command{
 }
 
 func init() {
-	getCmd.AddCommand(getGatewayNameCmd)
+	getGatewayCmd.AddCommand(getGatewayNameCmd)
 }
