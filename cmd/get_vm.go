@@ -2,6 +2,8 @@
 package cmd
 
 import (
+	"encoding/json"
+
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	command "github.com/threefoldtech/grid3-go/internal/cmd"
@@ -18,15 +20,11 @@ var getVMCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal().Err(err).Send()
 		}
-		if vm.PublicIP {
-			log.Info().Msgf("vm ipv4: %s", vm.ComputedIP)
+		s, err := json.MarshalIndent(vm, "", "\t")
+		if err != nil {
+			log.Fatal().Err(err).Send()
 		}
-		if vm.PublicIP6 {
-			log.Info().Msgf("vm ipv6: %s", vm.ComputedIP6)
-		}
-		if vm.Planetary {
-			log.Info().Msgf("vm yggdrasil ip: %s", vm.YggIP)
-		}
+		log.Info().Msg("vm:\n" + string(s))
 
 	},
 }
