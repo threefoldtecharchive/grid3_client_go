@@ -5,7 +5,7 @@ This document explains Gateway Name related commands using tf-grid cli.
 ## Deploy
 
 ```bash
-tf-grid deploy gateway-name [flags]
+tf-grid deploy gateway name [flags]
 ```
 
 ### Required Flags
@@ -21,7 +21,7 @@ tf-grid deploy gateway-name [flags]
 Example:
 
 ```bash
-./tf-grid deploy gateway-name -n gatewaytest --node 14 --backends http://93.184.216.34:80
+./tf-grid deploy gateway name -n gatewaytest --node 14 --backends http://93.184.216.34:80
 ```
 
 You should see an output like this:
@@ -34,7 +34,7 @@ You should see an output like this:
 ## Get
 
 ```bash
-tf-grid get gateway-name <gateway>
+tf-grid get gateway name <gateway>
 ```
 
 gateway is the name used when deploying gateway-name using tf-grid.
