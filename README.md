@@ -103,10 +103,10 @@ tf-grid login
 
 For examples and description of tf-grid commands check out:
 
-- [vm](docs/cli/vm.md)
-- [gateway-fqdn](docs/cli/gateway-fqdn.md)
-- [gateway-name](docs/cli/gateway-name.md)
-- [kubernetes](docs/cli/kubernetes.md)
+-  [vm](docs/cli/vm.md)
+-  [gateway-fqdn](docs/cli/gateway-fqdn.md)
+-  [gateway-name](docs/cli/gateway-name.md)
+-  [kubernetes](docs/cli/kubernetes.md)
 
 ### Configuration
 
