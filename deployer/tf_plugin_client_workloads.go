@@ -210,5 +210,5 @@ func (t *TFPluginClient) GetGatewayFQDN(name string) (workloads.GatewayFQDNProxy
 	gateway.NodeID = nodeID
 	gateway.SolutionType = name
 	gateway.NodeDeploymentID = map[uint32]uint64{nodeID: dl.ContractID}
-	return workloads.NewGatewayFQDNProxyFromZosWorkload(workloadGateway)
+	return gateway, nil
 }

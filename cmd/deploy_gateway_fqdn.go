@@ -11,7 +11,7 @@ import (
 
 // deployGatewayFQDNCmd represents the deploy gateway fqdn command
 var deployGatewayFQDNCmd = &cobra.Command{
-	Use:   "gateway fqdn",
+	Use:   "fqdn",
 	Short: "Deploy a gateway FQDN proxy",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name, tls, zosBackends, node, err := parseCommonGatewayFlags(cmd)

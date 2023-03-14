@@ -48,7 +48,23 @@ tf-grid get gateway gatewaytest
 You should see an output like this:
 
 ```bash
-3:35PM INF fqdn: gatewaytest.gent01.dev.grid.tf
+1:56PM INF gateway name:
+{
+        "NodeID": 14,
+        "Name": "gatewaytest",
+        "Backends": [
+                "http://93.184.216.34:80"
+        ],
+        "TLSPassthrough": false,
+        "Description": "",
+        "SolutionType": "gatewaytest",
+        "NodeDeploymentID": {
+                "14": 19644
+        },
+        "FQDN": "gatewaytest.gent01.dev.grid.tf",
+        "NameContractID": 19643,
+        "ContractID": 19644
+}
 ```
 
 ## Cancel
