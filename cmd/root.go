@@ -25,8 +25,6 @@ func Execute() {
 }
 
 func init() {
-	log.Logger = zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr}).Level(zerolog.InfoLevel).
-		With().
-		Timestamp().
-		Logger()
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 }
