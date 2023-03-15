@@ -1,8 +1,8 @@
 # Grid3_client_go
 
-[![Codacy Badge](https://app.codacy.com/project/badge/Grade/cd6e18aac6be404ab89ec160b4b36671)](https://www.codacy.com/gh/threefoldtech/grid3-go/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=threefoldtech/grid3-go&amp;utm_campaign=Badge_Grade) <a href='https://github.com/jpoles1/gopherbadger' target='_blank'>![gopherbadger-tag-do-not-edit](https://img.shields.io/badge/Go%20Coverage-56%25-brightgreen.svg?longCache=true&style=flat)</a> [![Dependabot](https://badgen.net/badge/Dependabot/enabled/green?icon=dependabot)](https://dependabot.com/)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/cd6e18aac6be404ab89ec160b4b36671)](https://www.codacy.com/gh/threefoldtech/grid3-go/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=threefoldtech/grid3-go&amp;utm_campaign=Badge_Grade) <a href='https://github.com/jpoles1/gopherbadger' target='_blank'>![gopherbadger-tag-do-not-edit](https://img.shields.io/badge/Go%20Coverage-64.8%25-brightgreen.svg?longCache=true&style=flat)</a> [![Dependabot](https://badgen.net/badge/Dependabot/enabled/green?icon=dependabot)](https://dependabot.com/)
 
-Grid3-client-go is a go client created to interact with threefold grid. It should manage CRUD operations for deployments on the grid.
+Grid3_client_go is a go client created to interact with threefold grid. It should manage CRUD operations for deployments on the grid.
 
 ## Requirements
 
@@ -22,14 +22,7 @@ import (
 tfPluginClient, err := deployer.NewTFPluginClient(mnemonics, "sr25519", network, "", "", true, true)
 
 // Get a free node to deploy
-filter := deployer.NodeFilter{
-    CRU:    2,
-    SRU:    2,
-    MRU:    1,
-    Status: "up",
-}
-nodeIDs, err := deployer.FilterNodes(filter, deployer.RMBProxyURLs[tfPluginClient.Network])
-nodeID := nodeIDs[0]
+nodeID := 14
 
 // Create a new network to deploy
 network := workloads.ZNet{
@@ -61,7 +54,7 @@ vm := workloads.VM{
 }
 
 // Deploy the network first
-err := tfPluginClient.NetworkDeployer.Deploy(context.Background(), &network)
+err = tfPluginClient.NetworkDeployer.Deploy(context.Background(), &network)
 
 // Load the network using the state loader
 // this loader should load the deployment as json then convert it to a deployment go object with workloads inside it
@@ -72,7 +65,7 @@ dl := workloads.NewDeployment("vm", nodeID, "", nil, network.Name, nil, nil, []w
 err = tfPluginClient.DeploymentDeployer.Deploy(ctx, &dl)
 
 // Load the vm using the state loader
-vmObj, err := tfPluginClient.State.LoadVMFromGrid(nodeID, vm.Name)
+vmObj, err := tfPluginClient.State.LoadVMFromGrid(nodeID, vm.Name, dl.Name)
 
 // Cancel the VM deployment
 err = tfPluginClient.NetworkDeployer.Cancel(ctx, &dl)
@@ -103,10 +96,10 @@ tf-grid login
 
 For examples and description of tf-grid commands check out:
 
--  [vm](docs/cli/vm.md)
--  [gateway-fqdn](docs/cli/gateway-fqdn.md)
--  [gateway-name](docs/cli/gateway-name.md)
--  [kubernetes](docs/cli/kubernetes.md)
+-   [vm](docs/cli/vm.md)
+-   [gateway-fqdn](docs/cli/gateway-fqdn.md)
+-   [gateway-name](docs/cli/gateway-name.md)
+-   [kubernetes](docs/cli/kubernetes.md)
 
 ### Configuration
 
