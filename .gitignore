@@ -19,3 +19,5 @@ cmds/
 coverage/
 
 bin/
+
+dist/
