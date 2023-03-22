@@ -346,22 +346,20 @@ func (n *NodeClient) GetNodeFreeWGPort(ctx context.Context, nodeID uint32) (int,
 
 // GetNodeEndpoint gets node end point network ip
 func (n *NodeClient) GetNodeEndpoint(ctx context.Context) (net.IP, error) {
-	var ip net.IP
-
 	publicConfig, err := n.NetworkGetPublicConfig(ctx)
-	if err != nil {
-		return ip, err
-	}
+	if err == nil && publicConfig.IPv4.IP != nil {
 
-	if publicConfig.IPv4.IP != nil {
-		ip = publicConfig.IPv4.IP
-	} else if publicConfig.IPv6.IP != nil {
-		ip = publicConfig.IPv6.IP
-	}
-
-	log.Printf("ip: %s, global unicast: %t, privateIP: %t\n", ip.String(), ip.IsGlobalUnicast(), ip.IsPrivate())
-	if ip.IsGlobalUnicast() && !ip.IsPrivate() {
-		return ip, nil
+		ip := publicConfig.IPv4.IP
+		log.Printf("ip: %s, global unicast: %t, privateIP: %t\n", ip.String(), ip.IsGlobalUnicast(), ip.IsPrivate())
+		if ip.IsGlobalUnicast() && !ip.IsPrivate() {
+			return ip, nil
+		}
+	} else if err == nil && publicConfig.IPv6.IP != nil {
+		ip := publicConfig.IPv6.IP
+		log.Printf("ip: %s, global unicast: %t, privateIP: %t\n", ip.String(), ip.IsGlobalUnicast(), ip.IsPrivate())
+		if ip.IsGlobalUnicast() && !ip.IsPrivate() {
+			return ip, nil
+		}
 	}
 
 	ifs, err := n.NetworkListInterfaces(ctx)
