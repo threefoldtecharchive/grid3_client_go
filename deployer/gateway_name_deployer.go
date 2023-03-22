@@ -166,6 +166,8 @@ func (d *GatewayNameDeployer) Sync(ctx context.Context, gw *workloads.GatewayNam
 	gw.Name = gwWorkload.Name
 	gw.FQDN = gwWorkload.FQDN
 	gw.TLSPassthrough = gwWorkload.TLSPassthrough
+	gw.Network = gwWorkload.Network
+
 	// if the node acknowledges it, we are golden
 	if wl != nil && wl.Result.State.IsOkay() {
 		gwWorkload, err := workloads.NewGatewayNameProxyFromZosWorkload(*wl.Workload)
@@ -173,6 +175,8 @@ func (d *GatewayNameDeployer) Sync(ctx context.Context, gw *workloads.GatewayNam
 		gw.Name = gwWorkload.Name
 		gw.FQDN = gwWorkload.FQDN
 		gw.TLSPassthrough = gwWorkload.TLSPassthrough
+		gw.Network = gwWorkload.Network
+
 		if err != nil {
 			return err
 		}

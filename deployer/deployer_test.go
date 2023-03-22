@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"log"
-	"os"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -25,8 +24,7 @@ var backendURLWithTLSPassthrough = "1.1.1.1:10"
 var backendURLWithoutTLSPassthrough = "http://1.1.1.1:10"
 
 func setup() (TFPluginClient, error) {
-	mnemonics := os.Getenv("MNEMONICS")
-	mnemonics = "winner giant reward damage expose pulse recipe manual brand volcano dry avoid"
+	mnemonics := "winner giant reward damage expose pulse recipe manual brand volcano dry avoid"
 	log.Printf("mnemonics: %s", mnemonics)
 
 	network := "dev" // os.Getenv("NETWORK")

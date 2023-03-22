@@ -8,7 +8,6 @@ import (
 	"encoding/pem"
 	"log"
 	"net"
-	"os"
 	"time"
 
 	"github.com/pkg/errors"
@@ -35,8 +34,7 @@ var nodeFilter = types.NodeFilter{
 }
 
 func setup() (deployer.TFPluginClient, error) {
-	mnemonics := os.Getenv("MNEMONICS")
-	mnemonics = "winner giant reward damage expose pulse recipe manual brand volcano dry avoid"
+	mnemonics := "winner giant reward damage expose pulse recipe manual brand volcano dry avoid"
 	log.Printf("mnemonics: %s", mnemonics)
 
 	network := "dev" //os.Getenv("NETWORK")

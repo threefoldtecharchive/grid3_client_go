@@ -104,9 +104,11 @@ func TestLoadGatewayFQDNFromGrid(t *testing.T) {
 		Type:    zos.GatewayFQDNProxyType,
 		Name:    gridtypes.Name("test"),
 		Data: gridtypes.MustMarshal(zos.GatewayFQDNProxy{
-			TLSPassthrough: true,
-			Backends:       []zos.Backend{"http://1.1.1.1"},
-			FQDN:           "test",
+			GatewayBase: zos.GatewayBase{
+				TLSPassthrough: true,
+				Backends:       []zos.Backend{"http://1.1.1.1"},
+			},
+			FQDN: "test",
 		}),
 	}
 	gateway := workloads.GatewayFQDNProxy{
@@ -159,9 +161,11 @@ func TestLoadGatewayNameFromGrid(t *testing.T) {
 		Type:    zos.GatewayNameProxyType,
 		Name:    gridtypes.Name("test"),
 		Data: gridtypes.MustMarshal(zos.GatewayNameProxy{
-			Name:           "test",
-			TLSPassthrough: true,
-			Backends:       []zos.Backend{"http://1.1.1.1"},
+			GatewayBase: zos.GatewayBase{
+				TLSPassthrough: true,
+				Backends:       []zos.Backend{"http://1.1.1.1"},
+			},
+			Name: "test",
 		}),
 		Result: gridtypes.Result{
 			Created: 1000,
