@@ -6,7 +6,6 @@ require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/centrifuge/go-substrate-rpc-client/v4 v4.0.5
 	github.com/pkg/errors v0.9.1
-	github.com/spf13/cobra v1.6.1
 	github.com/stretchr/testify v1.8.2
 	github.com/threefoldtech/grid_proxy_server v1.6.12
 	github.com/threefoldtech/rmb-sdk-go v1.0.1-0.20230308130815-83a645307186
@@ -14,9 +13,6 @@ require (
 	github.com/threefoldtech/zbus v1.0.1
 	github.com/threefoldtech/zos v0.5.6-0.20230224113017-e887a6ca3fc5
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20200609130330-bd2cb7843e1b
-)
-
-require (
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/inconshreveable/mousetrap v1.0.1 // indirect
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
@@ -24,9 +20,6 @@ require (
 	github.com/vmihailenco/msgpack v4.0.4+incompatible // indirect
 	golang.org/x/net v0.8.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-)
-
-require (
 	github.com/ChainSafe/go-schnorrkel v1.0.0 // indirect
 	github.com/cenkalti/backoff/v3 v3.2.2 // indirect
 	github.com/cosmos/go-bip39 v1.0.0
