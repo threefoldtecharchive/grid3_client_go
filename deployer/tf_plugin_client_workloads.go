@@ -9,11 +9,13 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"github.com/threefoldtech/grid3-go/workloads"
+	"github.com/threefoldtech/grid_proxy_server/pkg/types"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 )
 
 // DeployMachines deploys a set of vms with disks on the same network on a single node
 func (t *TFPluginClient) DeployMachines(
+	ctx context.Context,
 	projectName string,
 	vms []workloads.VM,
 	mounts []workloads.Disk,
@@ -40,12 +42,12 @@ func (t *TFPluginClient) DeployMachines(
 
 	dl := workloads.NewDeployment(projectName, node, projectName, nil, network.Name, mounts, nil, vms, nil)
 	log.Info().Msg("deploying network")
-	err = t.NetworkDeployer.Deploy(context.Background(), &network)
+	err = t.NetworkDeployer.Deploy(ctx, &network)
 	if err != nil {
 		return nil, "", errors.Wrapf(err, "failed to deploy network on node %d", node)
 	}
 	log.Info().Msg("deploying vm")
-	err = t.DeploymentDeployer.Deploy(context.Background(), &dl)
+	err = t.DeploymentDeployer.Deploy(ctx, &dl)
 	if err != nil {
 		return nil, "", errors.Wrapf(err, "failed to deploy vm on node %d", node)
 	}
