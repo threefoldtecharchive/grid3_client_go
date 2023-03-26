@@ -17,3 +17,7 @@ cmds/
 
 # coverage
 coverage/
+
+bin/
+
+dist/
