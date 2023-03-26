@@ -8,7 +8,6 @@ import (
 
 	"github.com/pkg/errors"
 	client "github.com/threefoldtech/grid3-go/node"
-	"github.com/threefoldtech/grid3-go/subi"
 	"github.com/threefoldtech/grid3-go/workloads"
 	"github.com/threefoldtech/substrate-client"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
@@ -18,8 +17,8 @@ import (
 
 // NetworkDeployer struct
 type NetworkDeployer struct {
-	WGPort map[uint32]int
-	Keys   map[uint32]wgtypes.Key
+	//WGPort map[uint32]int
+	//Keys map[uint32]wgtypes.Key
 
 	tfPluginClient *TFPluginClient
 	deployer       MockDeployer
@@ -29,8 +28,6 @@ type NetworkDeployer struct {
 func NewNetworkDeployer(tfPluginClient *TFPluginClient) NetworkDeployer {
 	deployer := NewDeployer(*tfPluginClient, true)
 	return NetworkDeployer{
-		Keys:           make(map[uint32]wgtypes.Key),
-		WGPort:         make(map[uint32]int),
 		tfPluginClient: tfPluginClient,
 		deployer:       &deployer,
 	}
@@ -121,13 +118,13 @@ func (d *NetworkDeployer) GenerateVersionlessDeployments(ctx context.Context, zn
 	}
 
 	allNodes := append(hiddenNodes, accessibleNodes...)
-	if err := d.assignNodesIPs(allNodes, znet); err != nil {
+	if err := znet.AssignNodesIPs(allNodes); err != nil {
 		return nil, errors.Wrap(err, "could not assign node ips")
 	}
-	if err := d.assignNodesWGKey(allNodes); err != nil {
+	if err := znet.AssignNodesWGKey(allNodes); err != nil {
 		return nil, errors.Wrap(err, "could not assign node wg keys")
 	}
-	if err := d.assignNodesWGPort(ctx, sub, allNodes); err != nil {
+	if err := znet.AssignNodesWGPort(ctx, sub, d.tfPluginClient.NcPool, allNodes); err != nil {
 		return nil, errors.Wrap(err, "could not assign node wg ports")
 	}
 
@@ -152,8 +149,8 @@ func (d *NetworkDeployer) GenerateVersionlessDeployments(ctx context.Context, zn
 		znet.AccessWGConfig = workloads.GenerateWGConfig(
 			workloads.WgIP(*znet.ExternalIP).IP.String(),
 			znet.ExternalSK.String(),
-			d.Keys[znet.PublicNodeID].PublicKey().String(),
-			fmt.Sprintf("%s:%d", endpoints[znet.PublicNodeID], d.WGPort[znet.PublicNodeID]),
+			znet.Keys[znet.PublicNodeID].PublicKey().String(),
+			fmt.Sprintf("%s:%d", endpoints[znet.PublicNodeID], znet.WGPort[znet.PublicNodeID]),
 			znet.IPRange.String(),
 		)
 	}
@@ -178,8 +175,8 @@ func (d *NetworkDeployer) GenerateVersionlessDeployments(ctx context.Context, zn
 
 			peers = append(peers, zos.Peer{
 				Subnet:      znet.NodesIPRange[peerNodeID],
-				WGPublicKey: d.Keys[peerNodeID].PublicKey().String(),
-				Endpoint:    fmt.Sprintf("%s:%d", endpoints[peerNodeID], d.WGPort[peerNodeID]),
+				WGPublicKey: znet.Keys[peerNodeID].PublicKey().String(),
+				Endpoint:    fmt.Sprintf("%s:%d", endpoints[peerNodeID], znet.WGPort[peerNodeID]),
 				AllowedIPs:  allowedIPs,
 			})
 		}
@@ -199,7 +196,7 @@ func (d *NetworkDeployer) GenerateVersionlessDeployments(ctx context.Context, zn
 				peerIPRange := znet.NodesIPRange[peerNodeID]
 				peers = append(peers, zos.Peer{
 					Subnet:      peerIPRange,
-					WGPublicKey: d.Keys[peerNodeID].PublicKey().String(),
+					WGPublicKey: znet.Keys[peerNodeID].PublicKey().String(),
 					AllowedIPs: []gridtypes.IPNet{
 						peerIPRange,
 						workloads.WgIP(peerIPRange),
@@ -208,7 +205,7 @@ func (d *NetworkDeployer) GenerateVersionlessDeployments(ctx context.Context, zn
 			}
 		}
 
-		workload := znet.ZosWorkload(znet.NodesIPRange[nodeID], d.Keys[nodeID].String(), uint16(d.WGPort[nodeID]), peers)
+		workload := znet.ZosWorkload(znet.NodesIPRange[nodeID], znet.Keys[nodeID].String(), uint16(znet.WGPort[nodeID]), peers)
 		deployment := workloads.NewGridDeployment(d.tfPluginClient.twinID, []gridtypes.Workload{workload})
 
 		// add metadata
@@ -226,16 +223,16 @@ func (d *NetworkDeployer) GenerateVersionlessDeployments(ctx context.Context, zn
 		peers := make([]zos.Peer, 0)
 		if znet.PublicNodeID != 0 {
 			peers = append(peers, zos.Peer{
-				WGPublicKey: d.Keys[znet.PublicNodeID].PublicKey().String(),
+				WGPublicKey: znet.Keys[znet.PublicNodeID].PublicKey().String(),
 				Subnet:      znet.NodesIPRange[nodeID],
 				AllowedIPs: []gridtypes.IPNet{
 					znet.IPRange,
 					workloads.IPNet(100, 64, 0, 0, 16),
 				},
-				Endpoint: fmt.Sprintf("%s:%d", endpoints[znet.PublicNodeID], d.WGPort[znet.PublicNodeID]),
+				Endpoint: fmt.Sprintf("%s:%d", endpoints[znet.PublicNodeID], znet.WGPort[znet.PublicNodeID]),
 			})
 		}
-		workload := znet.ZosWorkload(znet.NodesIPRange[nodeID], d.Keys[nodeID].String(), uint16(d.WGPort[nodeID]), peers)
+		workload := znet.ZosWorkload(znet.NodesIPRange[nodeID], znet.Keys[nodeID].String(), uint16(znet.WGPort[nodeID]), peers)
 		deployment := workloads.NewGridDeployment(d.tfPluginClient.twinID, []gridtypes.Workload{workload})
 
 		// add metadata
@@ -333,8 +330,8 @@ func (d *NetworkDeployer) invalidateBrokenAttributes(znet *workloads.ZNet) error
 		if (err == nil && !contract.IsCreated()) || errors.Is(err, substrate.ErrNotFound) {
 			delete(znet.NodeDeploymentID, node)
 			delete(znet.NodesIPRange, node)
-			delete(d.Keys, node)
-			delete(d.WGPort, node)
+			delete(znet.Keys, node)
+			delete(znet.WGPort, node)
 		} else if err != nil {
 			return errors.Wrapf(err, "could not get node %d contract %d", node, contractID)
 		}
@@ -362,77 +359,6 @@ func (d *NetworkDeployer) invalidateBrokenAttributes(znet *workloads.ZNet) error
 	if !znet.AddWGAccess {
 		znet.ExternalIP = nil
 	}
-	return nil
-}
-
-func (d *NetworkDeployer) assignNodesIPs(nodes []uint32, znet *workloads.ZNet) error {
-	ips := make(map[uint32]gridtypes.IPNet)
-	l := len(znet.IPRange.IP)
-	usedIPs := make([]byte, 0) // the third octet
-	for node, ip := range znet.NodesIPRange {
-		if workloads.Contains(nodes, node) {
-			usedIPs = append(usedIPs, ip.IP[l-2])
-			ips[node] = ip
-		}
-	}
-	var cur byte = 2
-	if znet.AddWGAccess {
-		if znet.ExternalIP != nil {
-			usedIPs = append(usedIPs, znet.ExternalIP.IP[l-2])
-		} else {
-			err := workloads.NextFreeIP(usedIPs, &cur)
-			if err != nil {
-				return err
-			}
-			usedIPs = append(usedIPs, cur)
-			ip := workloads.IPNet(znet.IPRange.IP[l-4], znet.IPRange.IP[l-3], cur, znet.IPRange.IP[l-1], 24)
-			znet.ExternalIP = &ip
-		}
-	}
-	for _, nodeID := range nodes {
-		if _, ok := ips[nodeID]; !ok {
-			err := workloads.NextFreeIP(usedIPs, &cur)
-			if err != nil {
-				return err
-			}
-			usedIPs = append(usedIPs, cur)
-			ips[nodeID] = workloads.IPNet(znet.IPRange.IP[l-4], znet.IPRange.IP[l-3], cur, znet.IPRange.IP[l-2], 24)
-		}
-	}
-	znet.NodesIPRange = ips
-	return nil
-}
-
-func (d *NetworkDeployer) assignNodesWGPort(ctx context.Context, sub subi.SubstrateExt, nodes []uint32) error {
-	for _, nodeID := range nodes {
-		if _, ok := d.WGPort[nodeID]; !ok {
-			cl, err := d.tfPluginClient.NcPool.GetNodeClient(sub, nodeID)
-			if err != nil {
-				return errors.Wrap(err, "could not get node client")
-			}
-			port, err := cl.GetNodeFreeWGPort(ctx, nodeID)
-			if err != nil {
-				return errors.Wrap(err, "failed to get node free wg ports")
-			}
-			d.WGPort[nodeID] = port
-		}
-	}
-
-	return nil
-}
-
-func (d *NetworkDeployer) assignNodesWGKey(nodes []uint32) error {
-	for _, nodeID := range nodes {
-		if _, ok := d.Keys[nodeID]; !ok {
-
-			key, err := wgtypes.GenerateKey()
-			if err != nil {
-				return errors.Wrap(err, "failed to generate wg private key")
-			}
-			d.Keys[nodeID] = key
-		}
-	}
-
 	return nil
 }
 
@@ -476,8 +402,8 @@ func (d *NetworkDeployer) readNodesConfig(ctx context.Context, znet *workloads.Z
 			}
 		}
 	}
-	d.Keys = keys
-	d.WGPort = WGPort
+	znet.Keys = keys
+	znet.WGPort = WGPort
 	znet.NodesIPRange = nodesIPRange
 	znet.AddWGAccess = WGAccess
 	if !WGAccess {

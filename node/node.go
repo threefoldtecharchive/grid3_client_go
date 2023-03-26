@@ -82,7 +82,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/grid3-go/subi"
-	"github.com/threefoldtech/grid3-go/workloads"
 	"github.com/threefoldtech/rmb-sdk-go"
 	"github.com/threefoldtech/zos/pkg/capacity/dmi"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
@@ -337,7 +336,7 @@ func (n *NodeClient) GetNodeFreeWGPort(ctx context.Context, nodeID uint32) (int,
 	log.Printf("reserved ports for node %d: %v\n", nodeID, freePorts)
 	p := uint(rand.Intn(6000) + 2000)
 
-	for workloads.Contains(freePorts, uint16(p)) {
+	for contains(freePorts, uint16(p)) {
 		p = uint(rand.Intn(6000) + 2000)
 	}
 	log.Printf("Selected port for node %d is %d\n", nodeID, p)
@@ -381,4 +380,13 @@ func (n *NodeClient) GetNodeEndpoint(ctx context.Context) (net.IP, error) {
 		return ip, nil
 	}
 	return nil, errors.Wrap(ErrNoAccessibleInterfaceFound, "no public ipv4 or ipv6 on zos interface found")
+}
+
+func contains[T comparable](elements []T, element T) bool {
+	for _, e := range elements {
+		if element == e {
+			return true
+		}
+	}
+	return false
 }
