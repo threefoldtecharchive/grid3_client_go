@@ -8,6 +8,11 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        network: ['dev','qa','test','main']
+
     steps:
       - name: Set up Go
         uses: actions/setup-go@v3
@@ -30,5 +35,5 @@ jobs:
       - name: Test
         env:
           MNEMONICS: ${{ secrets.MNEMONICS }}
-          NETWORK: dev
+          NETWORK: ${{ matrix.network }}
         run: go test -v ./integration_tests -tags integration

@@ -2,11 +2,14 @@
 package workloads
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net"
 
 	"github.com/pkg/errors"
+	client "github.com/threefoldtech/grid3-go/node"
+	"github.com/threefoldtech/grid3-go/subi"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
@@ -37,6 +40,9 @@ type ZNet struct {
 	PublicNodeID     uint32
 	NodesIPRange     map[uint32]gridtypes.IPNet
 	NodeDeploymentID map[uint32]uint64
+
+	WGPort map[uint32]int
+	Keys   map[uint32]wgtypes.Key
 }
 
 // NewNetworkFromWorkload generates a new znet from a workload
@@ -107,6 +113,90 @@ func (znet *ZNet) GenerateMetadata() (string, error) {
 	return string(deploymentDataBytes), nil
 }
 
+// AssignNodesIPs assign network nodes ips
+func (znet *ZNet) AssignNodesIPs(nodes []uint32) error {
+	ips := make(map[uint32]gridtypes.IPNet)
+	l := len(znet.IPRange.IP)
+	usedIPs := make([]byte, 0) // the third octet
+	for node, ip := range znet.NodesIPRange {
+		if Contains(nodes, node) {
+			usedIPs = append(usedIPs, ip.IP[l-2])
+			ips[node] = ip
+		}
+	}
+	var cur byte = 2
+	if znet.AddWGAccess {
+		if znet.ExternalIP != nil {
+			usedIPs = append(usedIPs, znet.ExternalIP.IP[l-2])
+		} else {
+			err := nextFreeIP(usedIPs, &cur)
+			if err != nil {
+				return err
+			}
+			usedIPs = append(usedIPs, cur)
+			ip := IPNet(znet.IPRange.IP[l-4], znet.IPRange.IP[l-3], cur, znet.IPRange.IP[l-1], 24)
+			znet.ExternalIP = &ip
+		}
+	}
+	for _, nodeID := range nodes {
+		if _, ok := ips[nodeID]; !ok {
+			err := nextFreeIP(usedIPs, &cur)
+			if err != nil {
+				return err
+			}
+			usedIPs = append(usedIPs, cur)
+			ips[nodeID] = IPNet(znet.IPRange.IP[l-4], znet.IPRange.IP[l-3], cur, znet.IPRange.IP[l-2], 24)
+		}
+	}
+	znet.NodesIPRange = ips
+	return nil
+}
+
+// AssignNodesWGPort assign network nodes wireguard port
+func (znet *ZNet) AssignNodesWGPort(ctx context.Context, sub subi.SubstrateExt, ncPool client.NodeClientGetter, nodes []uint32) error {
+	for _, nodeID := range nodes {
+		if _, ok := znet.WGPort[nodeID]; !ok {
+			cl, err := ncPool.GetNodeClient(sub, nodeID)
+			if err != nil {
+				return errors.Wrap(err, "could not get node client")
+			}
+			port, err := cl.GetNodeFreeWGPort(ctx, nodeID)
+			if err != nil {
+				return errors.Wrap(err, "failed to get node free wg ports")
+			}
+
+			if len(znet.WGPort) == 0 {
+				znet.WGPort = map[uint32]int{nodeID: port}
+				continue
+			}
+			znet.WGPort[nodeID] = port
+		}
+	}
+
+	return nil
+}
+
+// AssignNodesWGKey assign network nodes wireguard key
+func (znet *ZNet) AssignNodesWGKey(nodes []uint32) error {
+	for _, nodeID := range nodes {
+		if _, ok := znet.Keys[nodeID]; !ok {
+
+			key, err := wgtypes.GenerateKey()
+			if err != nil {
+				return errors.Wrap(err, "failed to generate wg private key")
+			}
+
+			if len(znet.Keys) == 0 {
+				znet.Keys = map[uint32]wgtypes.Key{nodeID: key}
+				continue
+			}
+			znet.Keys[nodeID] = key
+		}
+	}
+
+	return nil
+}
+
 // IPNet returns an IP net type
 func IPNet(a, b, c, d, msk byte) gridtypes.IPNet {
 	return gridtypes.NewIPNet(net.IPNet{
@@ -142,8 +232,8 @@ Endpoint = %s
 	`, Address, AccessPrivatekey, NodePublicKey, NetworkIPRange, NodeEndpoint)
 }
 
-// NextFreeIP finds a free ip for a node
-func NextFreeIP(used []byte, start *byte) error {
+// nextFreeIP finds a free ip for a node
+func nextFreeIP(used []byte, start *byte) error {
 	for Contains(used, *start) && *start <= 254 {
 		*start++
 	}
