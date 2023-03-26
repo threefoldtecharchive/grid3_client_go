@@ -17,9 +17,6 @@ import (
 
 // NetworkDeployer struct
 type NetworkDeployer struct {
-	//WGPort map[uint32]int
-	//Keys map[uint32]wgtypes.Key
-
 	tfPluginClient *TFPluginClient
 	deployer       MockDeployer
 }
