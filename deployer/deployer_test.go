@@ -24,10 +24,10 @@ var backendURLWithTLSPassthrough = "1.1.1.1:10"
 var backendURLWithoutTLSPassthrough = "http://1.1.1.1:10"
 
 func setup() (TFPluginClient, error) {
-	mnemonics := "winner giant reward damage expose pulse recipe manual brand volcano dry avoid"
+	mnemonics := os.Getenv("MNEMONICS")
 	log.Printf("mnemonics: %s", mnemonics)
 
-	network := "dev" // os.Getenv("NETWORK")
+	network := os.Getenv("NETWORK")
 	log.Printf("network: %s", network)
 
 	return NewTFPluginClient(mnemonics, "sr25519", network, "", "", "", true, true)
