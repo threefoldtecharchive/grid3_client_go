@@ -9,6 +9,7 @@ import (
 	"net"
 
 	"github.com/pkg/errors"
+	zerolog "github.com/rs/zerolog/log"
 	client "github.com/threefoldtech/grid3-go/node"
 	"github.com/threefoldtech/grid3-go/workloads"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
@@ -178,7 +179,7 @@ func (d *K8sDeployer) UpdateFromRemote(ctx context.Context, k8sCluster *workload
 	if err != nil {
 		return errors.Wrap(err, "failed to fetch remote deployments")
 	}
-	log.Printf("calling updateFromRemote")
+	zerolog.Debug().Msgf("calling updateFromRemote")
 	err = PrintDeployments(currentDeployments)
 	if err != nil {
 		return errors.Wrap(err, "could not print deployments data")
@@ -191,7 +192,7 @@ func (d *K8sDeployer) UpdateFromRemote(ctx context.Context, k8sCluster *workload
 			if w.Type == zos.ZMachineType {
 				d, err := w.WorkloadData()
 				if err != nil {
-					log.Printf("failed to get workload data %s", err)
+					zerolog.Debug().Msgf("failed to get workload data %s", err)
 				}
 				SSHKey := d.(*zos.ZMachine).Env["SSH_KEY"]
 				token := d.(*zos.ZMachine).Env["K3S_TOKEN"]
@@ -312,7 +313,7 @@ func (d *K8sDeployer) UpdateFromRemote(ctx context.Context, k8sCluster *workload
 		workers = append(workers, w)
 	}
 	k8sCluster.Workers = workers
-	log.Printf("after updateFromRemote\n")
+	zerolog.Debug().Msgf("after updateFromRemote\n")
 	enc := json.NewEncoder(log.Writer())
 	enc.SetIndent("", "  ")
 	err = enc.Encode(d)

@@ -4,9 +4,9 @@ package deployer
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 	client "github.com/threefoldtech/grid3-go/node"
 	"github.com/threefoldtech/grid3-go/workloads"
 	"github.com/threefoldtech/substrate-client"
@@ -54,7 +54,7 @@ func (d *NetworkDeployer) Validate(ctx context.Context, znet *workloads.ZNet) er
 func (d *NetworkDeployer) GenerateVersionlessDeployments(ctx context.Context, znet *workloads.ZNet) (map[uint32]gridtypes.Deployment, error) {
 	deployments := make(map[uint32]gridtypes.Deployment)
 
-	log.Printf("nodes: %v\n", znet.Nodes)
+	log.Debug().Msgf("nodes: %v", znet.Nodes)
 	sub := d.tfPluginClient.SubstrateConn
 
 	endpoints := make(map[uint32]string)
@@ -137,10 +137,10 @@ func (d *NetworkDeployer) GenerateVersionlessDeployments(ctx context.Context, zn
 		nonAccessibleIPRanges = append(nonAccessibleIPRanges, workloads.WgIP(*r))
 	}
 
-	log.Printf("hidden nodes: %v\n", hiddenNodes)
-	log.Printf("public node: %v\n", znet.PublicNodeID)
-	log.Printf("accessible nodes: %v\n", accessibleNodes)
-	log.Printf("non accessible ip ranges: %v\n", nonAccessibleIPRanges)
+	log.Debug().Msgf("hidden nodes: %v", hiddenNodes)
+	log.Debug().Msgf("public node: %v", znet.PublicNodeID)
+	log.Debug().Msgf("accessible nodes: %v", accessibleNodes)
+	log.Debug().Msgf("non accessible ip ranges: %v", nonAccessibleIPRanges)
 
 	if znet.AddWGAccess {
 		znet.AccessWGConfig = workloads.GenerateWGConfig(
@@ -256,7 +256,7 @@ func (d *NetworkDeployer) Deploy(ctx context.Context, znet *workloads.ZNet) erro
 		return errors.Wrap(err, "could not generate deployments data")
 	}
 
-	log.Println("new deployments")
+	log.Debug().Msg("new deployments")
 	err = PrintDeployments(newDeployments)
 	if err != nil {
 		return errors.Wrap(err, "could not print deployments data")
@@ -363,7 +363,7 @@ func (d *NetworkDeployer) readNodesConfig(ctx context.Context, znet *workloads.Z
 	keys := make(map[uint32]wgtypes.Key)
 	WGPort := make(map[uint32]int)
 	nodesIPRange := make(map[uint32]gridtypes.IPNet)
-	log.Printf("reading node config")
+	log.Debug().Msg("reading node config")
 	nodeDeployments, err := d.deployer.GetDeployments(ctx, znet.NodeDeploymentID)
 	if err != nil {
 		return errors.Wrap(err, "failed to get deployment objects")

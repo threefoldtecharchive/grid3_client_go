@@ -87,7 +87,7 @@ func mockValidation(identity substrate.Identity, cl *mocks.RMBMockClient, sub *m
 
 	ncPool.EXPECT().
 		GetNodeClient(sub, nodeID).AnyTimes().
-		Return(client.NewNodeClient(twinID, cl), nil)
+		Return(client.NewNodeClient(twinID, cl, 10), nil)
 
 	cl.EXPECT().Call(
 		gomock.Any(),

@@ -4,12 +4,13 @@ package deployer
 import (
 	"context"
 	"fmt"
-	"io"
-	"log"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/threefoldtech/grid3-go/graphql"
 	client "github.com/threefoldtech/grid3-go/node"
 	"github.com/threefoldtech/grid3-go/subi"
@@ -57,6 +58,7 @@ type TFPluginClient struct {
 	Identity     substrate.Identity
 	substrateURL string
 	relayURL     string
+	rmbTimeout   time.Duration
 	rmbProxyURL  string
 	useRmbProxy  bool
 
@@ -92,14 +94,18 @@ func NewTFPluginClient(
 	substrateURL string,
 	relayURL string,
 	rmbProxyURL string,
+	rmbTimeout int,
 	verifyReply bool,
 	showLogs bool,
 ) (TFPluginClient, error) {
 
-	// disable logging
-	if !showLogs {
-		log.SetOutput(io.Discard)
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+	if showLogs {
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	} else {
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	}
+
 	var err error
 	tfPluginClient := TFPluginClient{}
 
@@ -182,6 +188,12 @@ func NewTFPluginClient(
 		tfPluginClient.relayURL = relayURL
 	}
 
+	// default rmbTimeout is 10
+	if rmbTimeout == 0 {
+		rmbTimeout = 10
+	}
+	tfPluginClient.rmbTimeout = time.Second * time.Duration(rmbTimeout)
+
 	rmbClient, err := direct.NewClient(context.Background(), keyType, tfPluginClient.mnemonics, tfPluginClient.relayURL, sessionID, sub.Substrate, true)
 	if err != nil {
 		return TFPluginClient{}, errors.Wrap(err, "could not create rmb client")
@@ -194,7 +206,7 @@ func NewTFPluginClient(
 	}
 	tfPluginClient.GridProxyClient = proxy.NewRetryingClient(gridProxyClient)
 
-	ncPool := client.NewNodeClientPool(tfPluginClient.RMB)
+	ncPool := client.NewNodeClientPool(tfPluginClient.RMB, tfPluginClient.rmbTimeout)
 	tfPluginClient.NcPool = ncPool
 
 	tfPluginClient.DeploymentDeployer = NewDeploymentDeployer(&tfPluginClient)

@@ -338,7 +338,7 @@ func TestDeploymentGenerateDeployment(t *testing.T) {
 
 	ncPool.EXPECT().
 		GetNodeClient(sub, uint32(nodeID)).
-		Return(client.NewNodeClient(twinID, cl), nil)
+		Return(client.NewNodeClient(twinID, cl, d.tfPluginClient.rmbTimeout), nil)
 
 	cl.EXPECT().
 		Call(gomock.Any(), twinID, "zos.deployment.get", gomock.Any(), gomock.Any()).
@@ -378,7 +378,7 @@ func TestDeploymentSync(t *testing.T) {
 
 	ncPool.EXPECT().
 		GetNodeClient(sub, uint32(nodeID)).
-		Return(client.NewNodeClient(twinID, cl), nil)
+		Return(client.NewNodeClient(twinID, cl, d.tfPluginClient.rmbTimeout), nil)
 
 	cl.EXPECT().
 		Call(gomock.Any(), twinID, "zos.deployment.get", gomock.Any(), gomock.Any()).

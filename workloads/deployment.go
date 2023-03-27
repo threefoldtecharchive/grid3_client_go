@@ -4,7 +4,6 @@ package workloads
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net"
 	"sort"
 	"strings"
@@ -137,8 +136,6 @@ func (d *Deployment) Match(disks []Disk, QSFS []QSFS, zdbs []ZDB, vms []VM) {
 		vm, ok := vmMap[vms[idx].Name]
 		if ok {
 			vms[idx].LoadFromVM(vm)
-			log.Printf("original: %+v\n", vm)
-			log.Printf("new: %+v\n", vms[idx])
 		}
 	}
 }

@@ -3,10 +3,10 @@ package deployer
 
 import (
 	"context"
-	"log"
 	"net"
 
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 	"github.com/threefoldtech/grid3-go/workloads"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
@@ -144,7 +144,7 @@ func (d *DeploymentDeployer) Sync(ctx context.Context, dl *workloads.Deployment)
 		case zos.ZMachineType:
 			vm, err := workloads.NewVMFromWorkload(&w, &deployment)
 			if err != nil {
-				log.Printf("error parsing vm: %s", err.Error())
+				log.Error().Err(err).Msgf("error parsing vm")
 				continue
 			}
 			vms = append(vms, vm)
@@ -155,7 +155,7 @@ func (d *DeploymentDeployer) Sync(ctx context.Context, dl *workloads.Deployment)
 		case zos.ZDBType:
 			zdb, err := workloads.NewZDBFromWorkload(&w)
 			if err != nil {
-				log.Printf("error parsing zdb: %s", err.Error())
+				log.Error().Err(err).Msgf("error parsing zdb")
 				continue
 			}
 
@@ -163,7 +163,7 @@ func (d *DeploymentDeployer) Sync(ctx context.Context, dl *workloads.Deployment)
 		case zos.QuantumSafeFSType:
 			q, err := workloads.NewQSFSFromWorkload(&w)
 			if err != nil {
-				log.Printf("error parsing qsfs: %s", err.Error())
+				log.Error().Err(err).Msgf("error parsing qsfs")
 				continue
 			}
 
@@ -172,7 +172,7 @@ func (d *DeploymentDeployer) Sync(ctx context.Context, dl *workloads.Deployment)
 		case zos.ZMountType:
 			disk, err := workloads.NewDiskFromWorkload(&w)
 			if err != nil {
-				log.Printf("error parsing disk: %s", err.Error())
+				log.Error().Err(err).Msgf("error parsing disk")
 				continue
 			}
 

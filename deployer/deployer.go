@@ -5,11 +5,11 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/cenkalti/backoff"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 	client "github.com/threefoldtech/grid3-go/node"
 	"github.com/threefoldtech/grid3-go/subi"
 	proxy "github.com/threefoldtech/grid_proxy_server/pkg/client"
@@ -133,7 +133,7 @@ func (d *Deployer) deploy(
 			}
 
 			hash, err := dl.ChallengeHash()
-			log.Printf("[DEBUG] HASH: %#v", hash)
+			log.Debug().Msgf("HASH: %#v", hash)
 
 			if err != nil {
 				return currentDeployments, errors.Wrap(err, "failed to create hash")
@@ -145,10 +145,10 @@ func (d *Deployer) deploy(
 			if err != nil {
 				return currentDeployments, errors.Wrap(err, "failed to count deployment public IPs")
 			}
-			log.Printf("Number of public ips: %d\n", publicIPCount)
+			log.Debug().Msgf("Number of public ips: %d", publicIPCount)
 
 			contractID, err := d.substrateConn.CreateNodeContract(d.identity, node, dl.Metadata, hashHex, publicIPCount, newDeploymentSolutionProvider[node])
-			log.Printf("CreateNodeContract returned id: %d\n", contractID)
+			log.Debug().Msgf("CreateNodeContract returned id: %d", contractID)
 			if err != nil {
 				return currentDeployments, errors.Wrap(err, "failed to create contract")
 			}
@@ -237,13 +237,13 @@ func (d *Deployer) deploy(
 				return currentDeployments, errors.Wrap(err, "deployment is invalid")
 			}
 
-			log.Printf("deployment: %+v", dl)
+			log.Debug().Msgf("deployment: %+v", dl)
 			hash, err := dl.ChallengeHash()
 			if err != nil {
 				return currentDeployments, errors.Wrap(err, "failed to create hash")
 			}
 			hashHex := hex.EncodeToString(hash)
-			log.Printf("[DEBUG] HASH: %s", hashHex)
+			log.Debug().Msgf("HASH: %s", hashHex)
 
 			// TODO: Destroy and create if publicIPCount is changed
 			// publicIPCount, err := countDeploymentPublicIPs(dl)

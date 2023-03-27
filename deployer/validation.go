@@ -3,13 +3,13 @@ package deployer
 
 import (
 	"fmt"
-	"log"
 	"math/big"
 	"regexp"
 	"strings"
 
 	"github.com/cosmos/go-bip39"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 	"github.com/threefoldtech/grid3-go/subi"
 	proxy "github.com/threefoldtech/grid_proxy_server/pkg/client"
 	"github.com/threefoldtech/substrate-client"
@@ -27,7 +27,7 @@ func validateAccount(sub subi.SubstrateExt, identity substrate.Identity, mnemoni
 		for keyType, f := range funcs {
 			ident, err2 := f(mnemonics)
 			if err2 != nil { // shouldn't happen, return original error
-				log.Printf("could not convert the mnemonics to %s key: %s", keyType, err2.Error())
+				log.Error().Err(err2).Msgf("could not convert the mnemonics to %s key", keyType)
 				return err
 			}
 			_, err2 = sub.GetAccount(ident)
@@ -81,7 +81,6 @@ func validateAccountBalanceForExtrinsics(sub subi.SubstrateExt, identity substra
 		return errors.Wrap(err, "failed to get account with the given mnemonics")
 	}
 
-	log.Printf("balance %d\n", balance.Free)
 	if balance.Free.Cmp(big.NewInt(20000)) == -1 {
 		return fmt.Errorf("account contains %s, min fee is 20000", balance.Free)
 	}

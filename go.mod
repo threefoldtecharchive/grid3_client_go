@@ -8,7 +8,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.8.2
 	github.com/threefoldtech/grid_proxy_server v1.6.12
-	github.com/threefoldtech/rmb-sdk-go v1.0.1-0.20230308130815-83a645307186
+	github.com/threefoldtech/rmb-sdk-go v1.0.1-0.20230316162347-255e7faa0006
 	github.com/threefoldtech/substrate-client v0.1.3
 	github.com/threefoldtech/zos v0.5.6-0.20230224113017-e887a6ca3fc5
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20200609130330-bd2cb7843e1b
@@ -41,7 +41,6 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rs/cors v1.8.2 // indirect
 	github.com/rs/zerolog v1.29.0
-	github.com/tyler-smith/go-bip39 v1.1.0 // indirect
 	github.com/vedhavyas/go-subkey v1.0.3 // indirect
 	golang.org/x/crypto v0.7.0
 	golang.org/x/sys v0.6.0 // indirect
@@ -49,5 +48,7 @@ require (
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+require github.com/tyler-smith/go-bip39 v1.1.0 // indirect
 
 replace github.com/centrifuge/go-substrate-rpc-client/v4 v4.0.5 => github.com/threefoldtech/go-substrate-rpc-client/v4 v4.0.6-0.20230102154731-7c633b7d3c71

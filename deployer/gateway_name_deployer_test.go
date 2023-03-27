@@ -94,7 +94,7 @@ func TestNameValidateNodeNotReachable(t *testing.T) {
 			gomock.Any(),
 			nodeID,
 		).
-		Return(client.NewNodeClient(nodeID, cl), nil)
+		Return(client.NewNodeClient(nodeID, cl, d.tfPluginClient.rmbTimeout), nil)
 
 	gatewayName := workloads.GatewayNameProxy{NodeID: nodeID}
 	err := d.Validate(context.TODO(), &gatewayName)

@@ -5,11 +5,11 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
-	"log"
 	"os"
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/threefoldtech/grid3-go/mocks"
 	client "github.com/threefoldtech/grid3-go/node"
@@ -26,12 +26,12 @@ var backendURLWithoutTLSPassthrough = "http://1.1.1.1:10"
 
 func setup() (TFPluginClient, error) {
 	mnemonics := os.Getenv("MNEMONICS")
-	log.Printf("mnemonics: %s", mnemonics)
+	log.Debug().Msgf("mnemonics: %s", mnemonics)
 
 	network := os.Getenv("NETWORK")
-	log.Printf("network: %s", network)
+	log.Debug().Msgf("network: %s", network)
 
-	return NewTFPluginClient(mnemonics, "sr25519", network, "", "", "", true, true)
+	return NewTFPluginClient(mnemonics, "sr25519", network, "", "", "", 0, true, true)
 }
 
 type gatewayWorkloadGenerator interface {
@@ -171,11 +171,11 @@ func TestCreate(t *testing.T) {
 
 	ncPool.EXPECT().
 		GetNodeClient(sub, uint32(10)).
-		Return(client.NewNodeClient(13, cl), nil)
+		Return(client.NewNodeClient(13, cl, tfPluginClient.rmbTimeout), nil)
 
 	ncPool.EXPECT().
 		GetNodeClient(sub, uint32(20)).
-		Return(client.NewNodeClient(23, cl), nil)
+		Return(client.NewNodeClient(23, cl, tfPluginClient.rmbTimeout), nil)
 
 	cl.EXPECT().
 		Call(gomock.Any(), uint32(13), "zos.deployment.deploy", dl1, gomock.Any()).
@@ -275,7 +275,7 @@ func TestUpdate(t *testing.T) {
 
 	ncPool.EXPECT().
 		GetNodeClient(sub, uint32(10)).
-		Return(client.NewNodeClient(13, cl), nil).AnyTimes()
+		Return(client.NewNodeClient(13, cl, tfPluginClient.rmbTimeout), nil).AnyTimes()
 
 	cl.EXPECT().
 		Call(gomock.Any(), uint32(13), "zos.deployment.update", dl2, gomock.Any()).
@@ -348,7 +348,7 @@ func TestCancel(t *testing.T) {
 
 	ncPool.EXPECT().
 		GetNodeClient(sub, uint32(10)).
-		Return(client.NewNodeClient(13, cl), nil).AnyTimes()
+		Return(client.NewNodeClient(13, cl, tfPluginClient.rmbTimeout), nil).AnyTimes()
 
 	err = deployer.Cancel(context.Background(), 100)
 	assert.NoError(t, err)
@@ -459,19 +459,19 @@ func TestCocktail(t *testing.T) {
 
 	ncPool.EXPECT().
 		GetNodeClient(sub, uint32(10)).
-		Return(client.NewNodeClient(13, cl), nil).AnyTimes()
+		Return(client.NewNodeClient(13, cl, tfPluginClient.rmbTimeout), nil).AnyTimes()
 
 	ncPool.EXPECT().
 		GetNodeClient(sub, uint32(20)).
-		Return(client.NewNodeClient(23, cl), nil).AnyTimes()
+		Return(client.NewNodeClient(23, cl, tfPluginClient.rmbTimeout), nil).AnyTimes()
 
 	ncPool.EXPECT().
 		GetNodeClient(sub, uint32(30)).
-		Return(client.NewNodeClient(33, cl), nil).AnyTimes()
+		Return(client.NewNodeClient(33, cl, tfPluginClient.rmbTimeout), nil).AnyTimes()
 
 	ncPool.EXPECT().
 		GetNodeClient(sub, uint32(40)).
-		Return(client.NewNodeClient(43, cl), nil).AnyTimes()
+		Return(client.NewNodeClient(43, cl, tfPluginClient.rmbTimeout), nil).AnyTimes()
 
 	cl.EXPECT().
 		Call(gomock.Any(), uint32(13), "zos.deployment.changes", gomock.Any(), gomock.Any()).

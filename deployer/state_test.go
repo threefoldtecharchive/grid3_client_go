@@ -35,7 +35,7 @@ func SetupLoaderTests(t *testing.T, wls []gridtypes.Workload) *State {
 
 	ncPool.EXPECT().
 		GetNodeClient(sub, uint32(1)).
-		Return(client.NewNodeClient(13, cl), nil).AnyTimes()
+		Return(client.NewNodeClient(13, cl, 10), nil).AnyTimes()
 
 	cl.EXPECT().
 		Call(gomock.Any(), uint32(13), "zos.deployment.get", gomock.Any(), gomock.Any()).
