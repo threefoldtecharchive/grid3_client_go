@@ -138,7 +138,7 @@ func (d *NetworkDeployer) GenerateVersionlessDeployments(ctx context.Context, zn
 	}
 
 	log.Debug().Msgf("hidden nodes: %v", hiddenNodes)
-	log.Debug().Msgf("public node: %v", znet.PublicNodeID)
+	log.Debug().Uint32("public node", znet.PublicNodeID)
 	log.Debug().Msgf("accessible nodes: %v", accessibleNodes)
 	log.Debug().Msgf("non accessible ip ranges: %v", nonAccessibleIPRanges)
 

@@ -4,6 +4,8 @@ package deployer
 import (
 	"context"
 	"fmt"
+	"io"
+	baseLog "log"
 	"os"
 	"strings"
 	"time"
@@ -104,6 +106,7 @@ func NewTFPluginClient(
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 	} else {
 		zerolog.SetGlobalLevel(zerolog.InfoLevel)
+		baseLog.SetOutput(io.Discard)
 	}
 
 	var err error

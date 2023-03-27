@@ -133,7 +133,7 @@ func (d *Deployer) deploy(
 			}
 
 			hash, err := dl.ChallengeHash()
-			log.Debug().Msgf("HASH: %#v", hash)
+			log.Debug().Bytes("HASH", hash)
 
 			if err != nil {
 				return currentDeployments, errors.Wrap(err, "failed to create hash")
@@ -145,10 +145,10 @@ func (d *Deployer) deploy(
 			if err != nil {
 				return currentDeployments, errors.Wrap(err, "failed to count deployment public IPs")
 			}
-			log.Debug().Msgf("Number of public ips: %d", publicIPCount)
+			log.Debug().Uint32("Number of public ips", publicIPCount)
 
 			contractID, err := d.substrateConn.CreateNodeContract(d.identity, node, dl.Metadata, hashHex, publicIPCount, newDeploymentSolutionProvider[node])
-			log.Debug().Msgf("CreateNodeContract returned id: %d", contractID)
+			log.Debug().Uint64("CreateNodeContract returned id", contractID)
 			if err != nil {
 				return currentDeployments, errors.Wrap(err, "failed to create contract")
 			}
@@ -237,13 +237,13 @@ func (d *Deployer) deploy(
 				return currentDeployments, errors.Wrap(err, "deployment is invalid")
 			}
 
-			log.Debug().Msgf("deployment: %+v", dl)
+			log.Debug().Interface("deployment", dl)
 			hash, err := dl.ChallengeHash()
 			if err != nil {
 				return currentDeployments, errors.Wrap(err, "failed to create hash")
 			}
 			hashHex := hex.EncodeToString(hash)
-			log.Debug().Msgf("HASH: %s", hashHex)
+			log.Debug().Str("HASH", hashHex)
 
 			// TODO: Destroy and create if publicIPCount is changed
 			// publicIPCount, err := countDeploymentPublicIPs(dl)

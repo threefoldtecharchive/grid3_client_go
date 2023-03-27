@@ -179,7 +179,7 @@ func (d *K8sDeployer) UpdateFromRemote(ctx context.Context, k8sCluster *workload
 	if err != nil {
 		return errors.Wrap(err, "failed to fetch remote deployments")
 	}
-	zerolog.Debug().Msgf("calling updateFromRemote")
+	zerolog.Debug().Msg("calling updateFromRemote")
 	err = PrintDeployments(currentDeployments)
 	if err != nil {
 		return errors.Wrap(err, "could not print deployments data")
@@ -192,7 +192,7 @@ func (d *K8sDeployer) UpdateFromRemote(ctx context.Context, k8sCluster *workload
 			if w.Type == zos.ZMachineType {
 				d, err := w.WorkloadData()
 				if err != nil {
-					zerolog.Debug().Msgf("failed to get workload data %s", err)
+					zerolog.Error().Err(err).Msg("failed to get workload data")
 				}
 				SSHKey := d.(*zos.ZMachine).Env["SSH_KEY"]
 				token := d.(*zos.ZMachine).Env["K3S_TOKEN"]
@@ -313,7 +313,7 @@ func (d *K8sDeployer) UpdateFromRemote(ctx context.Context, k8sCluster *workload
 		workers = append(workers, w)
 	}
 	k8sCluster.Workers = workers
-	zerolog.Debug().Msgf("after updateFromRemote\n")
+	zerolog.Debug().Msg("after updateFromRemote\n")
 	enc := json.NewEncoder(log.Writer())
 	enc.SetIndent("", "  ")
 	err = enc.Encode(d)

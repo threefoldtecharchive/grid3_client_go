@@ -391,13 +391,13 @@ func (n *NodeClient) GetNodeEndpoint(ctx context.Context) (net.IP, error) {
 	if err == nil && publicConfig.IPv4.IP != nil {
 
 		ip := publicConfig.IPv4.IP
-		log.Debug().Msgf("ip: %s, global unicast: %t, privateIP: %t\n", ip.String(), ip.IsGlobalUnicast(), ip.IsPrivate())
+		log.Debug().Msgf("ip: %s, global unicast: %t, privateIP: %t", ip.String(), ip.IsGlobalUnicast(), ip.IsPrivate())
 		if ip.IsGlobalUnicast() && !ip.IsPrivate() {
 			return ip, nil
 		}
 	} else if err == nil && publicConfig.IPv6.IP != nil {
 		ip := publicConfig.IPv6.IP
-		log.Debug().Msgf("ip: %s, global unicast: %t, privateIP: %t\n", ip.String(), ip.IsGlobalUnicast(), ip.IsPrivate())
+		log.Debug().Msgf("ip: %s, global unicast: %t, privateIP: %t", ip.String(), ip.IsGlobalUnicast(), ip.IsPrivate())
 		if ip.IsGlobalUnicast() && !ip.IsPrivate() {
 			return ip, nil
 		}
@@ -407,14 +407,14 @@ func (n *NodeClient) GetNodeEndpoint(ctx context.Context) (net.IP, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "could not list node interfaces")
 	}
-	log.Debug().Msgf("interface: %v\n", ifs)
+	log.Debug().Msgf("interface: %v", ifs)
 
 	zosIf, ok := ifs["zos"]
 	if !ok {
 		return nil, errors.Wrap(ErrNoAccessibleInterfaceFound, "no zos interface")
 	}
 	for _, ip := range zosIf {
-		log.Debug().Msgf("ip: %s, global unicast: %t, privateIP: %t\n", ip.String(), ip.IsGlobalUnicast(), ip.IsPrivate())
+		log.Debug().Msgf("ip: %s, global unicast: %t, privateIP: %t", ip.String(), ip.IsGlobalUnicast(), ip.IsPrivate())
 		if !ip.IsGlobalUnicast() || ip.IsPrivate() {
 			continue
 		}
