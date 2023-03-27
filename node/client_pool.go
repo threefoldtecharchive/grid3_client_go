@@ -1,8 +1,9 @@
-// Package client for node client
+// Package client provides a simple RMB interface to work with the node.
 package client
 
 import (
 	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/grid3-go/subi"
@@ -18,13 +19,15 @@ type NodeClientGetter interface {
 type NodeClientPool struct {
 	nodeClients sync.Map
 	rmb         rmb.Client
+	timeout     time.Duration
 }
 
 // NewNodeClientPool generates a new client pool
-func NewNodeClientPool(rmb rmb.Client) *NodeClientPool {
+func NewNodeClientPool(rmb rmb.Client, timeout time.Duration) *NodeClientPool {
 	return &NodeClientPool{
 		nodeClients: sync.Map{},
 		rmb:         rmb,
+		timeout:     timeout,
 	}
 }
 
@@ -40,7 +43,7 @@ func (p *NodeClientPool) GetNodeClient(sub subi.SubstrateExt, nodeID uint32) (*N
 		return nil, errors.Wrapf(err, "failed to get node %d", nodeID)
 	}
 
-	cl = NewNodeClient(uint32(twinID), p.rmb)
+	cl = NewNodeClient(uint32(twinID), p.rmb, p.timeout)
 	p.nodeClients.Store(nodeID, cl)
 
 	return cl.(*NodeClient), nil

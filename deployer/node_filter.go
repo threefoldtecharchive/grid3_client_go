@@ -4,10 +4,10 @@ package deployer
 import (
 	"context"
 	"fmt"
-	"log"
 	"net"
 
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 	proxy "github.com/threefoldtech/grid_proxy_server/pkg/client"
 	proxyTypes "github.com/threefoldtech/grid_proxy_server/pkg/types"
 )
@@ -58,7 +58,7 @@ func GetPublicNode(ctx context.Context, gridClient proxy.Client, preferredNodes 
 		}
 		nodeInfo, err := gridClient.Node(node)
 		if err != nil {
-			log.Printf("failed to get node %d from the grid proxy", node)
+			log.Error().Msgf("failed to get node %d from the grid proxy", node)
 			continue
 		}
 		if nodeInfo.PublicConfig.Ipv4 == "" {
