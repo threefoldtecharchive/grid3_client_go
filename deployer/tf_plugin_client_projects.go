@@ -27,7 +27,7 @@ func (t *TFPluginClient) CancelByProjectName(projectName string) error {
 		if err != nil {
 			return errors.Wrapf(err, "could not parse contract %s into uint64", contract.ContractID)
 		}
-		log.Debug().Msgf("canceling contract %d", contractID)
+		log.Debug().Uint64("canceling contract", contractID)
 		err = t.SubstrateConn.CancelContract(t.Identity, contractID)
 		if err != nil {
 			return errors.Wrapf(err, "could not cancel contract %d", contractID)
