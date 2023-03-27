@@ -139,197 +139,172 @@ func constructK8sCluster() (workloads.K8sCluster, error) {
 	return Cluster, nil
 }
 
-func TestValidateMasterReachable(t *testing.T) {
-	d, cl, sub, ncPool, _, proxyCl := constructTestK8s(t, true)
-	k8sMockValidation(d.tfPluginClient.Identity, cl, sub, ncPool, proxyCl, d)
-
-	k8s, err := constructK8sCluster()
+func TestK8sDeployer(t *testing.T) {
+	d, cl, sub, ncPool, deployer, proxyCl := constructTestK8s(t, true)
+	k8sCluster, err := constructK8sCluster()
 	assert.NoError(t, err)
 
-	err = d.assignNodeIPRange(&k8s)
-	assert.NoError(t, err)
+	t.Run("test validate master reachable", func(t *testing.T) {
+		k8sMockValidation(d.tfPluginClient.Identity, cl, sub, ncPool, proxyCl, d)
 
-	err = d.Validate(context.Background(), &k8s)
-	assert.NoError(t, err)
-}
+		err = d.assignNodeIPRange(&k8sCluster)
+		assert.NoError(t, err)
 
-func TestGenerateK8sDeployment(t *testing.T) {
-	d, _, _, _, _, _ := constructTestK8s(t, true)
-	k8s, err := constructK8sCluster()
-	assert.NoError(t, err)
-
-	err = d.assignNodeIPRange(&k8s)
-	assert.NoError(t, err)
-
-	dls, err := d.GenerateVersionlessDeployments(context.Background(), &k8s)
-	assert.NoError(t, err)
-
-	nodeWorkloads := make(map[uint32][]gridtypes.Workload)
-	masterWorkloads := k8s.Master.MasterZosWorkload(&k8s)
-	nodeWorkloads[k8s.Master.Node] = append(nodeWorkloads[k8s.Master.Node], masterWorkloads...)
-	for _, w := range k8s.Workers {
-		workerWorkloads := w.WorkerZosWorkload(&k8s)
-		nodeWorkloads[w.Node] = append(nodeWorkloads[w.Node], workerWorkloads...)
-	}
-
-	wl := nodeWorkloads[nodeID]
-	testDl := workloads.NewGridDeployment(d.tfPluginClient.twinID, wl)
-	testDl.Metadata = "{\"type\":\"kubernetes\",\"name\":\"K8sForTesting\",\"projectName\":\"Kubernetes\"}"
-
-	assert.Equal(t, dls, map[uint32]gridtypes.Deployment{
-		nodeID: testDl,
+		err = d.Validate(context.Background(), &k8sCluster)
+		assert.NoError(t, err)
 	})
-}
 
-func TestDeploy(t *testing.T) {
-	d, cl, sub, ncPool, deployer, proxyCl := constructTestK8s(t, true)
+	t.Run("test generate", func(t *testing.T) {
+		err = d.assignNodeIPRange(&k8sCluster)
+		assert.NoError(t, err)
 
-	k8sCluster, err := constructK8sCluster()
-	assert.NoError(t, err)
+		dls, err := d.GenerateVersionlessDeployments(context.Background(), &k8sCluster)
+		assert.NoError(t, err)
 
-	err = d.assignNodeIPRange(&k8sCluster)
-	assert.NoError(t, err)
+		nodeWorkloads := make(map[uint32][]gridtypes.Workload)
+		masterWorkloads := k8sCluster.Master.MasterZosWorkload(&k8sCluster)
+		nodeWorkloads[k8sCluster.Master.Node] = append(nodeWorkloads[k8sCluster.Master.Node], masterWorkloads...)
+		for _, w := range k8sCluster.Workers {
+			workerWorkloads := w.WorkerZosWorkload(&k8sCluster)
+			nodeWorkloads[w.Node] = append(nodeWorkloads[w.Node], workerWorkloads...)
+		}
 
-	dls, err := d.GenerateVersionlessDeployments(context.Background(), &k8sCluster)
-	assert.NoError(t, err)
+		wl := nodeWorkloads[nodeID]
+		testDl := workloads.NewGridDeployment(d.tfPluginClient.twinID, wl)
+		testDl.Metadata = "{\"type\":\"kubernetes\",\"name\":\"K8sForTesting\",\"projectName\":\"Kubernetes\"}"
 
-	k8sMockValidation(d.tfPluginClient.Identity, cl, sub, ncPool, proxyCl, d)
+		assert.Equal(t, dls, map[uint32]gridtypes.Deployment{
+			nodeID: testDl,
+		})
+	})
 
-	newDeploymentsSolutionProvider := make(map[uint32]*uint64)
-	newDeploymentsSolutionProvider[k8sCluster.Master.Node] = nil
+	t.Run("test deploy", func(t *testing.T) {
+		err = d.assignNodeIPRange(&k8sCluster)
+		assert.NoError(t, err)
 
-	deployer.EXPECT().Deploy(
-		gomock.Any(),
-		k8sCluster.NodeDeploymentID,
-		dls,
-		newDeploymentsSolutionProvider,
-	).Return(map[uint32]uint64{nodeID: contractID}, nil)
+		dls, err := d.GenerateVersionlessDeployments(context.Background(), &k8sCluster)
+		assert.NoError(t, err)
 
-	err = d.Deploy(context.Background(), &k8sCluster)
-	assert.NoError(t, err)
+		k8sMockValidation(d.tfPluginClient.Identity, cl, sub, ncPool, proxyCl, d)
 
-	assert.Equal(t, k8sCluster.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
-}
+		newDeploymentsSolutionProvider := make(map[uint32]*uint64)
+		newDeploymentsSolutionProvider[k8sCluster.Master.Node] = nil
 
-func TestUpdateK8s(t *testing.T) {
-	d, cl, sub, ncPool, deployer, proxyCl := constructTestK8s(t, true)
-	d.tfPluginClient.State.currentNodeDeployments = map[uint32]contractIDs{nodeID: {contractID}}
+		deployer.EXPECT().Deploy(
+			gomock.Any(),
+			k8sCluster.NodeDeploymentID,
+			dls,
+			newDeploymentsSolutionProvider,
+		).Return(map[uint32]uint64{nodeID: contractID}, nil)
 
-	k8sCluster, err := constructK8sCluster()
-	assert.NoError(t, err)
-	k8sCluster.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
+		err = d.Deploy(context.Background(), &k8sCluster)
+		assert.NoError(t, err)
 
-	err = d.assignNodeIPRange(&k8sCluster)
-	assert.NoError(t, err)
+		assert.Equal(t, k8sCluster.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
+	})
 
-	dls, err := d.GenerateVersionlessDeployments(context.Background(), &k8sCluster)
-	assert.NoError(t, err)
+	t.Run("test update", func(t *testing.T) {
+		k8sCluster.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
 
-	k8sMockValidation(d.tfPluginClient.Identity, cl, sub, ncPool, proxyCl, d)
+		err = d.assignNodeIPRange(&k8sCluster)
+		assert.NoError(t, err)
 
-	sub.EXPECT().GetContract(uint64(100)).Return(subi.Contract{
-		Contract: &substrate.Contract{
-			State: substrate.ContractState{IsCreated: true},
-			ContractType: substrate.ContractType{
-				NodeContract: substrate.NodeContract{
-					Node:           types.U32(nodeID),
-					PublicIPsCount: 0,
-				},
-			}},
-	}, nil)
+		dls, err := d.GenerateVersionlessDeployments(context.Background(), &k8sCluster)
+		assert.NoError(t, err)
 
-	deployer.EXPECT().Deploy(
-		gomock.Any(),
-		map[uint32]uint64{nodeID: contractID},
-		dls,
-		gomock.Any(),
-	).Return(map[uint32]uint64{nodeID: contractID}, nil)
+		k8sMockValidation(d.tfPluginClient.Identity, cl, sub, ncPool, proxyCl, d)
 
-	err = d.Deploy(context.Background(), &k8sCluster)
-	assert.NoError(t, err)
-	assert.Equal(t, k8sCluster.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
-	assert.Equal(t, d.tfPluginClient.State.currentNodeDeployments, map[uint32]contractIDs{nodeID: {contractID}})
-}
+		sub.EXPECT().GetContract(uint64(100)).Return(subi.Contract{
+			Contract: &substrate.Contract{
+				State: substrate.ContractState{IsCreated: true},
+				ContractType: substrate.ContractType{
+					NodeContract: substrate.NodeContract{
+						Node:           types.U32(nodeID),
+						PublicIPsCount: 0,
+					},
+				}},
+		}, nil)
 
-func TestUpdateK8sFailed(t *testing.T) {
-	d, cl, sub, ncPool, deployer, proxyCl := constructTestK8s(t, true)
-	d.tfPluginClient.State.currentNodeDeployments = map[uint32]contractIDs{nodeID: {contractID}}
+		deployer.EXPECT().Deploy(
+			gomock.Any(),
+			map[uint32]uint64{nodeID: contractID},
+			dls,
+			gomock.Any(),
+		).Return(map[uint32]uint64{nodeID: contractID}, nil)
 
-	k8sCluster, err := constructK8sCluster()
-	assert.NoError(t, err)
-	k8sCluster.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
+		err = d.Deploy(context.Background(), &k8sCluster)
+		assert.NoError(t, err)
+		assert.Equal(t, k8sCluster.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
+		assert.Equal(t, d.tfPluginClient.State.currentNodeDeployments, map[uint32]contractIDs{nodeID: {contractID}})
+	})
 
-	err = d.assignNodeIPRange(&k8sCluster)
-	assert.NoError(t, err)
+	t.Run("test update failed", func(t *testing.T) {
+		d.tfPluginClient.State.currentNodeDeployments = map[uint32]contractIDs{nodeID: {contractID}}
+		k8sCluster.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
 
-	dls, err := d.GenerateVersionlessDeployments(context.Background(), &k8sCluster)
-	assert.NoError(t, err)
+		err = d.assignNodeIPRange(&k8sCluster)
+		assert.NoError(t, err)
 
-	k8sMockValidation(d.tfPluginClient.Identity, cl, sub, ncPool, proxyCl, d)
+		dls, err := d.GenerateVersionlessDeployments(context.Background(), &k8sCluster)
+		assert.NoError(t, err)
 
-	sub.EXPECT().GetContract(uint64(100)).Return(subi.Contract{
-		Contract: &substrate.Contract{
-			State: substrate.ContractState{IsCreated: true},
-			ContractType: substrate.ContractType{
-				NodeContract: substrate.NodeContract{
-					Node:           types.U32(nodeID),
-					PublicIPsCount: 0,
-				},
-			}},
-	}, nil)
+		k8sMockValidation(d.tfPluginClient.Identity, cl, sub, ncPool, proxyCl, d)
 
-	deployer.EXPECT().Deploy(
-		gomock.Any(),
-		map[uint32]uint64{nodeID: contractID},
-		dls,
-		gomock.Any(),
-	).Return(map[uint32]uint64{nodeID: contractID}, errors.New("error"))
+		sub.EXPECT().GetContract(uint64(100)).Return(subi.Contract{
+			Contract: &substrate.Contract{
+				State: substrate.ContractState{IsCreated: true},
+				ContractType: substrate.ContractType{
+					NodeContract: substrate.NodeContract{
+						Node:           types.U32(nodeID),
+						PublicIPsCount: 0,
+					},
+				}},
+		}, nil)
 
-	err = d.Deploy(context.Background(), &k8sCluster)
-	assert.Error(t, err)
-	assert.Equal(t, k8sCluster.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
-	assert.Equal(t, d.tfPluginClient.State.currentNodeDeployments, map[uint32]contractIDs{nodeID: {contractID}})
-}
+		deployer.EXPECT().Deploy(
+			gomock.Any(),
+			map[uint32]uint64{nodeID: contractID},
+			dls,
+			gomock.Any(),
+		).Return(map[uint32]uint64{nodeID: contractID}, errors.New("error"))
 
-func TestCancelK8s(t *testing.T) {
-	d, cl, sub, ncPool, deployer, proxyCl := constructTestK8s(t, true)
-	d.tfPluginClient.State.currentNodeDeployments = map[uint32]contractIDs{nodeID: {contractID}}
+		err = d.Deploy(context.Background(), &k8sCluster)
+		assert.Error(t, err)
+		assert.Equal(t, k8sCluster.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
+		assert.Equal(t, d.tfPluginClient.State.currentNodeDeployments, map[uint32]contractIDs{nodeID: {contractID}})
+	})
 
-	k8sCluster, err := constructK8sCluster()
-	assert.NoError(t, err)
-	k8sCluster.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
-	k8sCluster.NodesIPRange = map[uint32]gridtypes.IPNet{uint32(10): {}}
+	t.Run("test cancel", func(t *testing.T) {
+		d.tfPluginClient.State.currentNodeDeployments = map[uint32]contractIDs{nodeID: {contractID}}
+		k8sCluster.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
+		k8sCluster.NodesIPRange = map[uint32]gridtypes.IPNet{uint32(10): {}}
 
-	k8sMockValidation(d.tfPluginClient.Identity, cl, sub, ncPool, proxyCl, d)
+		k8sMockValidation(d.tfPluginClient.Identity, cl, sub, ncPool, proxyCl, d)
 
-	deployer.EXPECT().Cancel(
-		gomock.Any(), contractID,
-	).Return(nil).AnyTimes()
+		deployer.EXPECT().Cancel(
+			gomock.Any(), contractID,
+		).Return(nil)
 
-	err = d.Cancel(context.Background(), &k8sCluster)
-	assert.NoError(t, err)
-	assert.Empty(t, k8sCluster.NodeDeploymentID)
-	assert.Empty(t, d.tfPluginClient.State.currentNodeDeployments[nodeID])
-}
+		err = d.Cancel(context.Background(), &k8sCluster)
+		assert.NoError(t, err)
+		assert.Empty(t, k8sCluster.NodeDeploymentID)
+		assert.Empty(t, d.tfPluginClient.State.currentNodeDeployments[nodeID])
+	})
 
-func TestCancelK8sFailed(t *testing.T) {
-	d, cl, sub, ncPool, deployer, proxyCl := constructTestK8s(t, true)
-	d.tfPluginClient.State.currentNodeDeployments = map[uint32]contractIDs{nodeID: {contractID}}
+	t.Run("test cancel failed", func(t *testing.T) {
+		d.tfPluginClient.State.currentNodeDeployments = map[uint32]contractIDs{nodeID: {contractID}}
+		k8sCluster.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
+		k8sCluster.NodesIPRange = map[uint32]gridtypes.IPNet{uint32(10): {}}
 
-	k8sCluster, err := constructK8sCluster()
-	assert.NoError(t, err)
-	k8sCluster.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
-	k8sCluster.NodesIPRange = map[uint32]gridtypes.IPNet{uint32(10): {}}
+		k8sMockValidation(d.tfPluginClient.Identity, cl, sub, ncPool, proxyCl, d)
 
-	k8sMockValidation(d.tfPluginClient.Identity, cl, sub, ncPool, proxyCl, d)
+		deployer.EXPECT().Cancel(
+			gomock.Any(), contractID,
+		).Return(errors.New("error"))
 
-	deployer.EXPECT().Cancel(
-		gomock.Any(), contractID,
-	).Return(errors.New("error"))
-
-	err = d.Cancel(context.Background(), &k8sCluster)
-	assert.Error(t, err)
-	assert.Equal(t, k8sCluster.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
-	assert.Equal(t, d.tfPluginClient.State.currentNodeDeployments, map[uint32]contractIDs{nodeID: {contractID}})
-
+		err = d.Cancel(context.Background(), &k8sCluster)
+		assert.Error(t, err)
+		assert.Equal(t, k8sCluster.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
+		assert.Equal(t, d.tfPluginClient.State.currentNodeDeployments, map[uint32]contractIDs{nodeID: {contractID}})
+	})
 }
