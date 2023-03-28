@@ -113,7 +113,7 @@ func NewTFPluginClient(
 	tfPluginClient := TFPluginClient{}
 
 	if valid := validateMnemonics(mnemonics); !valid {
-		return TFPluginClient{}, errors.Wrapf(err, "mnemonics %s is invalid", mnemonics)
+		return TFPluginClient{}, fmt.Errorf("mnemonics %s is invalid", mnemonics)
 	}
 	tfPluginClient.mnemonics = mnemonics
 
