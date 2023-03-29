@@ -3,6 +3,7 @@ package deployer
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/pkg/errors"
 	client "github.com/threefoldtech/grid3-go/node"
@@ -36,6 +37,21 @@ func (d *GatewayFQDNDeployer) Validate(ctx context.Context, gw *workloads.Gatewa
 	if err := validateAccountBalanceForExtrinsics(sub, d.tfPluginClient.Identity); err != nil {
 		return err
 	}
+
+	nodeClient, err := d.tfPluginClient.NcPool.GetNodeClient(sub, gw.NodeID)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get node client with ID %d", gw.NodeID)
+	}
+
+	cfg, err := nodeClient.NetworkGetPublicConfig(ctx)
+	if err != nil {
+		return errors.Wrapf(err, "couldn't get node %d public config", gw.NodeID)
+	}
+
+	if cfg.IPv4.IP == nil {
+		return fmt.Errorf("node %d doesn't contain a public IP in its public config", gw.NodeID)
+	}
+
 	return client.AreNodesUp(ctx, sub, []uint32{gw.NodeID}, d.tfPluginClient.NcPool)
 }
 
