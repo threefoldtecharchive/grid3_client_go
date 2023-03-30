@@ -41,8 +41,8 @@ func NewState(ncPool client.NodeClientGetter, substrate subi.SubstrateExt) *Stat
 }
 
 // LoadDiskFromGrid loads a disk from grid
-func (l *State) LoadDiskFromGrid(nodeID uint32, name string, deploymentName string) (workloads.Disk, error) {
-	wl, dl, err := l.GetWorkloadInDeployment(nodeID, name, deploymentName)
+func (st *State) LoadDiskFromGrid(nodeID uint32, name string, deploymentName string) (workloads.Disk, error) {
+	wl, dl, err := st.GetWorkloadInDeployment(nodeID, name, deploymentName)
 	if err != nil {
 		return workloads.Disk{}, errors.Wrapf(err, "could not get workload from node %d within deployment %v", nodeID, dl)
 	}
@@ -51,8 +51,8 @@ func (l *State) LoadDiskFromGrid(nodeID uint32, name string, deploymentName stri
 }
 
 // LoadGatewayFQDNFromGrid loads a gateway FQDN proxy from grid
-func (l *State) LoadGatewayFQDNFromGrid(nodeID uint32, name string, deploymentName string) (workloads.GatewayFQDNProxy, error) {
-	wl, dl, err := l.GetWorkloadInDeployment(nodeID, name, deploymentName)
+func (st *State) LoadGatewayFQDNFromGrid(nodeID uint32, name string, deploymentName string) (workloads.GatewayFQDNProxy, error) {
+	wl, dl, err := st.GetWorkloadInDeployment(nodeID, name, deploymentName)
 	if err != nil {
 		return workloads.GatewayFQDNProxy{}, errors.Wrapf(err, "could not get workload from node %d within deployment %v", nodeID, dl)
 	}
@@ -61,8 +61,8 @@ func (l *State) LoadGatewayFQDNFromGrid(nodeID uint32, name string, deploymentNa
 }
 
 // LoadQSFSFromGrid loads a QSFS from grid
-func (l *State) LoadQSFSFromGrid(nodeID uint32, name string, deploymentName string) (workloads.QSFS, error) {
-	wl, dl, err := l.GetWorkloadInDeployment(nodeID, name, deploymentName)
+func (st *State) LoadQSFSFromGrid(nodeID uint32, name string, deploymentName string) (workloads.QSFS, error) {
+	wl, dl, err := st.GetWorkloadInDeployment(nodeID, name, deploymentName)
 	if err != nil {
 		return workloads.QSFS{}, errors.Wrapf(err, "could not get workload from node %d within deployment %v", nodeID, dl)
 	}
@@ -71,8 +71,8 @@ func (l *State) LoadQSFSFromGrid(nodeID uint32, name string, deploymentName stri
 }
 
 // LoadGatewayNameFromGrid loads a gateway name proxy from grid
-func (l *State) LoadGatewayNameFromGrid(nodeID uint32, name string, deploymentName string) (workloads.GatewayNameProxy, error) {
-	wl, dl, err := l.GetWorkloadInDeployment(nodeID, name, deploymentName)
+func (st *State) LoadGatewayNameFromGrid(nodeID uint32, name string, deploymentName string) (workloads.GatewayNameProxy, error) {
+	wl, dl, err := st.GetWorkloadInDeployment(nodeID, name, deploymentName)
 	if err != nil {
 		return workloads.GatewayNameProxy{}, errors.Wrapf(err, "could not get workload from node %d within deployment %v", nodeID, dl)
 	}
@@ -81,8 +81,8 @@ func (l *State) LoadGatewayNameFromGrid(nodeID uint32, name string, deploymentNa
 }
 
 // LoadZdbFromGrid loads a zdb from grid
-func (l *State) LoadZdbFromGrid(nodeID uint32, name string, deploymentName string) (workloads.ZDB, error) {
-	wl, dl, err := l.GetWorkloadInDeployment(nodeID, name, deploymentName)
+func (st *State) LoadZdbFromGrid(nodeID uint32, name string, deploymentName string) (workloads.ZDB, error) {
+	wl, dl, err := st.GetWorkloadInDeployment(nodeID, name, deploymentName)
 	if err != nil {
 		return workloads.ZDB{}, errors.Wrapf(err, "could not get workload from node %d within deployment %v", nodeID, dl)
 	}
@@ -91,8 +91,8 @@ func (l *State) LoadZdbFromGrid(nodeID uint32, name string, deploymentName strin
 }
 
 // LoadVMFromGrid loads a vm from a grid
-func (l *State) LoadVMFromGrid(nodeID uint32, name string, deploymentName string) (workloads.VM, error) {
-	wl, dl, err := l.GetWorkloadInDeployment(nodeID, name, deploymentName)
+func (st *State) LoadVMFromGrid(nodeID uint32, name string, deploymentName string) (workloads.VM, error) {
+	wl, dl, err := st.GetWorkloadInDeployment(nodeID, name, deploymentName)
 	if err != nil {
 		return workloads.VM{}, errors.Wrapf(err, "could not get workload from node %d", nodeID)
 	}
@@ -101,16 +101,16 @@ func (l *State) LoadVMFromGrid(nodeID uint32, name string, deploymentName string
 }
 
 // LoadK8sFromGrid loads k8s from grid
-func (l *State) LoadK8sFromGrid(masterNode map[uint32]string, workerNodes map[uint32][]string, deploymentName string) (workloads.K8sCluster, error) {
+func (st *State) LoadK8sFromGrid(masterNode map[uint32]string, workerNodes map[uint32][]string, deploymentName string) (workloads.K8sCluster, error) {
 	cluster := workloads.K8sCluster{}
 
 	for nodeID, name := range masterNode {
-		wl, dl, err := l.GetWorkloadInDeployment(nodeID, name, deploymentName)
+		wl, dl, err := st.GetWorkloadInDeployment(nodeID, name, deploymentName)
 		if err != nil {
 			return workloads.K8sCluster{}, errors.Wrapf(err, "could not get workload %s", name)
 		}
 
-		workloadDiskSize, workloadComputedIP, workloadComputedIP6, err := l.computeK8sDeploymentResources(nodeID, dl)
+		workloadDiskSize, workloadComputedIP, workloadComputedIP6, err := st.computeK8sDeploymentResources(nodeID, dl)
 		if err != nil {
 			return workloads.K8sCluster{}, errors.Wrapf(err, "could not compute master %s, resources", name)
 		}
@@ -125,12 +125,12 @@ func (l *State) LoadK8sFromGrid(masterNode map[uint32]string, workerNodes map[ui
 
 	for nodeID, workerNames := range workerNodes {
 		for _, name := range workerNames {
-			wl, dl, err := l.GetWorkloadInDeployment(nodeID, name, deploymentName)
+			wl, dl, err := st.GetWorkloadInDeployment(nodeID, name, deploymentName)
 			if err != nil {
 				return workloads.K8sCluster{}, errors.Wrapf(err, "could not get workload %s", name)
 			}
 
-			workloadDiskSize, workloadComputedIP, workloadComputedIP6, err := l.computeK8sDeploymentResources(nodeID, dl)
+			workloadDiskSize, workloadComputedIP, workloadComputedIP6, err := st.computeK8sDeploymentResources(nodeID, dl)
 			if err != nil {
 				return workloads.K8sCluster{}, errors.Wrapf(err, "could not compute worker %s, resources", name)
 			}
@@ -146,7 +146,7 @@ func (l *State) LoadK8sFromGrid(masterNode map[uint32]string, workerNodes map[ui
 	return cluster, nil
 }
 
-func (l *State) computeK8sDeploymentResources(nodeID uint32, dl gridtypes.Deployment) (
+func (st *State) computeK8sDeploymentResources(nodeID uint32, dl gridtypes.Deployment) (
 	workloadDiskSize map[string]int,
 	workloadComputedIP map[string]string,
 	workloadComputedIP6 map[string]string,
@@ -195,15 +195,15 @@ func (l *State) computeK8sDeploymentResources(nodeID uint32, dl gridtypes.Deploy
 }
 
 // LoadNetworkFromGrid loads a network from grid
-func (l *State) LoadNetworkFromGrid(name string) (znet workloads.ZNet, err error) {
-	sub := l.substrate
-	for nodeID := range l.currentNodeNetworks {
-		nodeClient, err := l.ncPool.GetNodeClient(sub, nodeID)
+func (st *State) LoadNetworkFromGrid(name string) (znet workloads.ZNet, err error) {
+	sub := st.substrate
+	for nodeID := range st.currentNodeNetworks {
+		nodeClient, err := st.ncPool.GetNodeClient(sub, nodeID)
 		if err != nil {
 			return znet, errors.Wrapf(err, "could not get node client: %d", nodeID)
 		}
 
-		for _, contractID := range l.currentNodeNetworks[nodeID] {
+		for _, contractID := range st.currentNodeNetworks[nodeID] {
 			dl, err := nodeClient.DeploymentGet(context.Background(), contractID)
 			if err != nil {
 				return znet, errors.Wrapf(err, "could not get network deployment %d from node %d", contractID, nodeID)
@@ -229,10 +229,10 @@ func (l *State) LoadNetworkFromGrid(name string) (znet workloads.ZNet, err error
 }
 
 // GetWorkloadInDeployment return a workload in a deployment using their names and node ID
-func (l *State) GetWorkloadInDeployment(nodeID uint32, name string, deploymentName string) (gridtypes.Workload, gridtypes.Deployment, error) {
-	sub := l.substrate
-	if contractIDs, ok := l.currentNodeDeployments[nodeID]; ok {
-		nodeClient, err := l.ncPool.GetNodeClient(sub, nodeID)
+func (st *State) GetWorkloadInDeployment(nodeID uint32, name string, deploymentName string) (gridtypes.Workload, gridtypes.Deployment, error) {
+	sub := st.substrate
+	if contractIDs, ok := st.currentNodeDeployments[nodeID]; ok {
+		nodeClient, err := st.ncPool.GetNodeClient(sub, nodeID)
 		if err != nil {
 			return gridtypes.Workload{}, gridtypes.Deployment{}, errors.Wrapf(err, "could not get node client: %d", nodeID)
 		}
@@ -261,4 +261,14 @@ func (l *State) GetWorkloadInDeployment(nodeID uint32, name string, deploymentNa
 		return gridtypes.Workload{}, gridtypes.Deployment{}, fmt.Errorf("could not get workload with name %s", name)
 	}
 	return gridtypes.Workload{}, gridtypes.Deployment{}, fmt.Errorf("could not get workload '%s' with node ID %d", name, nodeID)
+}
+
+// GetNetworks gets state networks
+func (st *State) GetNetworks() NetworkState {
+	return st.networks
+}
+
+// SetNetworks sets state networks
+func (st *State) SetNetworks(networks NetworkState) {
+	st.networks = networks
 }
