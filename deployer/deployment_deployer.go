@@ -131,8 +131,8 @@ func (d *DeploymentDeployer) Sync(ctx context.Context, dl *workloads.Deployment)
 	qsfs := make([]workloads.QSFS, 0)
 	disks := make([]workloads.Disk, 0)
 
-	network := d.tfPluginClient.State.networks.getNetwork(dl.NetworkName)
-	network.deleteDeploymentHostIDs(dl.NodeID, dl.ContractID)
+	network := d.tfPluginClient.State.networks.GetNetwork(dl.NetworkName)
+	network.DeleteDeploymentHostIDs(dl.NodeID, dl.ContractID)
 
 	usedIPs := []byte{}
 	for _, w := range deployment.Workloads {
@@ -180,8 +180,8 @@ func (d *DeploymentDeployer) Sync(ctx context.Context, dl *workloads.Deployment)
 		}
 	}
 
-	network = d.tfPluginClient.State.networks.getNetwork(dl.NetworkName)
-	network.setDeploymentHostIDs(dl.NodeID, dl.ContractID, usedIPs)
+	network = d.tfPluginClient.State.networks.GetNetwork(dl.NetworkName)
+	network.SetDeploymentHostIDs(dl.NodeID, dl.ContractID, usedIPs)
 
 	dl.Match(disks, qsfs, zdbs, vms)
 
@@ -205,7 +205,7 @@ func (d *DeploymentDeployer) Validate(ctx context.Context, dl *workloads.Deploym
 }
 
 func (d *DeploymentDeployer) assignNodesIPs(dl *workloads.Deployment) error {
-	network := d.tfPluginClient.State.networks.getNetwork(dl.NetworkName)
+	network := d.tfPluginClient.State.networks.GetNetwork(dl.NetworkName)
 	ipRange := network.getNodeSubnet(dl.NodeID)
 
 	usedHosts := network.getUsedNetworkHostIDs(dl.NodeID)

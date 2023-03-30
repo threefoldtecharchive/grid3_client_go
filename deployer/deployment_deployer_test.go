@@ -306,9 +306,9 @@ func TestDeploymentDeployer(t *testing.T) {
 		networkDl := workloads.NewGridDeployment(twinID, []gridtypes.Workload{workload})
 
 		d.tfPluginClient.State.currentNodeNetworks[nodeID] = append(d.tfPluginClient.State.currentNodeNetworks[nodeID], contractID)
-		d.tfPluginClient.State.networks = networkState{net.Name: network{
-			subnets:               map[uint32]string{nodeID: net.IPRange.String()},
-			nodeDeploymentHostIDs: map[uint32]deploymentHostIDs{nodeID: map[uint64][]byte{contractID: {}}},
+		d.tfPluginClient.State.networks = NetworkState{net.Name: Network{
+			Subnets:               map[uint32]string{nodeID: net.IPRange.String()},
+			NodeDeploymentHostIDs: map[uint32]DeploymentHostIDs{nodeID: map[uint64][]byte{contractID: {}}},
 		}}
 
 		ncPool.EXPECT().
@@ -334,12 +334,12 @@ func TestDeploymentDeployer(t *testing.T) {
 		net := constructTestNetwork()
 
 		d.tfPluginClient.State.currentNodeNetworks[nodeID] = append(d.tfPluginClient.State.currentNodeNetworks[nodeID], contractID)
-		d.tfPluginClient.State.networks = networkState{
-			net.Name: network{
-				subnets: map[uint32]string{
+		d.tfPluginClient.State.networks = NetworkState{
+			net.Name: Network{
+				Subnets: map[uint32]string{
 					nodeID: net.IPRange.String(),
 				},
-				nodeDeploymentHostIDs: make(nodeDeploymentHostIDs),
+				NodeDeploymentHostIDs: make(NodeDeploymentHostIDs),
 			},
 		}
 		dls, err := d.GenerateVersionlessDeployments(context.Background(), &dl)
@@ -489,12 +489,12 @@ func TestDeploymentDeployer(t *testing.T) {
 		networkDl := workloads.NewGridDeployment(twinID, []gridtypes.Workload{workload})
 
 		d.tfPluginClient.State.currentNodeNetworks[nodeID] = append(d.tfPluginClient.State.currentNodeNetworks[nodeID], contractID)
-		d.tfPluginClient.State.networks = networkState{
-			net.Name: network{
-				subnets: map[uint32]string{
+		d.tfPluginClient.State.networks = NetworkState{
+			net.Name: Network{
+				Subnets: map[uint32]string{
 					nodeID: net.IPRange.String(),
 				},
-				nodeDeploymentHostIDs: make(nodeDeploymentHostIDs),
+				NodeDeploymentHostIDs: make(NodeDeploymentHostIDs),
 			},
 		}
 

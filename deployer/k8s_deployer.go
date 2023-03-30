@@ -381,7 +381,7 @@ func (d *K8sDeployer) assignNodesIPs(k8sCluster *workloads.K8sCluster) error {
 }
 
 func (d *K8sDeployer) assignNodeIPRange(k8sCluster *workloads.K8sCluster) (err error) {
-	network := d.tfPluginClient.State.networks.getNetwork(k8sCluster.NetworkName)
+	network := d.tfPluginClient.State.networks.GetNetwork(k8sCluster.NetworkName)
 	nodesIPRange := make(map[uint32]gridtypes.IPNet)
 	nodesIPRange[k8sCluster.Master.Node], err = gridtypes.ParseIPNet(network.getNodeSubnet(k8sCluster.Master.Node))
 	if err != nil {

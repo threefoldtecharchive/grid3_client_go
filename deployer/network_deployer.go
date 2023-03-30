@@ -47,7 +47,7 @@ func (d *NetworkDeployer) Validate(ctx context.Context, znet *workloads.ZNet) er
 		return err
 	}
 
-	return d.invalidateBrokenAttributes(znet)
+	return d.InvalidateBrokenAttributes(znet)
 }
 
 // GenerateVersionlessDeployments generates deployments for network deployer without versions
@@ -274,7 +274,7 @@ func (d *NetworkDeployer) Deploy(ctx context.Context, znet *workloads.ZNet) erro
 	// error is not returned immediately before updating state because of untracked failed deployments
 	for _, nodeID := range znet.Nodes {
 		if contractID, ok := znet.NodeDeploymentID[nodeID]; ok && contractID != 0 {
-			d.tfPluginClient.State.networks.updateNetwork(znet.Name, znet.NodesIPRange)
+			d.tfPluginClient.State.networks.UpdateNetwork(znet.Name, znet.NodesIPRange)
 			if !workloads.Contains(d.tfPluginClient.State.currentNodeDeployments[nodeID], znet.NodeDeploymentID[nodeID]) {
 				d.tfPluginClient.State.currentNodeNetworks[nodeID] = append(d.tfPluginClient.State.currentNodeNetworks[nodeID], znet.NodeDeploymentID[nodeID])
 			}
@@ -285,7 +285,7 @@ func (d *NetworkDeployer) Deploy(ctx context.Context, znet *workloads.ZNet) erro
 		return errors.Wrapf(err, "could not deploy network %s", znet.Name)
 	}
 
-	if err := d.readNodesConfig(ctx, znet); err != nil {
+	if err := d.ReadNodesConfig(ctx, znet); err != nil {
 		return errors.Wrap(err, "could not read node's data")
 	}
 
@@ -311,17 +311,17 @@ func (d *NetworkDeployer) Cancel(ctx context.Context, znet *workloads.ZNet) erro
 	}
 
 	// delete network from state if all contracts was deleted
-	d.tfPluginClient.State.networks.deleteNetwork(znet.Name)
+	d.tfPluginClient.State.networks.DeleteNetwork(znet.Name)
 
-	if err := d.readNodesConfig(ctx, znet); err != nil {
+	if err := d.ReadNodesConfig(ctx, znet); err != nil {
 		return errors.Wrap(err, "could not read node's data")
 	}
 
 	return nil
 }
 
-// invalidateBrokenAttributes removes outdated attrs and deleted contracts
-func (d *NetworkDeployer) invalidateBrokenAttributes(znet *workloads.ZNet) error {
+// InvalidateBrokenAttributes removes outdated attrs and deleted contracts
+func (d *NetworkDeployer) InvalidateBrokenAttributes(znet *workloads.ZNet) error {
 	for node, contractID := range znet.NodeDeploymentID {
 		contract, err := d.tfPluginClient.SubstrateConn.GetContract(contractID)
 		if (err == nil && !contract.IsCreated()) || errors.Is(err, substrate.ErrNotFound) {
@@ -359,7 +359,8 @@ func (d *NetworkDeployer) invalidateBrokenAttributes(znet *workloads.ZNet) error
 	return nil
 }
 
-func (d *NetworkDeployer) readNodesConfig(ctx context.Context, znet *workloads.ZNet) error {
+// ReadNodesConfig reads the configuration of a network
+func (d *NetworkDeployer) ReadNodesConfig(ctx context.Context, znet *workloads.ZNet) error {
 	keys := make(map[uint32]wgtypes.Key)
 	WGPort := make(map[uint32]int)
 	nodesIPRange := make(map[uint32]gridtypes.IPNet)

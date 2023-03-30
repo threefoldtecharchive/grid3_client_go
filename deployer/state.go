@@ -23,7 +23,7 @@ type State struct {
 	// TODO: remove it and merge with deployments
 	currentNodeNetworks map[uint32]contractIDs
 
-	networks networkState
+	networks NetworkState
 
 	ncPool    client.NodeClientGetter
 	substrate subi.SubstrateExt
@@ -34,7 +34,7 @@ func NewState(ncPool client.NodeClientGetter, substrate subi.SubstrateExt) *Stat
 	return &State{
 		currentNodeDeployments: make(map[uint32]contractIDs),
 		currentNodeNetworks:    make(map[uint32]contractIDs),
-		networks:               networkState{},
+		networks:               NetworkState{},
 		ncPool:                 ncPool,
 		substrate:              substrate,
 	}
