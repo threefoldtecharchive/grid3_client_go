@@ -94,8 +94,7 @@ func (d *DeploymentDeployer) Cancel(ctx context.Context, dl *workloads.Deploymen
 		return err
 	}
 
-	contractID := dl.NodeDeploymentID[dl.NodeID]
-	err := d.deployer.Cancel(ctx, contractID)
+	err := d.deployer.Cancel(ctx, dl.ContractID)
 	if err != nil {
 		return err
 	}
@@ -103,7 +102,7 @@ func (d *DeploymentDeployer) Cancel(ctx context.Context, dl *workloads.Deploymen
 	// update state
 	dl.ContractID = 0
 	delete(dl.NodeDeploymentID, dl.NodeID)
-	d.tfPluginClient.State.currentNodeDeployments[dl.NodeID] = workloads.Delete(d.tfPluginClient.State.currentNodeDeployments[dl.NodeID], contractID)
+	d.tfPluginClient.State.currentNodeDeployments[dl.NodeID] = workloads.Delete(d.tfPluginClient.State.currentNodeDeployments[dl.NodeID], dl.ContractID)
 
 	return nil
 }

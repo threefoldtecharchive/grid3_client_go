@@ -36,6 +36,11 @@ func NewK8sDeployer(tfPluginClient *TFPluginClient) K8sDeployer {
 // Validate validates K8s deployer
 func (d *K8sDeployer) Validate(ctx context.Context, k8sCluster *workloads.K8sCluster) error {
 	sub := d.tfPluginClient.SubstrateConn
+
+	if err := d.assignNodeIPRange(k8sCluster); err != nil {
+		return err
+	}
+
 	if err := validateAccountBalanceForExtrinsics(sub, d.tfPluginClient.Identity); err != nil {
 		return err
 	}
