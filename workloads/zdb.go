@@ -78,7 +78,13 @@ func (z *ZDB) ToMap() map[string]interface{} {
 	res["description"] = z.Description
 	res["size"] = z.Size
 	res["mode"] = z.Mode
-	res["ips"] = z.IPs
+
+	var ips []interface{}
+	for _, ip := range z.IPs {
+		ips = append(ips, ip)
+	}
+
+	res["ips"] = ips
 	res["namespace"] = z.Namespace
 	res["port"] = int(z.Port)
 	res["password"] = z.Password
