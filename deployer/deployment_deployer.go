@@ -100,9 +100,9 @@ func (d *DeploymentDeployer) Cancel(ctx context.Context, dl *workloads.Deploymen
 	}
 
 	// update state
-	dl.ContractID = 0
 	delete(dl.NodeDeploymentID, dl.NodeID)
 	d.tfPluginClient.State.currentNodeDeployments[dl.NodeID] = workloads.Delete(d.tfPluginClient.State.currentNodeDeployments[dl.NodeID], dl.ContractID)
+	dl.ContractID = 0
 
 	return nil
 }
