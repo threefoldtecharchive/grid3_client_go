@@ -68,7 +68,7 @@ err = tfPluginClient.DeploymentDeployer.Deploy(ctx, &dl)
 vmObj, err := tfPluginClient.State.LoadVMFromGrid(nodeID, vm.Name, dl.Name)
 
 // Cancel the VM deployment
-err = tfPluginClient.NetworkDeployer.Cancel(ctx, &dl)
+err = tfPluginClient.DeploymentDeployer.Cancel(ctx, &dl)
 
 // Cancel the network
 err = tfPluginClient.NetworkDeployer.Cancel(ctx, &network)
