@@ -172,11 +172,11 @@ func TestDeployer(t *testing.T) {
 
 		ncPool.EXPECT().
 			GetNodeClient(sub, uint32(10)).
-			Return(client.NewNodeClient(13, cl, tfPluginClient.rmbTimeout), nil)
+			Return(client.NewNodeClient(13, cl, tfPluginClient.RMBTimeout), nil)
 
 		ncPool.EXPECT().
 			GetNodeClient(sub, uint32(20)).
-			Return(client.NewNodeClient(23, cl, tfPluginClient.rmbTimeout), nil)
+			Return(client.NewNodeClient(23, cl, tfPluginClient.RMBTimeout), nil)
 
 		cl.EXPECT().
 			Call(gomock.Any(), uint32(13), "zos.deployment.deploy", dl1, gomock.Any()).
@@ -254,7 +254,7 @@ func TestDeployer(t *testing.T) {
 
 		ncPool.EXPECT().
 			GetNodeClient(sub, uint32(10)).
-			Return(client.NewNodeClient(13, cl, tfPluginClient.rmbTimeout), nil).AnyTimes()
+			Return(client.NewNodeClient(13, cl, tfPluginClient.RMBTimeout), nil).AnyTimes()
 
 		cl.EXPECT().
 			Call(gomock.Any(), uint32(13), "zos.deployment.update", dl2, gomock.Any()).
@@ -305,7 +305,7 @@ func TestDeployer(t *testing.T) {
 
 		ncPool.EXPECT().
 			GetNodeClient(sub, uint32(10)).
-			Return(client.NewNodeClient(13, cl, tfPluginClient.rmbTimeout), nil).AnyTimes()
+			Return(client.NewNodeClient(13, cl, tfPluginClient.RMBTimeout), nil).AnyTimes()
 
 		err = deployer.Cancel(context.Background(), 100)
 		assert.NoError(t, err)
@@ -394,19 +394,19 @@ func TestDeployer(t *testing.T) {
 
 		ncPool.EXPECT().
 			GetNodeClient(sub, uint32(10)).
-			Return(client.NewNodeClient(13, cl, tfPluginClient.rmbTimeout), nil).AnyTimes()
+			Return(client.NewNodeClient(13, cl, tfPluginClient.RMBTimeout), nil).AnyTimes()
 
 		ncPool.EXPECT().
 			GetNodeClient(sub, uint32(20)).
-			Return(client.NewNodeClient(23, cl, tfPluginClient.rmbTimeout), nil).AnyTimes()
+			Return(client.NewNodeClient(23, cl, tfPluginClient.RMBTimeout), nil).AnyTimes()
 
 		ncPool.EXPECT().
 			GetNodeClient(sub, uint32(30)).
-			Return(client.NewNodeClient(33, cl, tfPluginClient.rmbTimeout), nil).AnyTimes()
+			Return(client.NewNodeClient(33, cl, tfPluginClient.RMBTimeout), nil).AnyTimes()
 
 		ncPool.EXPECT().
 			GetNodeClient(sub, uint32(40)).
-			Return(client.NewNodeClient(43, cl, tfPluginClient.rmbTimeout), nil).AnyTimes()
+			Return(client.NewNodeClient(43, cl, tfPluginClient.RMBTimeout), nil).AnyTimes()
 
 		cl.EXPECT().
 			Call(gomock.Any(), uint32(13), "zos.deployment.changes", gomock.Any(), gomock.Any()).

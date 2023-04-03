@@ -83,7 +83,7 @@ func k8sMockValidation(identity substrate.Identity, cl *mocks.RMBMockClient, sub
 		GetNodeClient(
 			gomock.Any(),
 			nodeID,
-		).Return(client.NewNodeClient(nodeID, cl, d.tfPluginClient.rmbTimeout), nil)
+		).Return(client.NewNodeClient(nodeID, cl, d.tfPluginClient.RMBTimeout), nil)
 
 }
 

@@ -60,7 +60,7 @@ type TFPluginClient struct {
 	Identity     substrate.Identity
 	substrateURL string
 	relayURL     string
-	rmbTimeout   time.Duration
+	RMBTimeout   time.Duration
 	rmbProxyURL  string
 	useRmbProxy  bool
 
@@ -195,7 +195,7 @@ func NewTFPluginClient(
 	if rmbTimeout == 0 {
 		rmbTimeout = 10
 	}
-	tfPluginClient.rmbTimeout = time.Second * time.Duration(rmbTimeout)
+	tfPluginClient.RMBTimeout = time.Second * time.Duration(rmbTimeout)
 
 	rmbClient, err := direct.NewClient(context.Background(), keyType, tfPluginClient.mnemonics, tfPluginClient.relayURL, sessionID, sub.Substrate, true)
 	if err != nil {
@@ -209,7 +209,7 @@ func NewTFPluginClient(
 	}
 	tfPluginClient.GridProxyClient = proxy.NewRetryingClient(gridProxyClient)
 
-	ncPool := client.NewNodeClientPool(tfPluginClient.RMB, tfPluginClient.rmbTimeout)
+	ncPool := client.NewNodeClientPool(tfPluginClient.RMB, tfPluginClient.RMBTimeout)
 	tfPluginClient.NcPool = ncPool
 
 	tfPluginClient.DeploymentDeployer = NewDeploymentDeployer(&tfPluginClient)

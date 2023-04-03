@@ -313,7 +313,7 @@ func TestDeploymentDeployer(t *testing.T) {
 
 		ncPool.EXPECT().
 			GetNodeClient(sub, uint32(nodeID)).
-			Return(client.NewNodeClient(twinID, cl, d.tfPluginClient.rmbTimeout), nil)
+			Return(client.NewNodeClient(twinID, cl, d.tfPluginClient.RMBTimeout), nil)
 
 		cl.EXPECT().
 			Call(gomock.Any(), twinID, "zos.deployment.get", gomock.Any(), gomock.Any()).
@@ -500,7 +500,7 @@ func TestDeploymentDeployer(t *testing.T) {
 
 		ncPool.EXPECT().
 			GetNodeClient(sub, uint32(nodeID)).
-			Return(client.NewNodeClient(twinID, cl, d.tfPluginClient.rmbTimeout), nil)
+			Return(client.NewNodeClient(twinID, cl, d.tfPluginClient.RMBTimeout), nil)
 
 		cl.EXPECT().
 			Call(gomock.Any(), twinID, "zos.deployment.get", gomock.Any(), gomock.Any()).

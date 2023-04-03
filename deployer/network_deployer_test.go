@@ -91,7 +91,7 @@ func TestNetworkDeployer(t *testing.T) {
 
 		ncPool.EXPECT().
 			GetNodeClient(sub, uint32(nodeID)).
-			Return(client.NewNodeClient(twinID, cl, d.tfPluginClient.rmbTimeout), nil).
+			Return(client.NewNodeClient(twinID, cl, d.tfPluginClient.RMBTimeout), nil).
 			AnyTimes()
 
 		dls, err := d.GenerateVersionlessDeployments(context.Background(), &znet)
