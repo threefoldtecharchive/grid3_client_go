@@ -106,7 +106,7 @@ func TestDeployer(t *testing.T) {
 	assert.NoError(t, err)
 
 	identity := tfPluginClient.Identity
-	twinID := tfPluginClient.twinID
+	twinID := tfPluginClient.TwinID
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
