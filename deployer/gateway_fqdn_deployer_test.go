@@ -41,7 +41,7 @@ func constructTestFQDNDeployer(t *testing.T, mock bool) (
 	gridProxyCl := mocks.NewMockClient(ctrl)
 
 	if mock {
-		tfPluginClient.twinID = twinID
+		tfPluginClient.TwinID = twinID
 
 		tfPluginClient.SubstrateConn = sub
 		tfPluginClient.NcPool = ncPool

@@ -41,7 +41,7 @@ func (d *GatewayNameDeployer) GenerateVersionlessDeployments(ctx context.Context
 	deployments := make(map[uint32]gridtypes.Deployment)
 	var err error
 
-	dl := workloads.NewGridDeployment(d.tfPluginClient.twinID, []gridtypes.Workload{})
+	dl := workloads.NewGridDeployment(d.tfPluginClient.TwinID, []gridtypes.Workload{})
 	dl.Workloads = append(dl.Workloads, gw.ZosWorkload())
 
 	dl.Metadata, err = gw.GenerateMetadata()

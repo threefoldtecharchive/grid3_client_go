@@ -55,7 +55,7 @@ var (
 
 // TFPluginClient is a Threefold plugin client
 type TFPluginClient struct {
-	twinID       uint32
+	TwinID       uint32
 	mnemonics    string
 	Identity     substrate.Identity
 	substrateURL string
@@ -169,7 +169,7 @@ func NewTFPluginClient(
 	if err != nil {
 		return TFPluginClient{}, errors.Wrapf(err, "failed to get twin for the given mnemonics %s", mnemonics)
 	}
-	tfPluginClient.twinID = twinID
+	tfPluginClient.TwinID = twinID
 
 	tfPluginClient.rmbProxyURL = RMBProxyURLs[network]
 	if len(strings.TrimSpace(rmbProxyURL)) != 0 {
@@ -226,7 +226,7 @@ func NewTFPluginClient(
 		return TFPluginClient{}, errors.Wrapf(err, "could not create a new graphql with url: %s", graphqlURL)
 	}
 
-	tfPluginClient.ContractsGetter = graphql.NewContractsGetter(tfPluginClient.twinID, tfPluginClient.graphQl, tfPluginClient.SubstrateConn, tfPluginClient.NcPool)
+	tfPluginClient.ContractsGetter = graphql.NewContractsGetter(tfPluginClient.TwinID, tfPluginClient.graphQl, tfPluginClient.SubstrateConn, tfPluginClient.NcPool)
 
 	return tfPluginClient, nil
 }

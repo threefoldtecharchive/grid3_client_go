@@ -39,7 +39,7 @@ func constructTestK8s(t *testing.T, mock bool) (
 	gridProxyCl := mocks.NewMockClient(ctrl)
 
 	if mock {
-		tfPluginClient.twinID = twinID
+		tfPluginClient.TwinID = twinID
 
 		tfPluginClient.SubstrateConn = sub
 		tfPluginClient.NcPool = ncPool
@@ -170,7 +170,7 @@ func TestK8sDeployer(t *testing.T) {
 		}
 
 		wl := nodeWorkloads[nodeID]
-		testDl := workloads.NewGridDeployment(d.tfPluginClient.twinID, wl)
+		testDl := workloads.NewGridDeployment(d.tfPluginClient.TwinID, wl)
 		testDl.Metadata = "{\"type\":\"kubernetes\",\"name\":\"K8sForTesting\",\"projectName\":\"Kubernetes\"}"
 
 		assert.Equal(t, dls, map[uint32]gridtypes.Deployment{

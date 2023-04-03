@@ -29,7 +29,7 @@ func NewDeploymentDeployer(tfPluginClient *TFPluginClient) DeploymentDeployer {
 
 // GenerateVersionlessDeployments generates a new deployment without a version
 func (d *DeploymentDeployer) GenerateVersionlessDeployments(ctx context.Context, dl *workloads.Deployment) (map[uint32]gridtypes.Deployment, error) {
-	newDl := workloads.NewGridDeployment(d.tfPluginClient.twinID, []gridtypes.Workload{})
+	newDl := workloads.NewGridDeployment(d.tfPluginClient.TwinID, []gridtypes.Workload{})
 	err := d.assignNodesIPs(dl)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to assign node ips")

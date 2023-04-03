@@ -89,7 +89,7 @@ func (d *K8sDeployer) GenerateVersionlessDeployments(ctx context.Context, k8sClu
 	}
 
 	for node, ws := range nodeWorkloads {
-		dl := workloads.NewGridDeployment(d.tfPluginClient.twinID, ws)
+		dl := workloads.NewGridDeployment(d.tfPluginClient.TwinID, ws)
 		dl.Metadata, err = k8sCluster.GenerateMetadata()
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to generate deployment %s metadata", k8sCluster.Master.Name)
