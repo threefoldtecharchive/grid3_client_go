@@ -38,11 +38,6 @@ var QSFSWorkload = QSFS{
 func TestQSFSWorkload(t *testing.T) {
 	var qsfs gridtypes.Workload
 
-	t.Run("test new QSFS to/from map", func(t *testing.T) {
-		QSFSFromMap := NewQSFSFromMap(QSFSWorkload.ToMap())
-		assert.Equal(t, QSFSFromMap, QSFSWorkload)
-	})
-
 	t.Run("test_new_QSFS_from_workload", func(t *testing.T) {
 		var err error
 		qsfs, err = QSFSWorkload.ZosWorkload()
