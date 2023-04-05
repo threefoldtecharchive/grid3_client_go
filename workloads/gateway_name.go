@@ -56,6 +56,7 @@ func NewGatewayNameProxyFromZosWorkload(wl gridtypes.Workload) (GatewayNameProxy
 		TLSPassthrough: data.TLSPassthrough,
 		Backends:       data.Backends,
 		FQDN:           result.FQDN,
+		Description:    wl.Description,
 	}, nil
 }
 
