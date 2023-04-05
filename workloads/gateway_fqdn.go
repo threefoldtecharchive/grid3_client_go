@@ -49,6 +49,7 @@ func NewGatewayFQDNProxyFromZosWorkload(wl gridtypes.Workload) (GatewayFQDNProxy
 		TLSPassthrough: data.TLSPassthrough,
 		Backends:       data.Backends,
 		FQDN:           data.FQDN,
+		Description:    wl.Description,
 	}, nil
 }
 
