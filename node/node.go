@@ -114,6 +114,7 @@ type PublicConfig struct {
 	Domain string `json:"domain"`
 }
 
+// ExitDevice stores the dual nic setup of a node.
 type ExitDevice struct {
 	// IsSingle is set to true if br-pub
 	// is connected to zos bridge
@@ -126,13 +127,18 @@ type ExitDevice struct {
 	AsDualInterface string `json:"dual_interface"`
 }
 
-type DeviceType = zos.DeviceType
-
+// PoolMetrics stores storage pool metrics
 type PoolMetrics struct {
 	Name string         `json:"name"`
-	Type DeviceType     `json:"type"`
+	Type zos.DeviceType `json:"type"`
 	Size gridtypes.Unit `json:"size"`
 	Used gridtypes.Unit `json:"used"`
+}
+
+// Interface stores physical network interface information
+type Interface struct {
+	IPs []string `json:"ips"`
+	Mac string   `json:"mac"`
 }
 
 // NodeClient struct
@@ -140,11 +146,6 @@ type NodeClient struct {
 	nodeTwin uint32
 	bus      rmb.Client
 	timeout  time.Duration
-}
-
-type Interface struct {
-	IPs []string `json:"ips"`
-	Mac string   `json:"mac"`
 }
 
 // rmbCmdArgs is a map of command line arguments
@@ -458,6 +459,7 @@ func (n *NodeClient) Pools(ctx context.Context) (pools []PoolMetrics, err error)
 	return
 }
 
+// HasPublicIPv6 returns true if the node has a public ip6 configuration
 func (n *NodeClient) HasPublicIPv6(ctx context.Context) (bool, error) {
 	const cmd = "zos.network.has_ipv6"
 	var result bool
