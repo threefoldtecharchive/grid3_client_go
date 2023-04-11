@@ -25,7 +25,11 @@ type ZDB struct {
 
 // NewZDBFromMap converts a map including zdb data to a zdb struct
 func NewZDBFromMap(zdb map[string]interface{}) ZDB {
-	ips := zdb["ips"].([]string)
+	ips := zdb["ips"].([]interface{})
+	var strIPs []string
+	for _, ip := range ips {
+		strIPs = append(strIPs, ip.(string))
+	}
 
 	return ZDB{
 		Name:        zdb["name"].(string),
@@ -34,7 +38,7 @@ func NewZDBFromMap(zdb map[string]interface{}) ZDB {
 		Password:    zdb["password"].(string),
 		Public:      zdb["public"].(bool),
 		Mode:        zdb["mode"].(string),
-		IPs:         ips,
+		IPs:         strIPs,
 		Port:        uint32(zdb["port"].(int)),
 		Namespace:   zdb["namespace"].(string),
 	}
@@ -78,7 +82,13 @@ func (z *ZDB) ToMap() map[string]interface{} {
 	res["description"] = z.Description
 	res["size"] = z.Size
 	res["mode"] = z.Mode
-	res["ips"] = z.IPs
+
+	var ips []interface{}
+	for _, ip := range z.IPs {
+		ips = append(ips, ip)
+	}
+
+	res["ips"] = ips
 	res["namespace"] = z.Namespace
 	res["port"] = int(z.Port)
 	res["password"] = z.Password

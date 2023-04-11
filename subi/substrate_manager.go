@@ -3,6 +3,7 @@ package subi
 
 import (
 	"context"
+	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/threefoldtech/substrate-client"
@@ -28,7 +29,7 @@ func NewManager(url ...string) Manager {
 // SubstrateExt returns a substrate implementation to be used
 func (m *Manager) SubstrateExt() (*SubstrateImpl, error) {
 	sub, err := m.Manager.Substrate()
-	return &SubstrateImpl{sub}, err
+	return &SubstrateImpl{Substrate: sub}, err
 }
 
 // SubstrateExt interface for substrate client
@@ -60,6 +61,7 @@ type SubstrateExt interface {
 // SubstrateImpl struct to use dev substrate
 type SubstrateImpl struct {
 	*substrate.Substrate
+	m sync.Mutex
 }
 
 // GetAccount returns the user's account
@@ -99,6 +101,9 @@ func (s *SubstrateImpl) GetTwinPK(id uint32) ([]byte, error) {
 
 // CreateNameContract creates a new name contract
 func (s *SubstrateImpl) CreateNameContract(identity substrate.Identity, name string) (uint64, error) {
+	s.m.Lock()
+	defer s.m.Unlock()
+
 	return s.Substrate.CreateNameContract(identity, name)
 }
 
@@ -110,12 +115,18 @@ func (s *SubstrateImpl) GetContractIDByNameRegistration(name string) (uint64, er
 
 // CreateNodeContract creates a new node contract
 func (s *SubstrateImpl) CreateNodeContract(identity substrate.Identity, node uint32, body string, hash string, publicIPs uint32, solutionProviderID *uint64) (uint64, error) {
+	s.m.Lock()
+	defer s.m.Unlock()
+
 	res, err := s.Substrate.CreateNodeContract(identity, node, body, hash, publicIPs, solutionProviderID)
 	return res, normalizeNotFoundErrors(err)
 }
 
 // UpdateNodeContract updates a new name contract
 func (s *SubstrateImpl) UpdateNodeContract(identity substrate.Identity, contract uint64, body string, hash string) (uint64, error) {
+	s.m.Lock()
+	defer s.m.Unlock()
+
 	res, err := s.Substrate.UpdateNodeContract(identity, contract, body, hash)
 	return res, normalizeNotFoundErrors(err)
 }
@@ -131,6 +142,10 @@ func (s *SubstrateImpl) CancelContract(identity substrate.Identity, contractID u
 	if contractID == 0 {
 		return nil
 	}
+
+	s.m.Lock()
+	defer s.m.Unlock()
+
 	if err := s.Substrate.CancelContract(identity, contractID); err != nil && err.Error() != "ContractNotExists" {
 		return normalizeNotFoundErrors(err)
 	}
@@ -142,6 +157,10 @@ func (s *SubstrateImpl) EnsureContractCanceled(identity substrate.Identity, cont
 	if contractID == 0 {
 		return nil
 	}
+
+	s.m.Lock()
+	defer s.m.Unlock()
+
 	if err := s.Substrate.CancelContract(identity, contractID); err != nil && err.Error() != "ContractNotExists" {
 		return normalizeNotFoundErrors(err)
 	}
@@ -201,6 +220,10 @@ func (s *SubstrateImpl) InvalidateNameContract(
 	if !contract.State.IsCreated {
 		return 0, nil
 	}
+
+	s.m.Lock()
+	defer s.m.Unlock()
+
 	if contract.ContractType.NameContract.Name != name {
 		err := s.Substrate.CancelContract(identity, contractID)
 		if err != nil {

@@ -4,9 +4,9 @@ package deployer
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 	client "github.com/threefoldtech/grid3-go/node"
 	"github.com/threefoldtech/grid3-go/workloads"
 	"github.com/threefoldtech/substrate-client"
@@ -47,14 +47,14 @@ func (d *NetworkDeployer) Validate(ctx context.Context, znet *workloads.ZNet) er
 		return err
 	}
 
-	return d.invalidateBrokenAttributes(znet)
+	return d.InvalidateBrokenAttributes(znet)
 }
 
 // GenerateVersionlessDeployments generates deployments for network deployer without versions
 func (d *NetworkDeployer) GenerateVersionlessDeployments(ctx context.Context, znet *workloads.ZNet) (map[uint32]gridtypes.Deployment, error) {
 	deployments := make(map[uint32]gridtypes.Deployment)
 
-	log.Printf("nodes: %v\n", znet.Nodes)
+	log.Debug().Msgf("nodes: %v", znet.Nodes)
 	sub := d.tfPluginClient.SubstrateConn
 
 	endpoints := make(map[uint32]string)
@@ -137,10 +137,10 @@ func (d *NetworkDeployer) GenerateVersionlessDeployments(ctx context.Context, zn
 		nonAccessibleIPRanges = append(nonAccessibleIPRanges, workloads.WgIP(*r))
 	}
 
-	log.Printf("hidden nodes: %v\n", hiddenNodes)
-	log.Printf("public node: %v\n", znet.PublicNodeID)
-	log.Printf("accessible nodes: %v\n", accessibleNodes)
-	log.Printf("non accessible ip ranges: %v\n", nonAccessibleIPRanges)
+	log.Debug().Msgf("hidden nodes: %v", hiddenNodes)
+	log.Debug().Uint32("public node", znet.PublicNodeID)
+	log.Debug().Msgf("accessible nodes: %v", accessibleNodes)
+	log.Debug().Msgf("non accessible ip ranges: %v", nonAccessibleIPRanges)
 
 	if znet.AddWGAccess {
 		znet.AccessWGConfig = workloads.GenerateWGConfig(
@@ -203,7 +203,7 @@ func (d *NetworkDeployer) GenerateVersionlessDeployments(ctx context.Context, zn
 		}
 
 		workload := znet.ZosWorkload(znet.NodesIPRange[nodeID], znet.Keys[nodeID].String(), uint16(znet.WGPort[nodeID]), peers)
-		deployment := workloads.NewGridDeployment(d.tfPluginClient.twinID, []gridtypes.Workload{workload})
+		deployment := workloads.NewGridDeployment(d.tfPluginClient.TwinID, []gridtypes.Workload{workload})
 
 		// add metadata
 		var err error
@@ -230,7 +230,7 @@ func (d *NetworkDeployer) GenerateVersionlessDeployments(ctx context.Context, zn
 			})
 		}
 		workload := znet.ZosWorkload(znet.NodesIPRange[nodeID], znet.Keys[nodeID].String(), uint16(znet.WGPort[nodeID]), peers)
-		deployment := workloads.NewGridDeployment(d.tfPluginClient.twinID, []gridtypes.Workload{workload})
+		deployment := workloads.NewGridDeployment(d.tfPluginClient.TwinID, []gridtypes.Workload{workload})
 
 		// add metadata
 		var err error
@@ -256,7 +256,7 @@ func (d *NetworkDeployer) Deploy(ctx context.Context, znet *workloads.ZNet) erro
 		return errors.Wrap(err, "could not generate deployments data")
 	}
 
-	log.Println("new deployments")
+	log.Debug().Msg("new deployments")
 	err = PrintDeployments(newDeployments)
 	if err != nil {
 		return errors.Wrap(err, "could not print deployments data")
@@ -274,9 +274,9 @@ func (d *NetworkDeployer) Deploy(ctx context.Context, znet *workloads.ZNet) erro
 	// error is not returned immediately before updating state because of untracked failed deployments
 	for _, nodeID := range znet.Nodes {
 		if contractID, ok := znet.NodeDeploymentID[nodeID]; ok && contractID != 0 {
-			d.tfPluginClient.State.networks.updateNetwork(znet.Name, znet.NodesIPRange)
-			if !workloads.Contains(d.tfPluginClient.State.currentNodeDeployments[nodeID], znet.NodeDeploymentID[nodeID]) {
-				d.tfPluginClient.State.currentNodeNetworks[nodeID] = append(d.tfPluginClient.State.currentNodeNetworks[nodeID], znet.NodeDeploymentID[nodeID])
+			d.tfPluginClient.State.networks.UpdateNetwork(znet.Name, znet.NodesIPRange)
+			if !workloads.Contains(d.tfPluginClient.State.CurrentNodeDeployments[nodeID], znet.NodeDeploymentID[nodeID]) {
+				d.tfPluginClient.State.CurrentNodeNetworks[nodeID] = append(d.tfPluginClient.State.CurrentNodeNetworks[nodeID], znet.NodeDeploymentID[nodeID])
 			}
 		}
 	}
@@ -285,7 +285,7 @@ func (d *NetworkDeployer) Deploy(ctx context.Context, znet *workloads.ZNet) erro
 		return errors.Wrapf(err, "could not deploy network %s", znet.Name)
 	}
 
-	if err := d.readNodesConfig(ctx, znet); err != nil {
+	if err := d.ReadNodesConfig(ctx, znet); err != nil {
 		return errors.Wrap(err, "could not read node's data")
 	}
 
@@ -306,22 +306,22 @@ func (d *NetworkDeployer) Cancel(ctx context.Context, znet *workloads.ZNet) erro
 				return errors.Wrapf(err, "could not cancel network %s, contract %d", znet.Name, contractID)
 			}
 			delete(znet.NodeDeploymentID, nodeID)
-			d.tfPluginClient.State.currentNodeDeployments[nodeID] = workloads.Delete(d.tfPluginClient.State.currentNodeDeployments[nodeID], contractID)
+			d.tfPluginClient.State.CurrentNodeDeployments[nodeID] = workloads.Delete(d.tfPluginClient.State.CurrentNodeDeployments[nodeID], contractID)
 		}
 	}
 
 	// delete network from state if all contracts was deleted
-	d.tfPluginClient.State.networks.deleteNetwork(znet.Name)
+	d.tfPluginClient.State.networks.DeleteNetwork(znet.Name)
 
-	if err := d.readNodesConfig(ctx, znet); err != nil {
+	if err := d.ReadNodesConfig(ctx, znet); err != nil {
 		return errors.Wrap(err, "could not read node's data")
 	}
 
 	return nil
 }
 
-// invalidateBrokenAttributes removes outdated attrs and deleted contracts
-func (d *NetworkDeployer) invalidateBrokenAttributes(znet *workloads.ZNet) error {
+// InvalidateBrokenAttributes removes outdated attrs and deleted contracts
+func (d *NetworkDeployer) InvalidateBrokenAttributes(znet *workloads.ZNet) error {
 	for node, contractID := range znet.NodeDeploymentID {
 		contract, err := d.tfPluginClient.SubstrateConn.GetContract(contractID)
 		if (err == nil && !contract.IsCreated()) || errors.Is(err, substrate.ErrNotFound) {
@@ -359,11 +359,12 @@ func (d *NetworkDeployer) invalidateBrokenAttributes(znet *workloads.ZNet) error
 	return nil
 }
 
-func (d *NetworkDeployer) readNodesConfig(ctx context.Context, znet *workloads.ZNet) error {
+// ReadNodesConfig reads the configuration of a network
+func (d *NetworkDeployer) ReadNodesConfig(ctx context.Context, znet *workloads.ZNet) error {
 	keys := make(map[uint32]wgtypes.Key)
 	WGPort := make(map[uint32]int)
 	nodesIPRange := make(map[uint32]gridtypes.IPNet)
-	log.Printf("reading node config")
+	log.Debug().Msg("reading node config")
 	nodeDeployments, err := d.deployer.GetDeployments(ctx, znet.NodeDeploymentID)
 	if err != nil {
 		return errors.Wrap(err, "failed to get deployment objects")

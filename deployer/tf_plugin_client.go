@@ -5,11 +5,14 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
+	baseLog "log"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/threefoldtech/grid3-go/graphql"
 	client "github.com/threefoldtech/grid3-go/node"
 	"github.com/threefoldtech/grid3-go/subi"
@@ -52,11 +55,12 @@ var (
 
 // TFPluginClient is a Threefold plugin client
 type TFPluginClient struct {
-	twinID       uint32
+	TwinID       uint32
 	mnemonics    string
 	Identity     substrate.Identity
 	substrateURL string
 	relayURL     string
+	RMBTimeout   time.Duration
 	rmbProxyURL  string
 	useRmbProxy  bool
 
@@ -92,19 +96,24 @@ func NewTFPluginClient(
 	substrateURL string,
 	relayURL string,
 	rmbProxyURL string,
+	rmbTimeout int,
 	verifyReply bool,
 	showLogs bool,
 ) (TFPluginClient, error) {
 
-	// disable logging
-	if !showLogs {
-		log.SetOutput(io.Discard)
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+	if showLogs {
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	} else {
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
+		baseLog.SetOutput(io.Discard)
 	}
+
 	var err error
 	tfPluginClient := TFPluginClient{}
 
 	if valid := validateMnemonics(mnemonics); !valid {
-		return TFPluginClient{}, errors.Wrapf(err, "mnemonics %s is invalid", mnemonics)
+		return TFPluginClient{}, fmt.Errorf("mnemonics %s is invalid", mnemonics)
 	}
 	tfPluginClient.mnemonics = mnemonics
 
@@ -160,7 +169,7 @@ func NewTFPluginClient(
 	if err != nil {
 		return TFPluginClient{}, errors.Wrapf(err, "failed to get twin for the given mnemonics %s", mnemonics)
 	}
-	tfPluginClient.twinID = twinID
+	tfPluginClient.TwinID = twinID
 
 	tfPluginClient.rmbProxyURL = RMBProxyURLs[network]
 	if len(strings.TrimSpace(rmbProxyURL)) != 0 {
@@ -182,6 +191,12 @@ func NewTFPluginClient(
 		tfPluginClient.relayURL = relayURL
 	}
 
+	// default rmbTimeout is 10
+	if rmbTimeout == 0 {
+		rmbTimeout = 10
+	}
+	tfPluginClient.RMBTimeout = time.Second * time.Duration(rmbTimeout)
+
 	rmbClient, err := direct.NewClient(context.Background(), keyType, tfPluginClient.mnemonics, tfPluginClient.relayURL, sessionID, sub.Substrate, true)
 	if err != nil {
 		return TFPluginClient{}, errors.Wrap(err, "could not create rmb client")
@@ -194,7 +209,7 @@ func NewTFPluginClient(
 	}
 	tfPluginClient.GridProxyClient = proxy.NewRetryingClient(gridProxyClient)
 
-	ncPool := client.NewNodeClientPool(tfPluginClient.RMB)
+	ncPool := client.NewNodeClientPool(tfPluginClient.RMB, tfPluginClient.RMBTimeout)
 	tfPluginClient.NcPool = ncPool
 
 	tfPluginClient.DeploymentDeployer = NewDeploymentDeployer(&tfPluginClient)
@@ -211,7 +226,7 @@ func NewTFPluginClient(
 		return TFPluginClient{}, errors.Wrapf(err, "could not create a new graphql with url: %s", graphqlURL)
 	}
 
-	tfPluginClient.ContractsGetter = graphql.NewContractsGetter(tfPluginClient.twinID, tfPluginClient.graphQl, tfPluginClient.SubstrateConn, tfPluginClient.NcPool)
+	tfPluginClient.ContractsGetter = graphql.NewContractsGetter(tfPluginClient.TwinID, tfPluginClient.graphQl, tfPluginClient.SubstrateConn, tfPluginClient.NcPool)
 
 	return tfPluginClient, nil
 }

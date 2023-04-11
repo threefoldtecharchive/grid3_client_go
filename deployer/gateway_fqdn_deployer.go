@@ -3,6 +3,7 @@ package deployer
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/pkg/errors"
 	client "github.com/threefoldtech/grid3-go/node"
@@ -36,6 +37,21 @@ func (d *GatewayFQDNDeployer) Validate(ctx context.Context, gw *workloads.Gatewa
 	if err := validateAccountBalanceForExtrinsics(sub, d.tfPluginClient.Identity); err != nil {
 		return err
 	}
+
+	nodeClient, err := d.tfPluginClient.NcPool.GetNodeClient(sub, gw.NodeID)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get node client with ID %d", gw.NodeID)
+	}
+
+	cfg, err := nodeClient.NetworkGetPublicConfig(ctx)
+	if err != nil {
+		return errors.Wrapf(err, "couldn't get node %d public config", gw.NodeID)
+	}
+
+	if cfg.IPv4.IP == nil {
+		return fmt.Errorf("node %d doesn't contain a public IP in its public config", gw.NodeID)
+	}
+
 	return client.AreNodesUp(ctx, sub, []uint32{gw.NodeID}, d.tfPluginClient.NcPool)
 }
 
@@ -44,7 +60,7 @@ func (d *GatewayFQDNDeployer) GenerateVersionlessDeployments(ctx context.Context
 	deployments := make(map[uint32]gridtypes.Deployment)
 	var err error
 
-	dl := workloads.NewGridDeployment(d.tfPluginClient.twinID, []gridtypes.Workload{})
+	dl := workloads.NewGridDeployment(d.tfPluginClient.TwinID, []gridtypes.Workload{})
 	dl.Workloads = append(dl.Workloads, gw.ZosWorkload())
 
 	dl.Metadata, err = gw.GenerateMetadata()
@@ -77,8 +93,8 @@ func (d *GatewayFQDNDeployer) Deploy(ctx context.Context, gw *workloads.GatewayF
 	// error is not returned immediately before updating state because of untracked failed deployments
 	if contractID, ok := gw.NodeDeploymentID[gw.NodeID]; ok && contractID != 0 {
 		gw.ContractID = contractID
-		if !workloads.Contains(d.tfPluginClient.State.currentNodeDeployments[gw.NodeID], gw.ContractID) {
-			d.tfPluginClient.State.currentNodeDeployments[gw.NodeID] = append(d.tfPluginClient.State.currentNodeDeployments[gw.NodeID], gw.ContractID)
+		if !workloads.Contains(d.tfPluginClient.State.CurrentNodeDeployments[gw.NodeID], gw.ContractID) {
+			d.tfPluginClient.State.CurrentNodeDeployments[gw.NodeID] = append(d.tfPluginClient.State.CurrentNodeDeployments[gw.NodeID], gw.ContractID)
 		}
 	}
 
@@ -100,7 +116,7 @@ func (d *GatewayFQDNDeployer) Cancel(ctx context.Context, gw *workloads.GatewayF
 	// update state
 	gw.ContractID = 0
 	delete(gw.NodeDeploymentID, gw.NodeID)
-	d.tfPluginClient.State.currentNodeDeployments[gw.NodeID] = workloads.Delete(d.tfPluginClient.State.currentNodeDeployments[gw.NodeID], contractID)
+	d.tfPluginClient.State.CurrentNodeDeployments[gw.NodeID] = workloads.Delete(d.tfPluginClient.State.CurrentNodeDeployments[gw.NodeID], contractID)
 
 	return nil
 }

@@ -28,14 +28,15 @@ func SetupLoaderTests(t *testing.T, wls []gridtypes.Workload) *State {
 	ncPool := mocks.NewMockNodeClientGetter(ctrl)
 
 	state := NewState(ncPool, sub)
-	state.currentNodeDeployments = map[uint32]contractIDs{1: []uint64{1}}
-	state.currentNodeNetworks = map[uint32]contractIDs{1: []uint64{1}}
+	state.CurrentNodeDeployments = map[uint32]ContractIDs{1: []uint64{1}}
+	state.CurrentNodeNetworks = map[uint32]ContractIDs{1: []uint64{1}}
 
 	dl1 := workloads.NewGridDeployment(13, wls)
+	dl1.ContractID = 10
 
 	ncPool.EXPECT().
 		GetNodeClient(sub, uint32(1)).
-		Return(client.NewNodeClient(13, cl), nil).AnyTimes()
+		Return(client.NewNodeClient(13, cl, 10), nil).AnyTimes()
 
 	cl.EXPECT().
 		Call(gomock.Any(), uint32(13), "zos.deployment.get", gomock.Any(), gomock.Any()).
@@ -45,6 +46,10 @@ func SetupLoaderTests(t *testing.T, wls []gridtypes.Workload) *State {
 			*res = dl1
 			return nil
 		}).AnyTimes()
+
+	sub.EXPECT().
+		GetContractIDByNameRegistration("test").
+		Return(uint64(11), nil).AnyTimes()
 
 	return state
 }
@@ -112,10 +117,13 @@ func TestLoadGatewayFQDNFromGrid(t *testing.T) {
 		}),
 	}
 	gateway := workloads.GatewayFQDNProxy{
-		Name:           "test",
-		TLSPassthrough: true,
-		Backends:       []zos.Backend{"http://1.1.1.1"},
-		FQDN:           "test",
+		Name:             "test",
+		TLSPassthrough:   true,
+		Backends:         []zos.Backend{"http://1.1.1.1"},
+		FQDN:             "test",
+		NodeID:           1,
+		ContractID:       10,
+		NodeDeploymentID: map[uint32]uint64{1: 10},
 	}
 
 	t.Run("success", func(t *testing.T) {
@@ -174,9 +182,13 @@ func TestLoadGatewayNameFromGrid(t *testing.T) {
 		},
 	}
 	gateway := workloads.GatewayNameProxy{
-		Name:           "test",
-		TLSPassthrough: true,
-		Backends:       []zos.Backend{"http://1.1.1.1"},
+		Name:             "test",
+		TLSPassthrough:   true,
+		Backends:         []zos.Backend{"http://1.1.1.1"},
+		NameContractID:   11,
+		NodeID:           1,
+		ContractID:       10,
+		NodeDeploymentID: map[uint32]uint64{1: 10},
 	}
 
 	t.Run("success", func(t *testing.T) {
@@ -236,11 +248,12 @@ func TestLoadK8sFromGrid(t *testing.T) {
 
 	var Workers []workloads.K8sNode
 	cluster := workloads.K8sCluster{
-		Master:      &master,
-		Workers:     Workers,
-		Token:       "",
-		SSHKey:      "",
-		NetworkName: "",
+		Master:           &master,
+		Workers:          Workers,
+		Token:            "",
+		SSHKey:           "",
+		NetworkName:      "",
+		NodeDeploymentID: map[uint32]uint64{1: 10},
 	}
 
 	k8sWorkload := gridtypes.Workload{

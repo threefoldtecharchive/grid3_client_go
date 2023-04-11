@@ -4,7 +4,6 @@ package workloads
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net"
 	"sort"
 	"strings"
@@ -137,8 +136,6 @@ func (d *Deployment) Match(disks []Disk, QSFS []QSFS, zdbs []ZDB, vms []VM) {
 		vm, ok := vmMap[vms[idx].Name]
 		if ok {
 			vms[idx].LoadFromVM(vm)
-			log.Printf("original: %+v\n", vm)
-			log.Printf("new: %+v\n", vms[idx])
 		}
 	}
 }
@@ -225,8 +222,8 @@ func GetUsedIPs(dl gridtypes.Deployment) ([]byte, error) {
 	return usedIPs, nil
 }
 
-// ParseDeploymentDate parses the deployment meta date
-func ParseDeploymentDate(deploymentMetaData string) (DeploymentData, error) {
+// ParseDeploymentData parses the deployment metadata
+func ParseDeploymentData(deploymentMetaData string) (DeploymentData, error) {
 	var deploymentData DeploymentData
 	err := json.Unmarshal([]byte(deploymentMetaData), &deploymentData)
 	if err != nil {
@@ -234,4 +231,59 @@ func ParseDeploymentDate(deploymentMetaData string) (DeploymentData, error) {
 	}
 
 	return deploymentData, nil
+}
+
+// NewDeploymentFromZosDeployment generates deployment from zos deployment
+func NewDeploymentFromZosDeployment(d gridtypes.Deployment, nodeID uint32) (Deployment, error) {
+	deploymentData, err := ParseDeploymentData(d.Metadata)
+	if err != nil {
+		return Deployment{}, errors.Wrap(err, "failed to parse deployment data")
+	}
+	vms := make([]VM, 0)
+	disks := make([]Disk, 0)
+	qs := make([]QSFS, 0)
+	zdbs := make([]ZDB, 0)
+	var networkName string
+	for _, workload := range d.Workloads {
+		switch workload.Type {
+		case zos.ZMachineType:
+			vm, err := NewVMFromWorkload(&workload, &d)
+			if err != nil {
+				return Deployment{}, errors.Wrap(err, "failed to get vm workload")
+			}
+			vms = append(vms, vm)
+			networkName = vm.NetworkName
+		case zos.ZDBType:
+			zdb, err := NewZDBFromWorkload(&workload)
+			if err != nil {
+				return Deployment{}, errors.Wrap(err, "failed to get vm workload")
+			}
+			zdbs = append(zdbs, zdb)
+		case zos.QuantumSafeFSType:
+			q, err := NewQSFSFromWorkload(&workload)
+			if err != nil {
+				return Deployment{}, errors.Wrap(err, "failed to get vm workload")
+			}
+			qs = append(qs, q)
+		case zos.ZMountType:
+			disk, err := NewDiskFromWorkload(&workload)
+			if err != nil {
+				return Deployment{}, errors.Wrap(err, "failed to get vm workload")
+			}
+			disks = append(disks, disk)
+		}
+	}
+
+	return Deployment{
+		Name:             deploymentData.Name,
+		SolutionType:     deploymentData.ProjectName,
+		NetworkName:      networkName,
+		Vms:              vms,
+		Disks:            disks,
+		QSFS:             qs,
+		Zdbs:             zdbs,
+		NodeID:           nodeID,
+		NodeDeploymentID: map[uint32]uint64{nodeID: d.ContractID},
+		ContractID:       d.ContractID,
+	}, nil
 }
