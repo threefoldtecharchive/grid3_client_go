@@ -275,8 +275,8 @@ func (d *NetworkDeployer) Deploy(ctx context.Context, znet *workloads.ZNet) erro
 	for _, nodeID := range znet.Nodes {
 		if contractID, ok := znet.NodeDeploymentID[nodeID]; ok && contractID != 0 {
 			d.tfPluginClient.State.networks.UpdateNetwork(znet.Name, znet.NodesIPRange)
-			if !workloads.Contains(d.tfPluginClient.State.currentNodeDeployments[nodeID], znet.NodeDeploymentID[nodeID]) {
-				d.tfPluginClient.State.currentNodeNetworks[nodeID] = append(d.tfPluginClient.State.currentNodeNetworks[nodeID], znet.NodeDeploymentID[nodeID])
+			if !workloads.Contains(d.tfPluginClient.State.CurrentNodeDeployments[nodeID], znet.NodeDeploymentID[nodeID]) {
+				d.tfPluginClient.State.CurrentNodeNetworks[nodeID] = append(d.tfPluginClient.State.CurrentNodeNetworks[nodeID], znet.NodeDeploymentID[nodeID])
 			}
 		}
 	}
@@ -306,7 +306,7 @@ func (d *NetworkDeployer) Cancel(ctx context.Context, znet *workloads.ZNet) erro
 				return errors.Wrapf(err, "could not cancel network %s, contract %d", znet.Name, contractID)
 			}
 			delete(znet.NodeDeploymentID, nodeID)
-			d.tfPluginClient.State.currentNodeDeployments[nodeID] = workloads.Delete(d.tfPluginClient.State.currentNodeDeployments[nodeID], contractID)
+			d.tfPluginClient.State.CurrentNodeDeployments[nodeID] = workloads.Delete(d.tfPluginClient.State.CurrentNodeDeployments[nodeID], contractID)
 		}
 	}
 

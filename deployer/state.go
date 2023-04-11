@@ -15,13 +15,14 @@ import (
 	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
-type contractIDs []uint64
+// ContractIDs represents a slice of contract IDs
+type ContractIDs []uint64
 
 // State struct
 type State struct {
-	currentNodeDeployments map[uint32]contractIDs
+	CurrentNodeDeployments map[uint32]ContractIDs
 	// TODO: remove it and merge with deployments
-	currentNodeNetworks map[uint32]contractIDs
+	CurrentNodeNetworks map[uint32]ContractIDs
 
 	networks NetworkState
 
@@ -32,8 +33,8 @@ type State struct {
 // NewState generates a new state
 func NewState(ncPool client.NodeClientGetter, substrate subi.SubstrateExt) *State {
 	return &State{
-		currentNodeDeployments: make(map[uint32]contractIDs),
-		currentNodeNetworks:    make(map[uint32]contractIDs),
+		CurrentNodeDeployments: make(map[uint32]ContractIDs),
+		CurrentNodeNetworks:    make(map[uint32]ContractIDs),
 		networks:               NetworkState{},
 		ncPool:                 ncPool,
 		substrate:              substrate,
@@ -236,13 +237,13 @@ func (st *State) computeK8sDeploymentResources(nodeID uint32, dl gridtypes.Deplo
 // LoadNetworkFromGrid loads a network from grid
 func (st *State) LoadNetworkFromGrid(name string) (znet workloads.ZNet, err error) {
 	sub := st.substrate
-	for nodeID := range st.currentNodeNetworks {
+	for nodeID := range st.CurrentNodeNetworks {
 		nodeClient, err := st.ncPool.GetNodeClient(sub, nodeID)
 		if err != nil {
 			return znet, errors.Wrapf(err, "could not get node client: %d", nodeID)
 		}
 
-		for _, contractID := range st.currentNodeNetworks[nodeID] {
+		for _, contractID := range st.CurrentNodeNetworks[nodeID] {
 			dl, err := nodeClient.DeploymentGet(context.Background(), contractID)
 			if err != nil {
 				return znet, errors.Wrapf(err, "could not get network deployment %d from node %d", contractID, nodeID)
@@ -279,7 +280,7 @@ func (st *State) LoadDeploymentFromGrid(nodeID uint32, name string) (workloads.D
 // GetDeploymentByName returns a deployment using its name
 func (st *State) GetDeploymentByName(nodeID uint32, name string) (gridtypes.Deployment, error) {
 	sub := st.substrate
-	if contractIDs, ok := st.currentNodeDeployments[nodeID]; ok {
+	if contractIDs, ok := st.CurrentNodeDeployments[nodeID]; ok {
 		nodeClient, err := st.ncPool.GetNodeClient(sub, nodeID)
 		if err != nil {
 			return gridtypes.Deployment{}, errors.Wrapf(err, "could not get node client: %d", nodeID)
@@ -309,7 +310,7 @@ func (st *State) GetDeploymentByName(nodeID uint32, name string) (gridtypes.Depl
 // GetWorkloadInDeployment return a workload in a deployment using their names and node ID
 func (st *State) GetWorkloadInDeployment(nodeID uint32, name string, deploymentName string) (gridtypes.Workload, gridtypes.Deployment, error) {
 	sub := st.substrate
-	if contractIDs, ok := st.currentNodeDeployments[nodeID]; ok {
+	if contractIDs, ok := st.CurrentNodeDeployments[nodeID]; ok {
 		nodeClient, err := st.ncPool.GetNodeClient(sub, nodeID)
 		if err != nil {
 			return gridtypes.Workload{}, gridtypes.Deployment{}, errors.Wrapf(err, "could not get node client: %d", nodeID)
@@ -349,8 +350,4 @@ func (st *State) GetNetworks() NetworkState {
 // SetNetworks sets state networks
 func (st *State) SetNetworks(networks NetworkState) {
 	st.networks = networks
-}
-
-func (st *State) SetCurrentDeployments(nodeID uint32, contracts []uint64) {
-	st.currentNodeDeployments[nodeID] = contracts
 }

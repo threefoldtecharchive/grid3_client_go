@@ -80,8 +80,8 @@ func (d *DeploymentDeployer) Deploy(ctx context.Context, dl *workloads.Deploymen
 	// error is not returned immediately before updating state because of untracked failed deployments
 	if contractID, ok := dl.NodeDeploymentID[dl.NodeID]; ok && contractID != 0 {
 		dl.ContractID = contractID
-		if !workloads.Contains(d.tfPluginClient.State.currentNodeDeployments[dl.NodeID], dl.ContractID) {
-			d.tfPluginClient.State.currentNodeDeployments[dl.NodeID] = append(d.tfPluginClient.State.currentNodeDeployments[dl.NodeID], dl.ContractID)
+		if !workloads.Contains(d.tfPluginClient.State.CurrentNodeDeployments[dl.NodeID], dl.ContractID) {
+			d.tfPluginClient.State.CurrentNodeDeployments[dl.NodeID] = append(d.tfPluginClient.State.CurrentNodeDeployments[dl.NodeID], dl.ContractID)
 		}
 	}
 
@@ -101,7 +101,7 @@ func (d *DeploymentDeployer) Cancel(ctx context.Context, dl *workloads.Deploymen
 
 	// update state
 	delete(dl.NodeDeploymentID, dl.NodeID)
-	d.tfPluginClient.State.currentNodeDeployments[dl.NodeID] = workloads.Delete(d.tfPluginClient.State.currentNodeDeployments[dl.NodeID], dl.ContractID)
+	d.tfPluginClient.State.CurrentNodeDeployments[dl.NodeID] = workloads.Delete(d.tfPluginClient.State.CurrentNodeDeployments[dl.NodeID], dl.ContractID)
 	dl.ContractID = 0
 
 	return nil

@@ -128,12 +128,12 @@ func (d *K8sDeployer) Deploy(ctx context.Context, k8sCluster *workloads.K8sClust
 	// update deployments state
 	// error is not returned immediately before updating state because of untracked failed deployments
 	if contractID, ok := k8sCluster.NodeDeploymentID[k8sCluster.Master.Node]; ok && contractID != 0 {
-		if !workloads.Contains(d.tfPluginClient.State.currentNodeDeployments[k8sCluster.Master.Node], contractID) {
-			d.tfPluginClient.State.currentNodeDeployments[k8sCluster.Master.Node] = append(d.tfPluginClient.State.currentNodeDeployments[k8sCluster.Master.Node], contractID)
+		if !workloads.Contains(d.tfPluginClient.State.CurrentNodeDeployments[k8sCluster.Master.Node], contractID) {
+			d.tfPluginClient.State.CurrentNodeDeployments[k8sCluster.Master.Node] = append(d.tfPluginClient.State.CurrentNodeDeployments[k8sCluster.Master.Node], contractID)
 		}
 		for _, w := range k8sCluster.Workers {
-			if !workloads.Contains(d.tfPluginClient.State.currentNodeDeployments[w.Node], k8sCluster.NodeDeploymentID[w.Node]) {
-				d.tfPluginClient.State.currentNodeDeployments[w.Node] = append(d.tfPluginClient.State.currentNodeDeployments[w.Node], k8sCluster.NodeDeploymentID[w.Node])
+			if !workloads.Contains(d.tfPluginClient.State.CurrentNodeDeployments[w.Node], k8sCluster.NodeDeploymentID[w.Node]) {
+				d.tfPluginClient.State.CurrentNodeDeployments[w.Node] = append(d.tfPluginClient.State.CurrentNodeDeployments[w.Node], k8sCluster.NodeDeploymentID[w.Node])
 			}
 		}
 	}
@@ -153,7 +153,7 @@ func (d *K8sDeployer) Cancel(ctx context.Context, k8sCluster *workloads.K8sClust
 			if err != nil {
 				return errors.Wrapf(err, "could not cancel master %s, contract %d", k8sCluster.Master.Name, contractID)
 			}
-			d.tfPluginClient.State.currentNodeDeployments[nodeID] = workloads.Delete(d.tfPluginClient.State.currentNodeDeployments[nodeID], contractID)
+			d.tfPluginClient.State.CurrentNodeDeployments[nodeID] = workloads.Delete(d.tfPluginClient.State.CurrentNodeDeployments[nodeID], contractID)
 			delete(k8sCluster.NodeDeploymentID, nodeID)
 			continue
 		}
@@ -163,7 +163,7 @@ func (d *K8sDeployer) Cancel(ctx context.Context, k8sCluster *workloads.K8sClust
 				if err != nil {
 					return errors.Wrapf(err, "could not cancel worker %s, contract %d", worker.Name, contractID)
 				}
-				d.tfPluginClient.State.currentNodeDeployments[nodeID] = workloads.Delete(d.tfPluginClient.State.currentNodeDeployments[nodeID], contractID)
+				d.tfPluginClient.State.CurrentNodeDeployments[nodeID] = workloads.Delete(d.tfPluginClient.State.CurrentNodeDeployments[nodeID], contractID)
 				delete(k8sCluster.NodeDeploymentID, nodeID)
 				break
 			}

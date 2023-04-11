@@ -82,8 +82,8 @@ func (d *GatewayNameDeployer) Deploy(ctx context.Context, gw *workloads.GatewayN
 	// error is not returned immediately before updating state because of untracked failed deployments
 	if contractID, ok := gw.NodeDeploymentID[gw.NodeID]; ok && contractID != 0 {
 		gw.ContractID = contractID
-		if !workloads.Contains(d.tfPluginClient.State.currentNodeDeployments[gw.NodeID], gw.ContractID) {
-			d.tfPluginClient.State.currentNodeDeployments[gw.NodeID] = append(d.tfPluginClient.State.currentNodeDeployments[gw.NodeID], gw.ContractID)
+		if !workloads.Contains(d.tfPluginClient.State.CurrentNodeDeployments[gw.NodeID], gw.ContractID) {
+			d.tfPluginClient.State.CurrentNodeDeployments[gw.NodeID] = append(d.tfPluginClient.State.CurrentNodeDeployments[gw.NodeID], gw.ContractID)
 		}
 	}
 
@@ -104,7 +104,7 @@ func (d *GatewayNameDeployer) Cancel(ctx context.Context, gw *workloads.GatewayN
 
 	gw.ContractID = 0
 	delete(gw.NodeDeploymentID, gw.NodeID)
-	d.tfPluginClient.State.currentNodeDeployments[gw.NodeID] = workloads.Delete(d.tfPluginClient.State.currentNodeDeployments[gw.NodeID], contractID)
+	d.tfPluginClient.State.CurrentNodeDeployments[gw.NodeID] = workloads.Delete(d.tfPluginClient.State.CurrentNodeDeployments[gw.NodeID], contractID)
 
 	if gw.NameContractID != 0 {
 		if err := d.tfPluginClient.SubstrateConn.EnsureContractCanceled(d.tfPluginClient.Identity, gw.NameContractID); err != nil {
