@@ -233,18 +233,17 @@ func ParseDeploymentData(deploymentMetaData string) (DeploymentData, error) {
 	return deploymentData, nil
 }
 
+// NewDeploymentFromZosDeployment generates deployment from zos deployment
 func NewDeploymentFromZosDeployment(d gridtypes.Deployment, nodeID uint32) (Deployment, error) {
-	var deployment Deployment
 	deploymentData, err := ParseDeploymentData(d.Metadata)
 	if err != nil {
 		return Deployment{}, errors.Wrap(err, "failed to parse deployment data")
 	}
-	deployment.Name = deploymentData.Name
-	deployment.SolutionType = deploymentData.ProjectName
 	vms := make([]VM, 0)
 	disks := make([]Disk, 0)
 	qs := make([]QSFS, 0)
 	zdbs := make([]ZDB, 0)
+	var networkName string
 	for _, workload := range d.Workloads {
 		switch workload.Type {
 		case zos.ZMachineType:
@@ -253,7 +252,7 @@ func NewDeploymentFromZosDeployment(d gridtypes.Deployment, nodeID uint32) (Depl
 				return Deployment{}, errors.Wrap(err, "failed to get vm workload")
 			}
 			vms = append(vms, vm)
-			deployment.NetworkName = vm.NetworkName
+			networkName = vm.NetworkName
 		case zos.ZDBType:
 			zdb, err := NewZDBFromWorkload(&workload)
 			if err != nil {
@@ -274,13 +273,17 @@ func NewDeploymentFromZosDeployment(d gridtypes.Deployment, nodeID uint32) (Depl
 			disks = append(disks, disk)
 		}
 	}
-	deployment.Vms = vms
-	deployment.Disks = disks
-	deployment.QSFS = qs
-	deployment.Zdbs = zdbs
-	deployment.NodeID = nodeID
-	deployment.NodeDeploymentID = map[uint32]uint64{nodeID: d.ContractID}
-	deployment.ContractID = d.ContractID
 
-	return deployment, nil
+	return Deployment{
+		Name:             deploymentData.Name,
+		SolutionType:     deploymentData.ProjectName,
+		NetworkName:      networkName,
+		Vms:              vms,
+		Disks:            disks,
+		QSFS:             qs,
+		Zdbs:             zdbs,
+		NodeID:           nodeID,
+		NodeDeploymentID: map[uint32]uint64{nodeID: d.ContractID},
+		ContractID:       d.ContractID,
+	}, nil
 }
