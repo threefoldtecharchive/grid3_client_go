@@ -287,7 +287,7 @@ func TestLoadK8sFromGrid(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		state := SetupLoaderTests(t, []gridtypes.Workload{k8sWorkload})
 
-		got, err := state.LoadK8sFromGrid(map[uint32]string{1: "test"}, map[uint32][]string{}, deploymentName)
+		got, err := state.LoadK8sFromGrid([]uint32{1}, deploymentName)
 		assert.NoError(t, err)
 		assert.Equal(t, cluster, got)
 	})
@@ -298,7 +298,7 @@ func TestLoadK8sFromGrid(t *testing.T) {
 
 		state := SetupLoaderTests(t, []gridtypes.Workload{k8sWorkloadCp})
 
-		_, err := state.LoadK8sFromGrid(map[uint32]string{1: "test"}, map[uint32][]string{}, deploymentName)
+		_, err := state.LoadK8sFromGrid([]uint32{1}, deploymentName)
 		assert.Error(t, err)
 	})
 
@@ -311,7 +311,7 @@ func TestLoadK8sFromGrid(t *testing.T) {
 
 		state := SetupLoaderTests(t, []gridtypes.Workload{k8sWorkloadCp})
 
-		_, err := state.LoadK8sFromGrid(map[uint32]string{1: "test"}, map[uint32][]string{}, deploymentName)
+		_, err := state.LoadK8sFromGrid([]uint32{1}, deploymentName)
 		assert.Error(t, err)
 	})
 }
