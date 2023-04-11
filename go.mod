@@ -7,7 +7,7 @@ require (
 	github.com/centrifuge/go-substrate-rpc-client/v4 v4.0.5
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.8.2
-	github.com/threefoldtech/grid_proxy_server v1.6.12
+	github.com/threefoldtech/grid_proxy_server v1.7.0
 	github.com/threefoldtech/rmb-sdk-go v1.0.1-0.20230316162347-255e7faa0006
 	github.com/threefoldtech/substrate-client v0.1.5
 	github.com/threefoldtech/zos v0.5.6-0.20230224113017-e887a6ca3fc5
