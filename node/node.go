@@ -85,6 +85,7 @@ import (
 	"github.com/threefoldtech/rmb-sdk-go"
 	"github.com/threefoldtech/zos/pkg/capacity/dmi"
 	"github.com/threefoldtech/zos/pkg/gridtypes"
+	"github.com/threefoldtech/zos/pkg/gridtypes/zos"
 )
 
 // ErrNoAccessibleInterfaceFound no accessible interface found
@@ -111,6 +112,33 @@ type PublicConfig struct {
 	// Domain is the node domain name like gent01.devnet.grid.tf
 	// or similar
 	Domain string `json:"domain"`
+}
+
+// ExitDevice stores the dual nic setup of a node.
+type ExitDevice struct {
+	// IsSingle is set to true if br-pub
+	// is connected to zos bridge
+	IsSingle bool `json:"is_single"`
+	// IsDual is set to true if br-pub is
+	// connected to a physical nic
+	IsDual bool `json:"is_dual"`
+	// AsDualInterface is set to the physical
+	// interface name if IsDual is true
+	AsDualInterface string `json:"dual_interface"`
+}
+
+// PoolMetrics stores storage pool metrics
+type PoolMetrics struct {
+	Name string         `json:"name"`
+	Type zos.DeviceType `json:"type"`
+	Size gridtypes.Unit `json:"size"`
+	Used gridtypes.Unit `json:"used"`
+}
+
+// Interface stores physical network interface information
+type Interface struct {
+	IPs []string `json:"ips"`
+	Mac string   `json:"mac"`
 }
 
 // NodeClient struct
@@ -422,6 +450,51 @@ func (n *NodeClient) GetNodeEndpoint(ctx context.Context) (net.IP, error) {
 		return ip, nil
 	}
 	return nil, errors.Wrap(ErrNoAccessibleInterfaceFound, "no public ipv4 or ipv6 on zos interface found")
+}
+
+// Pools returns statistics of separate pools
+func (n *NodeClient) Pools(ctx context.Context) (pools []PoolMetrics, err error) {
+	const cmd = "zos.storage.pools"
+	err = n.bus.Call(ctx, n.nodeTwin, cmd, nil, &pools)
+	return
+}
+
+// HasPublicIPv6 returns true if the node has a public ip6 configuration
+func (n *NodeClient) HasPublicIPv6(ctx context.Context) (bool, error) {
+	const cmd = "zos.network.has_ipv6"
+	var result bool
+
+	if err := n.bus.Call(ctx, n.nodeTwin, cmd, nil, &result); err != nil {
+		return false, err
+	}
+
+	return result, nil
+}
+
+// NetworkListAllInterfaces return all physical devices on a node
+func (n *NodeClient) NetworkListAllInterfaces(ctx context.Context) (result map[string]Interface, err error) {
+	const cmd = "zos.network.admin.interfaces"
+
+	err = n.bus.Call(ctx, n.nodeTwin, cmd, nil, &result)
+
+	return
+
+}
+
+// NetworkSetPublicExitDevice select which physical interface to use as an exit device
+// setting `iface` to `zos` will then make node run in a single nic setup.
+func (n *NodeClient) NetworkSetPublicExitDevice(ctx context.Context, iface string) error {
+	const cmd = "zos.network.admin.set_public_nic"
+
+	return n.bus.Call(ctx, n.nodeTwin, cmd, iface, nil)
+}
+
+// NetworkGetPublicExitDevice gets the current dual nic setup of the node.
+func (n *NodeClient) NetworkGetPublicExitDevice(ctx context.Context) (exit ExitDevice, err error) {
+	const cmd = "zos.network.admin.get_public_nic"
+
+	err = n.bus.Call(ctx, n.nodeTwin, cmd, nil, &exit)
+	return
 }
 
 func contains[T comparable](elements []T, element T) bool {
