@@ -114,9 +114,11 @@ func TestNameDeployer(t *testing.T) {
 				Type:    zos.GatewayNameProxyType,
 				Name:    gridtypes.Name(gw.Name),
 				Data: gridtypes.MustMarshal(zos.GatewayNameProxy{
-					TLSPassthrough: gw.TLSPassthrough,
-					Backends:       gw.Backends,
-					Name:           gw.Name,
+					GatewayBase: zos.GatewayBase{
+						TLSPassthrough: gw.TLSPassthrough,
+						Backends:       gw.Backends,
+					},
+					Name: gw.Name,
 				}),
 			},
 		})

@@ -23,13 +23,15 @@ type GatewayFQDNProxy struct {
 
 	// optional
 	// Passthrough whether to pass tls traffic or not
-	TLSPassthrough   bool
-	Description      string
-	NodeDeploymentID map[uint32]uint64
-	SolutionType     string
+	TLSPassthrough bool
+	// Network name to join
+	Network      string
+	Description  string
+	SolutionType string
 
 	// computed
-	ContractID uint64
+	ContractID       uint64
+	NodeDeploymentID map[uint32]uint64
 }
 
 // NewGatewayFQDNProxyFromZosWorkload generates a gateway FQDN proxy from a zos workload
@@ -43,27 +45,39 @@ func NewGatewayFQDNProxyFromZosWorkload(wl gridtypes.Workload) (GatewayFQDNProxy
 	if !ok {
 		return GatewayFQDNProxy{}, fmt.Errorf("could not create gateway fqdn proxy workload from data %v", dataI)
 	}
+	network := ""
+	if data.Network != nil {
+		network = data.Network.String()
+	}
 
 	return GatewayFQDNProxy{
 		Name:           wl.Name.String(),
 		TLSPassthrough: data.TLSPassthrough,
 		Backends:       data.Backends,
 		FQDN:           data.FQDN,
+		Network:        network,
 		Description:    wl.Description,
 	}, nil
 }
 
 // ZosWorkload generates a zos workload from GatewayFQDNProxy
 func (g *GatewayFQDNProxy) ZosWorkload() gridtypes.Workload {
+	network := (*gridtypes.Name)(&g.Network)
+	if g.Network == "" {
+		network = nil
+	}
 	return gridtypes.Workload{
 		Version: 0,
 		Type:    zos.GatewayFQDNProxyType,
 		Name:    gridtypes.Name(g.Name),
 		// REVISE: whether description should be set here
 		Data: gridtypes.MustMarshal(zos.GatewayFQDNProxy{
-			TLSPassthrough: g.TLSPassthrough,
-			Backends:       g.Backends,
-			FQDN:           g.FQDN,
+			GatewayBase: zos.GatewayBase{
+				TLSPassthrough: g.TLSPassthrough,
+				Backends:       g.Backends,
+				Network:        network,
+			},
+			FQDN: g.FQDN,
 		}),
 	}
 }

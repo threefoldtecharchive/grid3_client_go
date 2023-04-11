@@ -20,7 +20,7 @@ var K8sWorkload = K8sNode{
 	PublicIP6:     false,
 	Planetary:     false,
 	Flist:         flist,
-	FlistChecksum: "8ca00560e5c9633b9424ac1014957bf3",
+	FlistChecksum: "c87cf57e1067d21a3e74332a64ef9723",
 	ComputedIP:    "",
 	ComputedIP6:   "",
 	YggIP:         "",
