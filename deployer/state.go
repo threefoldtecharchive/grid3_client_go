@@ -270,44 +270,15 @@ func (st *State) LoadNetworkFromGrid(name string) (znet workloads.ZNet, err erro
 
 // LoadDeploymentFromGrid loads deployment from grid
 func (st *State) LoadDeploymentFromGrid(nodeID uint32, name string) (workloads.Deployment, error) {
-	deployment, err := st.GetDeploymentByName(nodeID, name)
+	_, deployment, err := st.GetWorkloadInDeployment(nodeID, "", name)
 	if err != nil {
 		return workloads.Deployment{}, err
 	}
 	return workloads.NewDeploymentFromZosDeployment(deployment, nodeID)
 }
 
-// GetDeploymentByName returns a deployment using its name
-func (st *State) GetDeploymentByName(nodeID uint32, name string) (gridtypes.Deployment, error) {
-	sub := st.substrate
-	if contractIDs, ok := st.CurrentNodeDeployments[nodeID]; ok {
-		nodeClient, err := st.ncPool.GetNodeClient(sub, nodeID)
-		if err != nil {
-			return gridtypes.Deployment{}, errors.Wrapf(err, "could not get node client: %d", nodeID)
-		}
-
-		for _, contractID := range contractIDs {
-			dl, err := nodeClient.DeploymentGet(context.Background(), contractID)
-			if err != nil {
-				return gridtypes.Deployment{}, errors.Wrapf(err, "could not get deployment %d from node %d", contractID, nodeID)
-			}
-
-			dlData, err := workloads.ParseDeploymentData(dl.Metadata)
-			if err != nil {
-				return gridtypes.Deployment{}, errors.Wrapf(err, "could not get deployment %d data", contractID)
-			}
-
-			if dlData.Name != name {
-				continue
-			}
-			return dl, nil
-		}
-		return gridtypes.Deployment{}, fmt.Errorf("could not get deployment with name %s", name)
-	}
-	return gridtypes.Deployment{}, fmt.Errorf("could not get deployment '%s' with node ID %d", name, nodeID)
-}
-
 // GetWorkloadInDeployment return a workload in a deployment using their names and node ID
+// if name is empty it returns a deployment with name equal to deploymentName and empty workload
 func (st *State) GetWorkloadInDeployment(nodeID uint32, name string, deploymentName string) (gridtypes.Workload, gridtypes.Deployment, error) {
 	sub := st.substrate
 	if contractIDs, ok := st.CurrentNodeDeployments[nodeID]; ok {
@@ -329,6 +300,10 @@ func (st *State) GetWorkloadInDeployment(nodeID uint32, name string, deploymentN
 
 			if dlData.Name != deploymentName {
 				continue
+			}
+
+			if name == "" {
+				return gridtypes.Workload{}, dl, nil
 			}
 
 			for _, workload := range dl.Workloads {
