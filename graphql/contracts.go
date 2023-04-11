@@ -127,7 +127,7 @@ func (c *ContractsGetter) ListContractsOfProjectName(projectName string) (Contra
 	}
 
 	for _, contract := range contractsList.NodeContracts {
-		deploymentData, err := workloads.ParseDeploymentDate(contract.DeploymentData)
+		deploymentData, err := workloads.ParseDeploymentData(contract.DeploymentData)
 		if err != nil {
 			return Contracts{}, err
 		}

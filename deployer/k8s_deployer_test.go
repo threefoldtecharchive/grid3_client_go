@@ -235,11 +235,11 @@ func TestK8sDeployer(t *testing.T) {
 		err = d.Deploy(context.Background(), &k8sCluster)
 		assert.NoError(t, err)
 		assert.Equal(t, k8sCluster.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
-		assert.Equal(t, d.tfPluginClient.State.currentNodeDeployments, map[uint32]contractIDs{nodeID: {contractID}})
+		assert.Equal(t, d.tfPluginClient.State.CurrentNodeDeployments, map[uint32]ContractIDs{nodeID: {contractID}})
 	})
 
 	t.Run("test update failed", func(t *testing.T) {
-		d.tfPluginClient.State.currentNodeDeployments = map[uint32]contractIDs{nodeID: {contractID}}
+		d.tfPluginClient.State.CurrentNodeDeployments = map[uint32]ContractIDs{nodeID: {contractID}}
 		k8sCluster.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
 
 		err = d.assignNodeIPRange(&k8sCluster)
@@ -271,11 +271,11 @@ func TestK8sDeployer(t *testing.T) {
 		err = d.Deploy(context.Background(), &k8sCluster)
 		assert.Error(t, err)
 		assert.Equal(t, k8sCluster.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
-		assert.Equal(t, d.tfPluginClient.State.currentNodeDeployments, map[uint32]contractIDs{nodeID: {contractID}})
+		assert.Equal(t, d.tfPluginClient.State.CurrentNodeDeployments, map[uint32]ContractIDs{nodeID: {contractID}})
 	})
 
 	t.Run("test cancel", func(t *testing.T) {
-		d.tfPluginClient.State.currentNodeDeployments = map[uint32]contractIDs{nodeID: {contractID}}
+		d.tfPluginClient.State.CurrentNodeDeployments = map[uint32]ContractIDs{nodeID: {contractID}}
 		k8sCluster.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
 		k8sCluster.NodesIPRange = map[uint32]gridtypes.IPNet{uint32(10): {}}
 
@@ -288,11 +288,11 @@ func TestK8sDeployer(t *testing.T) {
 		err = d.Cancel(context.Background(), &k8sCluster)
 		assert.NoError(t, err)
 		assert.Empty(t, k8sCluster.NodeDeploymentID)
-		assert.Empty(t, d.tfPluginClient.State.currentNodeDeployments[nodeID])
+		assert.Empty(t, d.tfPluginClient.State.CurrentNodeDeployments[nodeID])
 	})
 
 	t.Run("test cancel failed", func(t *testing.T) {
-		d.tfPluginClient.State.currentNodeDeployments = map[uint32]contractIDs{nodeID: {contractID}}
+		d.tfPluginClient.State.CurrentNodeDeployments = map[uint32]ContractIDs{nodeID: {contractID}}
 		k8sCluster.NodeDeploymentID = map[uint32]uint64{nodeID: contractID}
 		k8sCluster.NodesIPRange = map[uint32]gridtypes.IPNet{uint32(10): {}}
 
@@ -305,6 +305,6 @@ func TestK8sDeployer(t *testing.T) {
 		err = d.Cancel(context.Background(), &k8sCluster)
 		assert.Error(t, err)
 		assert.Equal(t, k8sCluster.NodeDeploymentID, map[uint32]uint64{nodeID: contractID})
-		assert.Equal(t, d.tfPluginClient.State.currentNodeDeployments, map[uint32]contractIDs{nodeID: {contractID}})
+		assert.Equal(t, d.tfPluginClient.State.CurrentNodeDeployments, map[uint32]ContractIDs{nodeID: {contractID}})
 	})
 }
