@@ -70,17 +70,12 @@ func (t *TFPluginClient) DeployKubernetesCluster(master workloads.K8sNode, worke
 	if err != nil {
 		return workloads.K8sCluster{}, errors.Wrap(err, "failed to deploy kubernetes cluster")
 	}
-	var workersNames []string
+	nodeIDs := []uint32{master.Node}
 	for _, worker := range workers {
-		workersNames = append(workersNames, worker.Name)
-	}
-	workersNodes := make(map[uint32][]string)
-	if len(workersNames) > 0 {
-		workersNodes[workers[0].Node] = workersNames
+		nodeIDs = append(nodeIDs, worker.Node)
 	}
 	return t.State.LoadK8sFromGrid(
-		map[uint32]string{master.Node: master.Name},
-		workersNodes,
+		nodeIDs,
 		master.Name,
 	)
 }

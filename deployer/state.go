@@ -131,59 +131,72 @@ func (st *State) LoadVMFromGrid(nodeID uint32, name string, deploymentName strin
 }
 
 // LoadK8sFromGrid loads k8s from grid
-func (st *State) LoadK8sFromGrid(masterNode map[uint32]string, workerNodes map[uint32][]string, deploymentName string) (workloads.K8sCluster, error) {
-	cluster := workloads.K8sCluster{}
+func (st *State) LoadK8sFromGrid(nodeIDs []uint32, deploymentName string) (workloads.K8sCluster, error) {
 
+	clusterDeployments := make(map[uint32]gridtypes.Deployment)
 	nodeDeploymentID := map[uint32]uint64{}
-	for nodeID, name := range masterNode {
-		wl, dl, err := st.GetWorkloadInDeployment(nodeID, name, deploymentName)
+	for _, nodeID := range nodeIDs {
+		_, deployment, err := st.GetWorkloadInDeployment(nodeID, "", deploymentName)
 		if err != nil {
-			return workloads.K8sCluster{}, errors.Wrapf(err, "could not get workload %s", name)
+			return workloads.K8sCluster{}, errors.Wrapf(err, "could not get deployment %s", deploymentName)
 		}
-
-		workloadDiskSize, workloadComputedIP, workloadComputedIP6, err := st.computeK8sDeploymentResources(nodeID, dl)
-		if err != nil {
-			return workloads.K8sCluster{}, errors.Wrapf(err, "could not compute master %s, resources", name)
-		}
-
-		master, err := workloads.NewK8sNodeFromWorkload(wl, nodeID, workloadDiskSize[name], workloadComputedIP[name], workloadComputedIP6[name])
-		if err != nil {
-			return workloads.K8sCluster{}, errors.Wrapf(err, "could not generate master data for %s", name)
-		}
-
-		cluster.Master = &master
-		nodeDeploymentID[nodeID] = dl.ContractID
-
-		deploymentData, err := workloads.ParseDeploymentData(dl.Metadata)
-		if err != nil {
-			return workloads.K8sCluster{}, errors.Wrapf(err, "could not generate master deployment metadata for %s", name)
-		}
-		cluster.SolutionType = deploymentData.ProjectName
+		clusterDeployments[nodeID] = deployment
+		nodeDeploymentID[nodeID] = deployment.ContractID
 	}
 
-	for nodeID, workerNames := range workerNodes {
-		for _, name := range workerNames {
-			wl, dl, err := st.GetWorkloadInDeployment(nodeID, name, deploymentName)
+	cluster := workloads.K8sCluster{}
+
+	for nodeID, deployment := range clusterDeployments {
+		for _, workload := range deployment.Workloads {
+			if workload.Type != zos.ZMachineType {
+				continue
+			}
+			workloadDiskSize, workloadComputedIP, workloadComputedIP6, err := st.computeK8sDeploymentResources(nodeID, deployment)
 			if err != nil {
-				return workloads.K8sCluster{}, errors.Wrapf(err, "could not get workload %s", name)
+				return workloads.K8sCluster{}, errors.Wrapf(err, "could not compute node %s, resources", workload.Name)
 			}
 
-			workloadDiskSize, workloadComputedIP, workloadComputedIP6, err := st.computeK8sDeploymentResources(nodeID, dl)
+			node, err := workloads.NewK8sNodeFromWorkload(workload, nodeID, workloadDiskSize[workload.Name.String()], workloadComputedIP[workload.Name.String()], workloadComputedIP6[workload.Name.String()])
 			if err != nil {
-				return workloads.K8sCluster{}, errors.Wrapf(err, "could not compute worker %s, resources", name)
+				return workloads.K8sCluster{}, errors.Wrapf(err, "could not generate node data for %s", workload.Name)
 			}
 
-			worker, err := workloads.NewK8sNodeFromWorkload(wl, nodeID, workloadDiskSize[name], workloadComputedIP[name], workloadComputedIP6[name])
+			isMaster, err := isMasterNode(workload)
 			if err != nil {
-				return workloads.K8sCluster{}, errors.Wrapf(err, "could not generate worker data for %s", name)
+				return workloads.K8sCluster{}, err
 			}
-
-			cluster.Workers = append(cluster.Workers, worker)
-			nodeDeploymentID[nodeID] = dl.ContractID
+			if isMaster {
+				cluster.Master = &node
+				deploymentData, err := workloads.ParseDeploymentData(deployment.Metadata)
+				if err != nil {
+					return workloads.K8sCluster{}, errors.Wrapf(err, "could not generate node deployment metadata for %s", workload.Name)
+				}
+				cluster.SolutionType = deploymentData.ProjectName
+				continue
+			}
+			cluster.Workers = append(cluster.Workers, node)
 		}
+	}
+	if cluster.Master == nil {
+		return workloads.K8sCluster{}, fmt.Errorf("failed to get master node for k8s cluster %s", deploymentName)
 	}
 	cluster.NodeDeploymentID = nodeDeploymentID
 	return cluster, nil
+}
+
+func isMasterNode(workload gridtypes.Workload) (bool, error) {
+	dataI, err := workload.WorkloadData()
+	if err != nil {
+		return false, errors.Wrapf(err, "could not get workload %s data", workload.Name)
+	}
+	data, ok := dataI.(*zos.ZMachine)
+	if !ok {
+		return false, errors.Wrapf(err, "could not create vm workload from data %v", dataI)
+	}
+	if data.Env["K3S_URL"] == "" {
+		return true, nil
+	}
+	return false, nil
 }
 
 func (st *State) computeK8sDeploymentResources(nodeID uint32, dl gridtypes.Deployment) (
