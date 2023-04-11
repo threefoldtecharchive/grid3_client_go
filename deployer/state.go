@@ -138,7 +138,7 @@ func (st *State) LoadK8sFromGrid(nodeIDs []uint32, deploymentName string) (workl
 	for _, nodeID := range nodeIDs {
 		_, deployment, err := st.GetWorkloadInDeployment(nodeID, "", deploymentName)
 		if err != nil {
-			return workloads.K8sCluster{}, errors.Wrapf(err, "could not get workload %s", deploymentName)
+			return workloads.K8sCluster{}, errors.Wrapf(err, "could not get deployment %s", deploymentName)
 		}
 		clusterDeployments[nodeID] = deployment
 		nodeDeploymentID[nodeID] = deployment.ContractID
