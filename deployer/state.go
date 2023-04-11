@@ -57,7 +57,19 @@ func (st *State) LoadGatewayFQDNFromGrid(nodeID uint32, name string, deploymentN
 		return workloads.GatewayFQDNProxy{}, errors.Wrapf(err, "could not get workload from node %d within deployment %v", nodeID, dl)
 	}
 
-	return workloads.NewGatewayFQDNProxyFromZosWorkload(wl)
+	deploymentData, err := workloads.ParseDeploymentData(dl.Metadata)
+	if err != nil {
+		return workloads.GatewayFQDNProxy{}, errors.Wrapf(err, "could not generate deployment metadata for %s", name)
+	}
+	gateway, err := workloads.NewGatewayFQDNProxyFromZosWorkload(wl)
+	if err != nil {
+		return workloads.GatewayFQDNProxy{}, err
+	}
+	gateway.ContractID = dl.ContractID
+	gateway.NodeID = nodeID
+	gateway.SolutionType = deploymentData.ProjectName
+	gateway.NodeDeploymentID = map[uint32]uint64{nodeID: dl.ContractID}
+	return gateway, nil
 }
 
 // LoadQSFSFromGrid loads a QSFS from grid
@@ -77,7 +89,24 @@ func (st *State) LoadGatewayNameFromGrid(nodeID uint32, name string, deploymentN
 		return workloads.GatewayNameProxy{}, errors.Wrapf(err, "could not get workload from node %d within deployment %v", nodeID, dl)
 	}
 
-	return workloads.NewGatewayNameProxyFromZosWorkload(wl)
+	nameContractID, err := st.substrate.GetContractIDByNameRegistration(wl.Name.String())
+	if err != nil {
+		return workloads.GatewayNameProxy{}, errors.Wrapf(err, "failed to get gateway name contract %s", name)
+	}
+	deploymentData, err := workloads.ParseDeploymentData(dl.Metadata)
+	if err != nil {
+		return workloads.GatewayNameProxy{}, errors.Wrapf(err, "could not generate deployment metadata for %s", name)
+	}
+	gateway, err := workloads.NewGatewayNameProxyFromZosWorkload(wl)
+	if err != nil {
+		return workloads.GatewayNameProxy{}, err
+	}
+	gateway.NameContractID = nameContractID
+	gateway.ContractID = dl.ContractID
+	gateway.NodeID = nodeID
+	gateway.SolutionType = deploymentData.ProjectName
+	gateway.NodeDeploymentID = map[uint32]uint64{nodeID: dl.ContractID}
+	return gateway, nil
 }
 
 // LoadZdbFromGrid loads a zdb from grid
@@ -104,6 +133,7 @@ func (st *State) LoadVMFromGrid(nodeID uint32, name string, deploymentName strin
 func (st *State) LoadK8sFromGrid(masterNode map[uint32]string, workerNodes map[uint32][]string, deploymentName string) (workloads.K8sCluster, error) {
 	cluster := workloads.K8sCluster{}
 
+	nodeDeploymentID := map[uint32]uint64{}
 	for nodeID, name := range masterNode {
 		wl, dl, err := st.GetWorkloadInDeployment(nodeID, name, deploymentName)
 		if err != nil {
@@ -121,6 +151,13 @@ func (st *State) LoadK8sFromGrid(masterNode map[uint32]string, workerNodes map[u
 		}
 
 		cluster.Master = &master
+		nodeDeploymentID[nodeID] = dl.ContractID
+
+		deploymentData, err := workloads.ParseDeploymentData(dl.Metadata)
+		if err != nil {
+			return workloads.K8sCluster{}, errors.Wrapf(err, "could not generate master deployment metadata for %s", name)
+		}
+		cluster.SolutionType = deploymentData.ProjectName
 	}
 
 	for nodeID, workerNames := range workerNodes {
@@ -141,8 +178,10 @@ func (st *State) LoadK8sFromGrid(masterNode map[uint32]string, workerNodes map[u
 			}
 
 			cluster.Workers = append(cluster.Workers, worker)
+			nodeDeploymentID[nodeID] = dl.ContractID
 		}
 	}
+	cluster.NodeDeploymentID = nodeDeploymentID
 	return cluster, nil
 }
 
@@ -310,4 +349,8 @@ func (st *State) GetNetworks() NetworkState {
 // SetNetworks sets state networks
 func (st *State) SetNetworks(networks NetworkState) {
 	st.networks = networks
+}
+
+func (st *State) SetCurrentDeployments(nodeID uint32, contracts []uint64) {
+	st.currentNodeDeployments[nodeID] = contracts
 }
